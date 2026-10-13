@@ -149,6 +149,9 @@ class Track(Base):
     )
     status: Mapped[str] = mapped_column(String(16), default="uploading", index=True)
     error_code: Mapped[str | None] = mapped_column(String(64))
+    source_uri: Mapped[str | None] = mapped_column(String(512))
+    license_id: Mapped[str | None] = mapped_column(String(64))
+    license_uri: Mapped[str | None] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -201,6 +204,8 @@ class Upload(Base):
     content_type: Mapped[str] = mapped_column(String(128))
     expected_size: Mapped[int] = mapped_column(BigInteger)
     actual_size: Mapped[int | None] = mapped_column(BigInteger)
+    complete_checksum: Mapped[str | None] = mapped_column(String(64))
+    purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(16), default="reserved")
     job_id: Mapped[UUID | None]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

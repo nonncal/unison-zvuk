@@ -1099,6 +1099,42 @@
           ],
           "default": null,
           "title": "Coverurl"
+        },
+        "sourceUri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceuri"
+        },
+        "licenseId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseid"
+        },
+        "licenseUri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseuri"
         }
       },
       "required": [

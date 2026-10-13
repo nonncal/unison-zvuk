@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     session_secret: SecretStr
     invite_encryption_key: SecretStr
     s3_endpoint: str = "http://localhost:9000"
+    s3_public_endpoint: str = "http://localhost:9000"
     s3_bucket: str = "unison-audio"
     s3_region: str = "us-east-1"
     s3_access_key: SecretStr
@@ -40,6 +41,11 @@ class Settings(BaseSettings):
     join_per_minute: int = Field(default=20, ge=1)
     bootstrap_per_minute: int = Field(default=60, ge=1)
     readiness_wait_seconds: float = Field(default=8, ge=0.1, le=8)
+    upload_per_minute: int = Field(default=5, ge=1)
+    room_max_files: int = Field(default=10, ge=1)
+    room_max_source_bytes: int = Field(default=200 * 1024 * 1024, ge=1)
+    room_max_pending_uploads: int = Field(default=2, ge=1)
+    jobs_dir: Path = Path("/jobs")
     log_level: str = "INFO"
 
     @model_validator(mode="after")
@@ -55,6 +61,15 @@ class Settings(BaseSettings):
         if len(self.session_secret.get_secret_value()) < 32:
             raise ValueError("SESSION_SECRET must have at least 32 characters")
         Fernet(self.invite_encryption_key.get_secret_value().encode())
+        media = urlsplit(self.s3_public_endpoint)
+        if (
+            media.scheme not in {"http", "https"}
+            or not media.hostname
+            or (media.username or media.password or media.query or media.fragment)
+        ):
+            raise ValueError("S3_PUBLIC_ENDPOINT must be a public HTTP endpoint")
+        if media.scheme != "https" and media.hostname not in {"localhost", "127.0.0.1", "::1"}:
+            raise ValueError("Public media HTTPS is required outside localhost")
         return self
 
     @property
@@ -81,6 +96,7 @@ def write_development_env(path: Path) -> None:
         f"SESSION_SECRET={secrets.token_urlsafe(48)}",
         f"INVITE_ENCRYPTION_KEY={Fernet.generate_key().decode()}",
         "S3_ENDPOINT=http://localhost:9000",
+        "S3_PUBLIC_ENDPOINT=http://localhost:9000",
         "S3_BUCKET=unison-audio",
         "S3_REGION=us-east-1",
         f"S3_ACCESS_KEY={access}",

@@ -13,4 +13,6 @@ celery_app.conf.update(
     task_time_limit=125,
     task_soft_time_limit=120,
     broker_connection_retry_on_startup=True,
+    imports=["app.workers.audio"],
+    task_routes={"unison.audio.process": {"queue": "audio"}},
 )

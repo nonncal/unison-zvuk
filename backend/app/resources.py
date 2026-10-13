@@ -34,6 +34,18 @@ class Resources:
             ),
         )
         self.bucket = settings.s3_bucket
+        self.signer = boto3.client(
+            "s3",
+            endpoint_url=settings.s3_public_endpoint,
+            region_name=settings.s3_region,
+            aws_access_key_id=settings.s3_access_key.get_secret_value(),
+            aws_secret_access_key=settings.s3_secret_key.get_secret_value(),
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+                request_checksum_calculation="when_required",
+            ),
+        )
 
     async def readiness(self) -> dict[str, bool]:
         async def database() -> None:
@@ -58,6 +70,7 @@ class Resources:
         await self.redis.aclose()
         await self.engine.dispose()
         self.storage.close()
+        self.signer.close()
 
 
 def health_result(checks: dict[str, bool]) -> tuple[int, dict[str, Any]]:

@@ -1,0 +1,327 @@
+import argparse
+import hashlib
+import json
+import os
+import resource
+import signal
+import stat
+import subprocess
+import time
+import unicodedata
+from decimal import ROUND_CEILING, Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from app.services.media_jobs import (
+    MediaFailed,
+    MediaReady,
+    MediaRequest,
+    atomic_json,
+    read_file,
+    read_prefix,
+)
+
+
+class ProcessingFailure(Exception):
+    def __init__(self, code: str) -> None:
+        self.code = code
+
+
+def text_metadata(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    return "".join(c for c in value if not unicodedata.category(c).startswith("C")).strip()[:200]
+
+
+def sandbox(directory: Path, command: list[str]) -> list[str]:
+    args = [
+        "/usr/bin/bwrap",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--new-session",
+        "--die-with-parent",
+        "--clearenv",
+        "--cap-drop",
+        "ALL",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/lib",
+        "/lib",
+    ]
+    if Path("/lib64").exists():
+        args += ["--ro-bind", "/lib64", "/lib64"]
+    args += [
+        "--ro-bind",
+        "/etc",
+        "/etc",
+        "--dev",
+        "/dev",
+        "--ro-bind",
+        str(directory / "source.bin"),
+        "/input",
+        "--bind",
+        str(directory / "out"),
+        "/work",
+        "--bind",
+        str(directory / "out" / "tmp"),
+        "/tmp",
+        "--chdir",
+        "/work",
+        "--setenv",
+        "PATH",
+        "/usr/bin",
+        "--setenv",
+        "HOME",
+        "/tmp",
+        "--setenv",
+        "TMPDIR",
+        "/tmp",
+        "--setenv",
+        "OPENBLAS_NUM_THREADS",
+        "1",
+        "--setenv",
+        "OMP_NUM_THREADS",
+        "1",
+    ]
+    return args + command
+
+
+def execute(
+    directory: Path, command: list[str], output: str, seconds: int, max_file_bytes: int
+) -> None:
+    def limits() -> None:
+        resource.setrlimit(resource.RLIMIT_CPU, (seconds, seconds))
+        resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (max_file_bytes, max_file_bytes))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+        os.umask(0o077)
+
+    stdout_fd = os.open(
+        directory / "out" / output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+    )
+    stderr_fd = os.open(
+        directory / "out" / (output + ".stderr"),
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+        0o600,
+    )
+    try:
+        with (
+            os.fdopen(stdout_fd, "wb", closefd=False) as stdout,
+            os.fdopen(stderr_fd, "wb", closefd=False) as stderr,
+        ):
+            process = subprocess.Popen(
+                sandbox(directory, command),
+                stdin=subprocess.DEVNULL,
+                stdout=stdout,
+                stderr=stderr,
+                shell=False,
+                start_new_session=True,
+                close_fds=True,
+                preexec_fn=limits,
+            )
+            try:
+                code = process.wait(timeout=seconds)
+            except subprocess.TimeoutExpired as error:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+                raise ProcessingFailure("PROCESSING_TIMEOUT") from error
+        if code != 0:
+            diagnostic = read_prefix(directory / "out" / (output + ".stderr"))
+            if b"bwrap:" in diagnostic:
+                raise ProcessingFailure("PROCESSING_UNAVAILABLE")
+            if any(word in diagnostic.lower() for word in [b"encrypted", b"decrypt", b"drm"]):
+                raise ProcessingFailure("DRM_UNSUPPORTED")
+            if code in {-signal.SIGXFSZ, 128 + signal.SIGXFSZ} or b"File too large" in diagnostic:
+                raise ProcessingFailure("OUTPUT_LIMIT")
+            if code in {-signal.SIGXCPU, 128 + signal.SIGXCPU}:
+                raise ProcessingFailure("PROCESSING_TIMEOUT")
+            raise ProcessingFailure("MEDIA_INVALID")
+    finally:
+        os.close(stdout_fd)
+        os.close(stderr_fd)
+
+
+def probe(directory: Path, path: str, output: str) -> dict[str, Any]:
+    execute(
+        directory,
+        [
+            "/usr/bin/ffprobe",
+            "-v",
+            "error",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-show_streams",
+            "-show_format",
+            "-of",
+            "json",
+            path,
+        ],
+        output,
+        8,
+        1024 * 1024,
+    )
+    parsed: dict[str, Any] = json.loads(read_file(directory / "out" / output, 1024 * 1024))
+    return parsed
+
+
+def duration_ms(data: dict[str, Any]) -> int:
+    try:
+        duration = Decimal(str(data.get("format", {}).get("duration", "NaN")))
+    except InvalidOperation as error:
+        raise ProcessingFailure("MEDIA_INVALID") from error
+    if not duration.is_finite() or duration <= 0:
+        raise ProcessingFailure("MEDIA_INVALID")
+    result = int((duration * 1000).to_integral_value(rounding=ROUND_CEILING))
+    if result > 900_000:
+        raise ProcessingFailure("DURATION_LIMIT")
+    return result
+
+
+def normalize(directory: Path, request: MediaRequest) -> MediaReady:
+    source = read_file(directory / "source.bin", 50 * 1024 * 1024)
+    if not source:
+        raise ProcessingFailure("MEDIA_INVALID")
+    if hashlib.sha256(source).hexdigest() != request.source_checksum:
+        raise ProcessingFailure("MEDIA_INVALID")
+    original = probe(directory, "/input", "probe.json")
+    formats = set(original.get("format", {}).get("format_name", "").split(","))
+    accepted = {
+        "audio/mpeg": {"mp3"},
+        "audio/wav": {"wav"},
+        "audio/x-wav": {"wav"},
+        "audio/mp4": {"mov", "mp4", "m4a"},
+        "audio/x-m4a": {"mov", "mp4", "m4a"},
+    }
+    if not formats.intersection(accepted[request.content_type]):
+        raise ProcessingFailure("UNSUPPORTED_MEDIA")
+    streams = original.get("streams", [])
+    audio = [stream for stream in streams if stream.get("codec_type") == "audio"]
+    video = [
+        stream
+        for stream in streams
+        if stream.get("codec_type") == "video"
+        and not stream.get("disposition", {}).get("attached_pic")
+    ]
+    if not audio or video:
+        raise ProcessingFailure("UNSUPPORTED_MEDIA")
+    source_duration = duration_ms(original)
+    clip_seconds = min(Decimal(source_duration) / 1000, Decimal("899.95"))
+    execute(
+        directory,
+        [
+            "/usr/bin/ffmpeg",
+            "-nostdin",
+            "-v",
+            "error",
+            "-n",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-threads",
+            "1",
+            "-i",
+            "/input",
+            "-map",
+            "0:a:0",
+            "-vn",
+            "-sn",
+            "-dn",
+            "-map_metadata",
+            "-1",
+            "-filter_threads",
+            "1",
+            "-threads",
+            "1",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "192k",
+            "-t",
+            str(clip_seconds),
+            "-f",
+            "mp3",
+            "/work/normalized.mp3",
+        ],
+        "encode.log",
+        90,
+        100 * 1024 * 1024,
+    )
+    normalized = directory / "out" / "normalized.mp3"
+    info = normalized.stat(follow_symlinks=False)
+    if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= 100 * 1024 * 1024:
+        raise ProcessingFailure("OUTPUT_LIMIT")
+    output = probe(directory, "/work/normalized.mp3", "output-probe.json")
+    output_audio = [s for s in output.get("streams", []) if s.get("codec_type") == "audio"]
+    if (
+        not output_audio
+        or output_audio[0].get("codec_name") != "mp3"
+        or int(output_audio[0].get("sample_rate", 0)) != 44100
+        or (output_audio[0].get("channels") != 2)
+    ):
+        raise ProcessingFailure("MEDIA_INVALID")
+    tags = original.get("format", {}).get("tags", {})
+    return MediaReady(
+        duration_ms=duration_ms(output),
+        title=text_metadata(tags.get("title", "")),
+        artist=text_metadata(tags.get("artist", "")),
+    )
+
+
+def run(root: Path) -> None:
+    root = root.resolve(strict=True)
+    while True:
+        Path("/tmp/transcoder-live").write_text(str(time.time()))
+        for directory in sorted(root.iterdir()):
+            if directory.is_symlink() or not directory.is_dir():
+                continue
+            try:
+                job_id = UUID(directory.name)
+            except ValueError:
+                continue
+            if (
+                directory.resolve(strict=True).parent != root
+                or (directory / "result.json").exists()
+            ):
+                continue
+            try:
+                request = MediaRequest.model_validate_json(
+                    read_file(directory / "request.json", 4096)
+                )
+                if request.job_id != job_id:
+                    raise ValueError("Job ID mismatch")
+            except FileNotFoundError:
+                continue
+            except ValueError:
+                result = MediaFailed(error_code="MEDIA_INVALID")
+                atomic_json(
+                    directory / "result.json", result.model_dump(mode="json", by_alias=True)
+                )
+                continue
+            try:
+                ready = normalize(directory, request)
+                atomic_json(directory / "result.json", ready.model_dump(mode="json", by_alias=True))
+            except ProcessingFailure as error:
+                failed = MediaFailed.model_validate({"errorCode": error.code})
+                atomic_json(
+                    directory / "result.json", failed.model_dump(mode="json", by_alias=True)
+                )
+            except Exception:
+                failed = MediaFailed(error_code="MEDIA_INVALID")
+                atomic_json(
+                    directory / "result.json", failed.model_dump(mode="json", by_alias=True)
+                )
+        time.sleep(0.1)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--jobs-dir", type=Path, default=Path("/jobs"))
+    run(parser.parse_args().jobs_dir)

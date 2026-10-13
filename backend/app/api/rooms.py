@@ -60,6 +60,7 @@ async def limit_request(request: Request, operation: str, session: Session | Non
         "join": security.settings.join_per_minute,
         "preview": security.settings.join_per_minute,
         "bootstrap": security.settings.bootstrap_per_minute,
+        "upload": security.settings.upload_per_minute,
     }[operation]
     ip = request.client.host if request.client else "unknown"
     await limiter.check(operation + ":ip", ip, limit)
@@ -97,9 +98,9 @@ async def bootstrap(request: Request, response: Response, db: Database) -> wire.
             "capacity": 2,
             "maxUploadBytes": security.settings.upload_max_bytes,
             "maxDurationMs": security.settings.audio_max_duration_ms,
-            "maxRoomFiles": 10,
-            "maxRoomSourceBytes": 200 * 1024 * 1024,
-            "maxPendingUploads": 2,
+            "maxRoomFiles": security.settings.room_max_files,
+            "maxRoomSourceBytes": security.settings.room_max_source_bytes,
+            "maxPendingUploads": security.settings.room_max_pending_uploads,
         },
     )
 

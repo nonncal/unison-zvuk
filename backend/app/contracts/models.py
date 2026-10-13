@@ -1,8 +1,18 @@
 import unicodedata
-from typing import Annotated, Literal
+from pathlib import PurePath
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 from pydantic.alias_generators import to_camel
 
 Milliseconds = Annotated[StrictInt, Field(ge=0, le=9_007_199_254_740_991)]
@@ -153,7 +163,20 @@ class ReserveUpload(InputModel):
             value = plain_text(value)
             if "/" in value or "\\" in value:
                 raise ValueError("Only a file name is allowed")
+            if PurePath(value).suffix.lower() not in {".mp3", ".wav", ".m4a"}:
+                raise ValueError("Only MP3, WAV and M4A files are supported")
         return value
+
+    @model_validator(mode="after")
+    def match_extension(self) -> Self:
+        allowed = {
+            ".mp3": {"audio/mpeg"},
+            ".wav": {"audio/wav", "audio/x-wav"},
+            ".m4a": {"audio/mp4", "audio/x-m4a"},
+        }
+        if self.content_type not in allowed[PurePath(self.file_name).suffix.lower()]:
+            raise ValueError("File extension and content type disagree")
+        return self
 
 
 class CompleteUpload(InputModel):
@@ -169,9 +192,37 @@ class Track(WireModel):
     error_code: StrictStr | None = None
     media_version: StrictStr | None = None
     cover_url: StrictStr | None = None
+    source_uri: StrictStr | None = None
+    license_id: StrictStr | None = None
+    license_uri: StrictStr | None = None
 
 
 class Bootstrap(WireModel):
     csrf_token: StrictStr
     protocol_version: Literal[1] = 1
     limits: dict[str, StrictInt]
+
+
+class TrackList(WireModel):
+    items: list[Track]
+    next_cursor: UUID | None = None
+
+
+class ReserveUploadResult(WireModel):
+    upload_id: UUID
+    upload_url: StrictStr
+    required_headers: dict[str, StrictStr]
+    expires_at: Milliseconds
+
+
+class CompleteUploadResult(WireModel):
+    track_id: UUID
+    status: Literal["processing"] = "processing"
+
+
+class PlaybackURL(WireModel):
+    url: StrictStr
+    expires_at: Milliseconds
+    media_version: StrictStr
+    checksum: StrictStr
+    content_type: StrictStr

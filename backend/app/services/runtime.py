@@ -10,6 +10,7 @@ from app.db import models as dbm
 from app.domain.playback import position_at, promote
 from app.resources import Resources
 from app.services.clock import Clock
+from app.services.job_dispatch import JobDispatcher
 from app.services.security import Security
 from app.ws.manager import Manager
 
@@ -32,6 +33,7 @@ class Runtime:
         self.rooms = self.manager.rooms
         self.playback = self.manager.playback
         self.settings = security.settings
+        self.jobs = JobDispatcher(resources, self.settings)
         self.ready = False
         self.owner: AsyncConnection | None = None
         self.owner_locked = False
@@ -41,6 +43,7 @@ class Runtime:
 
     async def start(self) -> None:
         await self.acquire()
+        self.jobs.start()
         self.task = asyncio.create_task(self.run(), name="room-runtime")
 
     async def acquire(self) -> None:
@@ -98,6 +101,7 @@ class Runtime:
 
     async def stop(self) -> None:
         self.manager.stop_all()
+        await self.jobs.stop()
         if self.task is not None:
             self.task.cancel()
             await asyncio.gather(self.task, return_exceptions=True)
