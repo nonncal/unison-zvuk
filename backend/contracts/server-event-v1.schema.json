@@ -1,0 +1,1224 @@
+{
+  "$defs": {
+    "AckPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "acceptedPlaybackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Acceptedplaybackrevision",
+          "type": "integer"
+        },
+        "effectiveAtServerTimeMs": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effectiveatservertimems"
+        }
+      },
+      "required": [
+        "requestId",
+        "acceptedPlaybackRevision"
+      ],
+      "title": "AckPayload",
+      "type": "object"
+    },
+    "ClockReply": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "clock.reply",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClockReplyPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "ClockReply",
+      "type": "object"
+    },
+    "ClockReplyPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "clientSentAtMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Clientsentatms",
+          "type": "integer"
+        },
+        "probeId": {
+          "format": "uuid",
+          "title": "Probeid",
+          "type": "string"
+        },
+        "serverReceivedAtMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Serverreceivedatms",
+          "type": "integer"
+        },
+        "serverSentAtMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Serversentatms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "clientSentAtMs",
+        "probeId",
+        "serverReceivedAtMs",
+        "serverSentAtMs"
+      ],
+      "title": "ClockReplyPayload",
+      "type": "object"
+    },
+    "ClosedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "enum": [
+            "closedByHost",
+            "expired",
+            "emptyTimeout"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "ClosedPayload",
+      "type": "object"
+    },
+    "CommandAck": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "command.ack",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/AckPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "CommandAck",
+      "type": "object"
+    },
+    "CommandError": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "command.error",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ErrorPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "CommandError",
+      "type": "object"
+    },
+    "ErrorPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requestid"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Snapshot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "requestId",
+        "code",
+        "message"
+      ],
+      "title": "ErrorPayload",
+      "type": "object"
+    },
+    "HeartbeatPing": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "heartbeat.ping",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PingPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "HeartbeatPing",
+      "type": "object"
+    },
+    "Hello": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "hello",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/HelloPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "Hello",
+      "type": "object"
+    },
+    "HelloPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "connectionId": {
+          "format": "uuid",
+          "title": "Connectionid",
+          "type": "string"
+        },
+        "epoch": {
+          "format": "uuid",
+          "title": "Epoch",
+          "type": "string"
+        },
+        "protocolVersion": {
+          "const": 1,
+          "default": 1,
+          "title": "Protocolversion",
+          "type": "integer"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "connectionId",
+        "epoch",
+        "snapshot"
+      ],
+      "title": "HelloPayload",
+      "type": "object"
+    },
+    "HostChanged": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "host.changed",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/HostPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "HostChanged",
+      "type": "object"
+    },
+    "HostPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "participantId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Participantid"
+        }
+      },
+      "required": [
+        "participantId"
+      ],
+      "title": "HostPayload",
+      "type": "object"
+    },
+    "Participant": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "displayName": {
+          "title": "Displayname",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "host",
+            "listener"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "connectionState": {
+          "enum": [
+            "online",
+            "offline",
+            "connecting"
+          ],
+          "title": "Connectionstate",
+          "type": "string"
+        },
+        "readiness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Readiness"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "role",
+        "connectionState",
+        "readiness"
+      ],
+      "title": "Participant",
+      "type": "object"
+    },
+    "PendingTransition": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "play",
+            "pause",
+            "seek"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "nextStatus": {
+          "enum": [
+            "paused",
+            "playing",
+            "ended"
+          ],
+          "title": "Nextstatus",
+          "type": "string"
+        },
+        "positionMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Positionms",
+          "type": "integer"
+        },
+        "effectiveAtServerTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Effectiveatservertimems",
+          "type": "integer"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trackid"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mediaversion"
+        }
+      },
+      "required": [
+        "type",
+        "nextStatus",
+        "positionMs",
+        "effectiveAtServerTimeMs"
+      ],
+      "title": "PendingTransition",
+      "type": "object"
+    },
+    "PingPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "pingId": {
+          "format": "uuid",
+          "title": "Pingid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pingId"
+      ],
+      "title": "PingPayload",
+      "type": "object"
+    },
+    "Playback": {
+      "additionalProperties": false,
+      "properties": {
+        "roomId": {
+          "format": "uuid",
+          "title": "Roomid",
+          "type": "string"
+        },
+        "epoch": {
+          "format": "uuid",
+          "title": "Epoch",
+          "type": "string"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Trackid"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mediaversion"
+        },
+        "status": {
+          "enum": [
+            "empty",
+            "paused",
+            "playing",
+            "ended"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "positionMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Positionms",
+          "type": "integer"
+        },
+        "anchorServerTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Anchorservertimems",
+          "type": "integer"
+        },
+        "durationMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Durationms",
+          "type": "integer"
+        },
+        "pendingTransition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PendingTransition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "roomId",
+        "epoch",
+        "trackId",
+        "mediaVersion",
+        "status",
+        "positionMs",
+        "anchorServerTimeMs",
+        "durationMs",
+        "pendingTransition"
+      ],
+      "title": "Playback",
+      "type": "object"
+    },
+    "PlaybackState": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "playback.state",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Playback"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "PlaybackState",
+      "type": "object"
+    },
+    "PresenceChanged": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "presence.changed",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PresencePayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "PresenceChanged",
+      "type": "object"
+    },
+    "PresencePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "presenceSeq": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Presenceseq",
+          "type": "integer"
+        },
+        "participants": {
+          "items": {
+            "$ref": "#/$defs/Participant"
+          },
+          "title": "Participants",
+          "type": "array"
+        }
+      },
+      "required": [
+        "presenceSeq",
+        "participants"
+      ],
+      "title": "PresencePayload",
+      "type": "object"
+    },
+    "Readiness": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "mediaVersion": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Mediaversion",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "loading",
+            "ready",
+            "buffering",
+            "autoplayBlocked",
+            "error"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "bufferedAheadMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Bufferedaheadms",
+          "type": "integer"
+        },
+        "autoplayAllowed": {
+          "title": "Autoplayallowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "trackId",
+        "mediaVersion",
+        "state",
+        "bufferedAheadMs",
+        "autoplayAllowed"
+      ],
+      "title": "Readiness",
+      "type": "object"
+    },
+    "Room": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "closed",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        },
+        "hostParticipantId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hostparticipantid"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "capacity",
+        "expiresAt",
+        "hostParticipantId"
+      ],
+      "title": "Room",
+      "type": "object"
+    },
+    "RoomClosed": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "room.closed",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClosedPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "RoomClosed",
+      "type": "object"
+    },
+    "RoomSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "room.snapshot",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "RoomSnapshot",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "room": {
+          "$ref": "#/$defs/Room"
+        },
+        "participants": {
+          "items": {
+            "$ref": "#/$defs/Participant"
+          },
+          "title": "Participants",
+          "type": "array"
+        },
+        "playback": {
+          "$ref": "#/$defs/Playback"
+        },
+        "presenceSeq": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Presenceseq",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "room",
+        "participants",
+        "playback",
+        "presenceSeq",
+        "playbackRevision"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "Track": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "artist": {
+          "title": "Artist",
+          "type": "string"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "maximum": 900000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Durationms"
+        },
+        "status": {
+          "enum": [
+            "uploading",
+            "processing",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errorcode"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mediaversion"
+        },
+        "coverUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverurl"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "artist",
+        "durationMs",
+        "status"
+      ],
+      "title": "Track",
+      "type": "object"
+    },
+    "TrackPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "track": {
+          "$ref": "#/$defs/Track"
+        }
+      },
+      "required": [
+        "track"
+      ],
+      "title": "TrackPayload",
+      "type": "object"
+    },
+    "TrackUpdated": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "default": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "track.updated",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/TrackPayload"
+        }
+      },
+      "required": [
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "TrackUpdated",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "clock.reply": "#/$defs/ClockReply",
+      "command.ack": "#/$defs/CommandAck",
+      "command.error": "#/$defs/CommandError",
+      "heartbeat.ping": "#/$defs/HeartbeatPing",
+      "hello": "#/$defs/Hello",
+      "host.changed": "#/$defs/HostChanged",
+      "playback.state": "#/$defs/PlaybackState",
+      "presence.changed": "#/$defs/PresenceChanged",
+      "room.closed": "#/$defs/RoomClosed",
+      "room.snapshot": "#/$defs/RoomSnapshot",
+      "track.updated": "#/$defs/TrackUpdated"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Hello"
+    },
+    {
+      "$ref": "#/$defs/RoomSnapshot"
+    },
+    {
+      "$ref": "#/$defs/PlaybackState"
+    },
+    {
+      "$ref": "#/$defs/ClockReply"
+    },
+    {
+      "$ref": "#/$defs/HeartbeatPing"
+    },
+    {
+      "$ref": "#/$defs/PresenceChanged"
+    },
+    {
+      "$ref": "#/$defs/HostChanged"
+    },
+    {
+      "$ref": "#/$defs/TrackUpdated"
+    },
+    {
+      "$ref": "#/$defs/RoomClosed"
+    },
+    {
+      "$ref": "#/$defs/CommandAck"
+    },
+    {
+      "$ref": "#/$defs/CommandError"
+    }
+  ]
+}

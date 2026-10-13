@@ -72,8 +72,8 @@ def test_version_is_required_and_only_wire_aliases_are_accepted() -> None:
 @pytest.mark.parametrize("name", ["", " " * 3, "x" * 33, "Ан\nя", "К\u202eирилл"])
 def test_display_names_are_plain_bounded_text(name: str) -> None:
     with pytest.raises(ValidationError):
-        CreateRoom(display_name=name)
+        CreateRoom.model_validate({"displayName": name})
 
 
 def test_names_are_trimmed_without_ascii_only_restriction() -> None:
-    assert CreateRoom(display_name="  Аня  ").display_name == "Аня"
+    assert CreateRoom.model_validate({"displayName": "  Аня  "}).display_name == "Аня"

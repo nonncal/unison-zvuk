@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from app.contracts.ws import command_adapter
+from app.contracts.ws import command_adapter, event_adapter
 from app.main import create_app
 
 
@@ -13,6 +13,9 @@ def export(path: Path) -> None:
     )
     (path / "openapi-v1.json").write_text(
         json.dumps(create_app().openapi(), ensure_ascii=False, indent=2) + "\n"
+    )
+    (path / "server-event-v1.schema.json").write_text(
+        json.dumps(event_adapter.json_schema(by_alias=True), ensure_ascii=False, indent=2) + "\n"
     )
 
 

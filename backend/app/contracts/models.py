@@ -16,13 +16,17 @@ class WireModel(BaseModel):
     )
 
 
+class InputModel(WireModel):
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=False)
+
+
 def plain_text(value: str) -> str:
     if any(unicodedata.category(char) in {"Cc", "Cf", "Cs"} for char in value):
         raise ValueError("Control characters are not allowed")
     return value.strip()
 
 
-class CreateRoom(WireModel):
+class CreateRoom(InputModel):
     display_name: Annotated[StrictStr, Field(min_length=1, max_length=32)]
     title: Annotated[StrictStr, Field(min_length=1, max_length=64)] = "Музыкальная комната"
 
@@ -32,7 +36,7 @@ class CreateRoom(WireModel):
         return plain_text(value) if isinstance(value, str) else value
 
 
-class PreviewInvite(WireModel):
+class PreviewInvite(InputModel):
     invite_token: Annotated[
         StrictStr, Field(min_length=43, max_length=43, pattern=r"^[A-Za-z0-9_-]+$")
     ]
@@ -47,7 +51,7 @@ class JoinRoom(PreviewInvite):
         return plain_text(value) if isinstance(value, str) else value
 
 
-class CloseRoom(WireModel):
+class CloseRoom(InputModel):
     expected_playback_revision: Revision
 
 
@@ -106,6 +110,7 @@ class Snapshot(WireModel):
     participants: list[Participant]
     playback: Playback
     presence_seq: Revision
+    playback_revision: Revision
 
 
 class CreateRoomResult(WireModel):
@@ -136,7 +141,7 @@ class InviteResult(WireModel):
     expires_at: Milliseconds
 
 
-class ReserveUpload(WireModel):
+class ReserveUpload(InputModel):
     file_name: Annotated[StrictStr, Field(min_length=1, max_length=200)]
     content_type: Literal["audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "audio/x-m4a"]
     size_bytes: Annotated[StrictInt, Field(gt=0, le=50 * 1024 * 1024)]
@@ -151,7 +156,7 @@ class ReserveUpload(WireModel):
         return value
 
 
-class CompleteUpload(WireModel):
+class CompleteUpload(InputModel):
     checksum: Annotated[StrictStr, Field(pattern=r"^[a-f0-9]{64}$")] | None = None
 
 
@@ -164,3 +169,9 @@ class Track(WireModel):
     error_code: StrictStr | None = None
     media_version: StrictStr | None = None
     cover_url: StrictStr | None = None
+
+
+class Bootstrap(WireModel):
+    csrf_token: StrictStr
+    protocol_version: Literal[1] = 1
+    limits: dict[str, StrictInt]

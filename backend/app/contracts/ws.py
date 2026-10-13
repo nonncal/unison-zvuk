@@ -6,11 +6,13 @@ from pydantic import Field, StrictBool, StrictInt, StrictStr, TypeAdapter, field
 from app.contracts.models import (
     EmptyPayload,
     Milliseconds,
+    Participant,
     Playback,
     Position,
     Readiness,
     Revision,
     Snapshot,
+    Track,
     WireModel,
 )
 
@@ -154,6 +156,98 @@ class RoomSnapshot(Event):
 class PlaybackState(Event):
     type: Literal["playback.state"]
     payload: Playback
+
+
+class ClockReplyPayload(ProbePayload):
+    server_received_at_ms: Milliseconds
+    server_sent_at_ms: Milliseconds
+
+
+class ClockReply(Event):
+    type: Literal["clock.reply"]
+    payload: ClockReplyPayload
+
+
+class HeartbeatPing(Event):
+    type: Literal["heartbeat.ping"]
+    payload: PingPayload
+
+
+class PresencePayload(WireModel):
+    presence_seq: Revision
+    participants: list[Participant]
+
+
+class PresenceChanged(Event):
+    type: Literal["presence.changed"]
+    payload: PresencePayload
+
+
+class HostPayload(WireModel):
+    participant_id: UUID | None
+
+
+class HostChanged(Event):
+    type: Literal["host.changed"]
+    payload: HostPayload
+
+
+class TrackPayload(WireModel):
+    track: Track
+
+
+class TrackUpdated(Event):
+    type: Literal["track.updated"]
+    payload: TrackPayload
+
+
+class ClosedPayload(WireModel):
+    reason: Literal["closedByHost", "expired", "emptyTimeout"]
+
+
+class RoomClosed(Event):
+    type: Literal["room.closed"]
+    payload: ClosedPayload
+
+
+class AckPayload(WireModel):
+    request_id: UUID
+    accepted_playback_revision: Revision
+    effective_at_server_time_ms: Milliseconds | None = None
+
+
+class CommandAck(Event):
+    type: Literal["command.ack"]
+    payload: AckPayload
+
+
+class ErrorPayload(WireModel):
+    request_id: UUID | None
+    code: StrictStr
+    message: StrictStr
+    snapshot: Snapshot | None = None
+
+
+class CommandError(Event):
+    type: Literal["command.error"]
+    payload: ErrorPayload
+
+
+ServerEvent = Annotated[
+    Hello
+    | RoomSnapshot
+    | PlaybackState
+    | ClockReply
+    | HeartbeatPing
+    | PresenceChanged
+    | HostChanged
+    | TrackUpdated
+    | RoomClosed
+    | CommandAck
+    | CommandError,
+    Field(discriminator="type"),
+]
+event_adapter = TypeAdapter(cast(type[ServerEvent], ServerEvent))
 
 
 def parse_command(raw: str | bytes, max_bytes: int = 16_384) -> ClientCommand:

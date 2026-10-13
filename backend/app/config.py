@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     ws_queue_size: int = Field(default=100, ge=2)
     heartbeat_seconds: int = Field(default=5, ge=1)
     offline_seconds: int = Field(default=15, ge=2)
+    create_per_minute: int = Field(default=5, ge=1)
+    join_per_minute: int = Field(default=20, ge=1)
+    bootstrap_per_minute: int = Field(default=60, ge=1)
     log_level: str = "INFO"
 
     @model_validator(mode="after")

@@ -5,6 +5,8 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 RUN useradd --uid 10001 --create-home unison
 USER 10001
 EXPOSE 8000

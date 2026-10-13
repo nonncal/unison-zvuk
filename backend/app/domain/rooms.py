@@ -1,0 +1,323 @@
+import hmac
+import secrets
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import Settings
+from app.contracts import models as wire
+from app.db import models as dbm
+from app.domain.errors import DomainError
+from app.services.security import Security, payload_hash
+
+
+def milliseconds(value: datetime) -> int:
+    return int(value.timestamp() * 1000)
+
+
+class Rooms:
+    def __init__(self, settings: Settings, security: Security) -> None:
+        self.settings = settings
+        self.security = security
+
+    def invite_url(self, room: dbm.Room) -> str:
+        token = self.security.decrypt(room.invite_token_encrypted)
+        return f"{self.settings.app_origin.rstrip('/')}/join/{room.id}#invite={token}"
+
+    async def room(self, db: AsyncSession, room_id: UUID, lock: bool = True) -> dbm.Room:
+        query = select(dbm.Room).where(dbm.Room.id == room_id)
+        if lock:
+            query = query.with_for_update()
+        room = await db.scalar(query)
+        if room is None:
+            raise DomainError("NOT_FOUND", "Комната недоступна", 404)
+        return room
+
+    def active(self, room: dbm.Room) -> None:
+        if room.status == "expired" or room.expires_at <= datetime.now(UTC):
+            raise DomainError("ROOM_EXPIRED", "Срок комнаты истёк", 410)
+        if room.status == "closed":
+            raise DomainError("ROOM_CLOSED", "Комната закрыта", 410)
+
+    async def member(
+        self, db: AsyncSession, room: dbm.Room, session_id: UUID, host: bool = False
+    ) -> dbm.Participant:
+        actor = await db.scalar(
+            select(dbm.Participant).where(
+                dbm.Participant.room_id == room.id,
+                dbm.Participant.session_id == session_id,
+                dbm.Participant.left_at.is_(None),
+            )
+        )
+        if actor is None or (
+            host and (actor.role != "host" or room.host_participant_id != actor.id)
+        ):
+            raise DomainError("FORBIDDEN", "Нет доступа к этому действию", 403)
+        return actor
+
+    async def snapshot(self, db: AsyncSession, room: dbm.Room) -> wire.Snapshot:
+        state = await db.get(dbm.PlaybackState, room.id)
+        assert state is not None
+        participants = (
+            await db.scalars(
+                select(dbm.Participant)
+                .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
+                .order_by(dbm.Participant.joined_at, dbm.Participant.id)
+            )
+        ).all()
+        return wire.Snapshot.model_validate(
+            {
+                "room": {
+                    "id": room.id,
+                    "title": room.title,
+                    "status": room.status,
+                    "capacity": room.capacity,
+                    "expires_at": milliseconds(room.expires_at),
+                    "host_participant_id": room.host_participant_id,
+                },
+                "participants": [
+                    {
+                        "id": p.id,
+                        "display_name": p.display_name,
+                        "role": p.role,
+                        "connection_state": "offline",
+                        "readiness": None,
+                    }
+                    for p in participants
+                ],
+                "playback": {
+                    "room_id": room.id,
+                    "epoch": state.epoch,
+                    "track_id": state.track_id,
+                    "media_version": state.media_version,
+                    "status": state.status,
+                    "position_ms": state.position_ms,
+                    "duration_ms": state.duration_ms,
+                    "anchor_server_time_ms": state.anchor_server_time_ms,
+                    "pending_transition": state.pending_transition,
+                },
+                "presence_seq": room.presence_seq,
+                "playback_revision": state.playback_revision,
+            }
+        )
+
+    async def create(
+        self, db: AsyncSession, session: dbm.Session, request_id: UUID, payload: wire.CreateRoom
+    ) -> wire.CreateRoomResult:
+        fingerprint = payload_hash(payload.model_dump(mode="json", by_alias=True))
+        receipt = await db.get(dbm.HttpReceipt, (session.id, "room.create", request_id))
+        now = datetime.now(UTC)
+        if receipt is not None and receipt.expires_at > now:
+            if receipt.payload_hash != fingerprint:
+                raise DomainError(
+                    "DUPLICATE_REQUEST_MISMATCH", "Ключ уже использован для другого запроса"
+                )
+            return wire.CreateRoomResult.model_validate(
+                self.security.unseal_response(receipt.response)
+            )
+        if receipt is not None:
+            await db.delete(receipt)
+            await db.flush()
+        token = secrets.token_urlsafe(32)
+        room = dbm.Room(
+            id=uuid4(),
+            title=payload.title,
+            host_participant_id=None,
+            invite_token_hash=self.security.digest("invite", token),
+            invite_token_encrypted=self.security.encrypt(token),
+            expires_at=now + timedelta(seconds=self.settings.room_ttl_seconds),
+        )
+        db.add(room)
+        await db.flush()
+        host = dbm.Participant(
+            id=uuid4(),
+            room_id=room.id,
+            session_id=session.id,
+            display_name=payload.display_name,
+            role="host",
+        )
+        db.add(host)
+        await db.flush()
+        room.host_participant_id = host.id
+        db.add(dbm.PlaybackState(room_id=room.id, anchor_server_time_ms=milliseconds(now)))
+        await db.flush()
+        snapshot = await self.snapshot(db, room)
+        result = wire.CreateRoomResult(
+            room_id=room.id,
+            participant_id=host.id,
+            invite_url=self.invite_url(room),
+            expires_at=milliseconds(room.expires_at),
+            snapshot=snapshot,
+        )
+        await self.emit_snapshot(db, room)
+        db.add(
+            dbm.HttpReceipt(
+                session_id=session.id,
+                operation="room.create",
+                request_id=request_id,
+                payload_hash=fingerprint,
+                status_code=201,
+                response=self.security.seal_response(result.model_dump(mode="json", by_alias=True)),
+                expires_at=now + timedelta(seconds=self.settings.receipt_ttl_seconds),
+            )
+        )
+        return result
+
+    async def preview(self, db: AsyncSession, token: str) -> wire.PreviewResult:
+        room = await db.scalar(
+            select(dbm.Room).where(
+                dbm.Room.invite_token_hash == self.security.digest("invite", token)
+            )
+        )
+        if room is None:
+            raise DomainError("INVITE_INVALID", "Приглашение недействительно", 404)
+        count = await db.scalar(
+            select(func.count())
+            .select_from(dbm.Participant)
+            .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
+        )
+        return wire.PreviewResult.model_validate(
+            {
+                "room_id": room.id,
+                "title": room.title,
+                "status": "expired" if room.expires_at <= datetime.now(UTC) else room.status,
+                "participant_count": count,
+                "capacity": room.capacity,
+                "expires_at": milliseconds(room.expires_at),
+            }
+        )
+
+    async def join(
+        self, db: AsyncSession, session: dbm.Session, room_id: UUID, payload: wire.JoinRoom
+    ) -> wire.JoinRoomResult:
+        room = await db.scalar(select(dbm.Room).where(dbm.Room.id == room_id).with_for_update())
+        if room is None or not hmac.compare_digest(
+            room.invite_token_hash, self.security.digest("invite", payload.invite_token)
+        ):
+            raise DomainError("INVITE_INVALID", "Приглашение недействительно", 404)
+        self.active(room)
+        actor = await db.scalar(
+            select(dbm.Participant).where(
+                dbm.Participant.room_id == room.id, dbm.Participant.session_id == session.id
+            )
+        )
+        if actor is None or actor.left_at is not None:
+            count = await db.scalar(
+                select(func.count())
+                .select_from(dbm.Participant)
+                .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
+            )
+            if count is not None and count >= room.capacity:
+                raise DomainError("ROOM_FULL", "В комнате уже два участника")
+            role = "listener" if room.host_participant_id else "host"
+            if actor is None:
+                actor = dbm.Participant(
+                    id=uuid4(),
+                    room_id=room.id,
+                    session_id=session.id,
+                    display_name=payload.display_name,
+                    role=role,
+                )
+                db.add(actor)
+            else:
+                actor.left_at = None
+                actor.role = role
+                actor.display_name = payload.display_name
+                actor.joined_at = datetime.now(UTC)
+            await db.flush()
+            if role == "host":
+                room.host_participant_id = actor.id
+            room.empty_since = None
+            room.presence_seq += 1
+            await db.flush()
+            await self.emit_snapshot(db, room)
+        return wire.JoinRoomResult.model_validate(
+            {
+                "participant_id": actor.id,
+                "role": actor.role,
+                "snapshot": await self.snapshot(db, room),
+            }
+        )
+
+    async def emit_snapshot(self, db: AsyncSession, room: dbm.Room) -> None:
+        snapshot = await self.snapshot(db, room)
+        db.add(
+            dbm.Outbox(
+                room_id=room.id,
+                revision=snapshot.playback_revision,
+                event_type="room.snapshot",
+                payload=snapshot.model_dump(mode="json", by_alias=True),
+            )
+        )
+
+    async def leave(self, db: AsyncSession, room: dbm.Room, actor: dbm.Participant) -> None:
+        actor.left_at = datetime.now(UTC)
+        actor.connection_generation += 1
+        actor.role = "listener"
+        await db.flush()
+        if room.host_participant_id == actor.id:
+            successor = await db.scalar(
+                select(dbm.Participant)
+                .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
+                .order_by(dbm.Participant.joined_at, dbm.Participant.id)
+            )
+            room.host_participant_id = successor.id if successor else None
+            if successor:
+                successor.role = "host"
+            else:
+                room.empty_since = datetime.now(UTC)
+            db.add(
+                dbm.Outbox(
+                    room_id=room.id,
+                    revision=0,
+                    event_type="host.changed",
+                    payload={"participantId": str(successor.id) if successor else None},
+                )
+            )
+        room.presence_seq += 1
+        await db.flush()
+        await self.emit_snapshot(db, room)
+
+    async def close(
+        self, db: AsyncSession, room: dbm.Room, expected_revision: int
+    ) -> wire.Snapshot:
+        state = await db.get(dbm.PlaybackState, room.id)
+        assert state is not None
+        if room.status == "closed":
+            return await self.snapshot(db, room)
+        self.active(room)
+        if state.playback_revision != expected_revision:
+            raise DomainError(
+                "CONFLICT",
+                "Состояние комнаты изменилось",
+                details={
+                    "snapshot": (await self.snapshot(db, room)).model_dump(
+                        mode="json", by_alias=True
+                    )
+                },
+            )
+        now = datetime.now(UTC)
+        if state.status == "playing":
+            state.position_ms = min(
+                state.duration_ms,
+                state.position_ms + max(0, milliseconds(now) - state.anchor_server_time_ms),
+            )
+            state.status = "paused" if state.position_ms < state.duration_ms else "ended"
+        state.anchor_server_time_ms = milliseconds(now)
+        state.pending_transition = None
+        state.playback_revision += 1
+        room.status = "closed"
+        room.closed_at = now
+        await db.flush()
+        await self.emit_snapshot(db, room)
+        db.add(
+            dbm.Outbox(
+                room_id=room.id,
+                revision=state.playback_revision,
+                event_type="room.closed",
+                payload={"reason": "closedByHost"},
+            )
+        )
+        return await self.snapshot(db, room)

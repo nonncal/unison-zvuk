@@ -5,6 +5,335 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/bootstrap": {
+      "get": {
+        "summary": "Bootstrap",
+        "operationId": "bootstrap_api_v1_bootstrap_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bootstrap"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms": {
+      "post": {
+        "summary": "Create Room",
+        "operationId": "create_room_api_v1_rooms_post",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoom"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRoomResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invites/preview": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_v1_invites_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewInvite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}/join": {
+      "post": {
+        "summary": "Join",
+        "operationId": "join_api_v1_rooms__room_id__join_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinRoom"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinRoomResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}": {
+      "get": {
+        "summary": "Snapshot",
+        "operationId": "snapshot_api_v1_rooms__room_id__get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}/invite": {
+      "get": {
+        "summary": "Invitation",
+        "operationId": "invitation_api_v1_rooms__room_id__invite_get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}/leave": {
+      "post": {
+        "summary": "Leave",
+        "operationId": "leave_api_v1_rooms__room_id__leave_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}/close": {
+      "post": {
+        "summary": "Close",
+        "operationId": "close_api_v1_rooms__room_id__close_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRoom"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health/live": {
       "get": {
         "summary": "Live",
@@ -41,6 +370,661 @@
             }
           }
         }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Bootstrap": {
+        "properties": {
+          "csrfToken": {
+            "type": "string",
+            "title": "Csrftoken"
+          },
+          "protocolVersion": {
+            "type": "integer",
+            "const": 1,
+            "title": "Protocolversion",
+            "default": 1
+          },
+          "limits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Limits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "csrfToken",
+          "limits"
+        ],
+        "title": "Bootstrap"
+      },
+      "CloseRoom": {
+        "properties": {
+          "expectedPlaybackRevision": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Expectedplaybackrevision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expectedPlaybackRevision"
+        ],
+        "title": "CloseRoom"
+      },
+      "CreateRoom": {
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Displayname"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Title",
+            "default": "Музыкальная комната"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "displayName"
+        ],
+        "title": "CreateRoom"
+      },
+      "CreateRoomResult": {
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Roomid"
+          },
+          "participantId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Participantid"
+          },
+          "inviteUrl": {
+            "type": "string",
+            "title": "Inviteurl"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expiresat"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/Snapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "roomId",
+          "participantId",
+          "inviteUrl",
+          "expiresAt",
+          "snapshot"
+        ],
+        "title": "CreateRoomResult"
+      },
+      "EmptyPayload": {
+        "properties": {},
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EmptyPayload"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InviteResult": {
+        "properties": {
+          "inviteUrl": {
+            "type": "string",
+            "title": "Inviteurl"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expiresat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inviteUrl",
+          "expiresAt"
+        ],
+        "title": "InviteResult"
+      },
+      "JoinRoom": {
+        "properties": {
+          "inviteToken": {
+            "type": "string",
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Invitetoken"
+          },
+          "displayName": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Displayname"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inviteToken",
+          "displayName"
+        ],
+        "title": "JoinRoom"
+      },
+      "JoinRoomResult": {
+        "properties": {
+          "participantId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Participantid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "host",
+              "listener"
+            ],
+            "title": "Role"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/Snapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "participantId",
+          "role",
+          "snapshot"
+        ],
+        "title": "JoinRoomResult"
+      },
+      "Participant": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "host",
+              "listener"
+            ],
+            "title": "Role"
+          },
+          "connectionState": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline",
+              "connecting"
+            ],
+            "title": "Connectionstate"
+          },
+          "readiness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Readiness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "role",
+          "connectionState",
+          "readiness"
+        ],
+        "title": "Participant"
+      },
+      "PendingTransition": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "play",
+              "pause",
+              "seek"
+            ],
+            "title": "Type"
+          },
+          "nextStatus": {
+            "type": "string",
+            "enum": [
+              "paused",
+              "playing",
+              "ended"
+            ],
+            "title": "Nextstatus"
+          },
+          "positionMs": {
+            "type": "integer",
+            "maximum": 900000.0,
+            "minimum": 0.0,
+            "title": "Positionms"
+          },
+          "effectiveAtServerTimeMs": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Effectiveatservertimems"
+          },
+          "trackId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackid"
+          },
+          "mediaVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediaversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "nextStatus",
+          "positionMs",
+          "effectiveAtServerTimeMs"
+        ],
+        "title": "PendingTransition"
+      },
+      "Playback": {
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Roomid"
+          },
+          "epoch": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Epoch"
+          },
+          "trackId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackid"
+          },
+          "mediaVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediaversion"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "empty",
+              "paused",
+              "playing",
+              "ended"
+            ],
+            "title": "Status"
+          },
+          "positionMs": {
+            "type": "integer",
+            "maximum": 900000.0,
+            "minimum": 0.0,
+            "title": "Positionms"
+          },
+          "anchorServerTimeMs": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Anchorservertimems"
+          },
+          "durationMs": {
+            "type": "integer",
+            "maximum": 900000.0,
+            "minimum": 0.0,
+            "title": "Durationms"
+          },
+          "pendingTransition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingTransition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "roomId",
+          "epoch",
+          "trackId",
+          "mediaVersion",
+          "status",
+          "positionMs",
+          "anchorServerTimeMs",
+          "durationMs",
+          "pendingTransition"
+        ],
+        "title": "Playback"
+      },
+      "PreviewInvite": {
+        "properties": {
+          "inviteToken": {
+            "type": "string",
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Invitetoken"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inviteToken"
+        ],
+        "title": "PreviewInvite"
+      },
+      "PreviewResult": {
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Roomid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "participantCount": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Participantcount"
+          },
+          "capacity": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Capacity"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expiresat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "roomId",
+          "title",
+          "status",
+          "participantCount",
+          "capacity",
+          "expiresAt"
+        ],
+        "title": "PreviewResult"
+      },
+      "Readiness": {
+        "properties": {
+          "trackId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Trackid"
+          },
+          "mediaVersion": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Mediaversion"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "loading",
+              "ready",
+              "buffering",
+              "autoplayBlocked",
+              "error"
+            ],
+            "title": "State"
+          },
+          "bufferedAheadMs": {
+            "type": "integer",
+            "maximum": 900000.0,
+            "minimum": 0.0,
+            "title": "Bufferedaheadms"
+          },
+          "autoplayAllowed": {
+            "type": "boolean",
+            "title": "Autoplayallowed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trackId",
+          "mediaVersion",
+          "state",
+          "bufferedAheadMs",
+          "autoplayAllowed"
+        ],
+        "title": "Readiness"
+      },
+      "Room": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "capacity": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Capacity"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expiresat"
+          },
+          "hostParticipantId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostparticipantid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "capacity",
+          "expiresAt",
+          "hostParticipantId"
+        ],
+        "title": "Room"
+      },
+      "Snapshot": {
+        "properties": {
+          "room": {
+            "$ref": "#/components/schemas/Room"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/Participant"
+            },
+            "type": "array",
+            "title": "Participants"
+          },
+          "playback": {
+            "$ref": "#/components/schemas/Playback"
+          },
+          "presenceSeq": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Presenceseq"
+          },
+          "playbackRevision": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Playbackrevision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room",
+          "participants",
+          "playback",
+          "presenceSeq",
+          "playbackRevision"
+        ],
+        "title": "Snapshot"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }

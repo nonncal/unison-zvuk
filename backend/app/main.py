@@ -11,7 +11,10 @@ from starlette.exceptions import HTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from app.api.body_limit import RequestBodyLimit
+from app.api.rooms import error_body, router
 from app.config import Settings, load_settings
+from app.domain.errors import DomainError
 from app.resources import Resources, health_result
 
 
@@ -43,6 +46,19 @@ def create_app(
         redoc_url=None,
         openapi_url="/api/v1/openapi.json",
     )
+    app.state.settings = config
+    app.include_router(router)
+    app.add_middleware(RequestBodyLimit)
+
+    @app.exception_handler(DomainError)
+    async def domain_error(request: Request, error: DomainError) -> JSONResponse:
+        return JSONResponse(
+            status_code=error.status,
+            content=error_body(request, error),
+            headers={"Retry-After": str(error.retry_after)}
+            if error.retry_after is not None
+            else None,
+        )
 
     @app.middleware("http")
     async def request_context(request: Request, call_next: RequestResponseEndpoint) -> Response:
