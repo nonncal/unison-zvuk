@@ -31,6 +31,7 @@ class JobDispatcher:
         if self.task is not None:
             self.task.cancel()
             await asyncio.gather(self.task, return_exceptions=True)
+            self.task = None
         self.publisher.close()
 
     def publish(self, payload: dict[str, Any]) -> None:

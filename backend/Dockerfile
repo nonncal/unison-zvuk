@@ -11,6 +11,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY catalog ./catalog
 RUN useradd --uid 10001 --create-home unison && mkdir /jobs && chown unison:unison /jobs
 USER 10001
 EXPOSE 8000

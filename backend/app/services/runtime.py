@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from app.db import models as dbm
 from app.domain.playback import position_at, promote
 from app.resources import Resources
+from app.services.cleanup import Cleanup
 from app.services.clock import Clock
 from app.services.job_dispatch import JobDispatcher
 from app.services.security import Security
@@ -34,6 +35,7 @@ class Runtime:
         self.playback = self.manager.playback
         self.settings = security.settings
         self.jobs = JobDispatcher(resources, self.settings)
+        self.cleanup = Cleanup(resources, self.settings)
         self.ready = False
         self.owner: AsyncConnection | None = None
         self.owner_locked = False
@@ -43,7 +45,6 @@ class Runtime:
 
     async def start(self) -> None:
         await self.acquire()
-        self.jobs.start()
         self.task = asyncio.create_task(self.run(), name="room-runtime")
 
     async def acquire(self) -> None:
@@ -73,6 +74,10 @@ class Runtime:
                     ).all():
                         self.manager.offline_since[participant.id] = (room_id, datetime.now(UTC))
             self.ready = True
+            if self.jobs.task is None:
+                self.jobs.start()
+            if self.cleanup.task is None:
+                self.cleanup.start()
             self.last_lease_check = time.monotonic()
         except Exception as error:
             self.failed(error)
@@ -87,6 +92,8 @@ class Runtime:
 
     async def release(self) -> None:
         self.ready = False
+        await self.jobs.stop()
+        await self.cleanup.stop()
         if self.owner is not None:
             try:
                 if self.owner_locked:
@@ -101,7 +108,6 @@ class Runtime:
 
     async def stop(self) -> None:
         self.manager.stop_all()
-        await self.jobs.stop()
         if self.task is not None:
             self.task.cancel()
             await asyncio.gather(self.task, return_exceptions=True)

@@ -42,7 +42,10 @@ WebSocket передаёт состояние, готовность и heartbeat
 Загрузка MP3/WAV/M4A проходит через подписанный PUT с проверкой размера, типа
 и запретом перезаписи. Celery передаёт файл отдельному обработчику без сети:
 он создаёт MP3 192 кбит/с, 44,1 кГц, stereo, доступный обоим участникам по одной версии.
-Подключение экранов, подготовленный каталог и очистка файлов находятся в разработке.
+Подборка содержит шесть оригинальных демонстрационных композиций с источниками
+и лицензией CC0. Очистка удаляет незавершённые загрузки после часа, отменённые
+и неудачные — после истечения права записи, файлы закрытой комнаты — через 24 часа.
+Каталог и активное аудио сохраняются. Подключение экранов находится в разработке.
 
 ## Локальный запуск
 
@@ -58,9 +61,11 @@ uv run python -m app.config --write-env ../../unison-runtime/local.env
 cd ..
 docker compose --env-file ../unison-runtime/local.env up --build -d
 docker compose --env-file ../unison-runtime/local.env run --rm api uv run --no-sync python -m app.init_storage
+docker compose --env-file ../unison-runtime/local.env run --rm worker /app/.venv/bin/python -m app.init_catalog
 ```
 
 Повторно генерировать существующий `local.env` не нужно: команда защищена от перезаписи.
+Инициализация каталога повторяема: готовые записи не создаются второй раз.
 API доступен на `http://localhost:8000`, описание API — `/api/reference`.
 `/health/live` проверяет процесс, `/health/ready` — PostgreSQL, Redis и приватный bucket.
 

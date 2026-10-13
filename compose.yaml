@@ -59,6 +59,7 @@ services:
     build: {context: ./backend, target: api}
     environment: *backend-env
     ports: ["127.0.0.1:8000:8000"]
+    volumes: ["jobs-data:/jobs"]
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}

@@ -306,6 +306,14 @@ def run(root: Path) -> None:
                 )
                 continue
             try:
+                output = directory / "out"
+                if output.is_symlink() or output.resolve(strict=True).parent != directory:
+                    raise ProcessingFailure("MEDIA_INVALID")
+                for path in output.iterdir():
+                    if path.name == "tmp":
+                        continue
+                    if path.is_symlink() or path.is_file():
+                        path.unlink()
                 ready = normalize(directory, request)
                 atomic_json(directory / "result.json", ready.model_dump(mode="json", by_alias=True))
             except ProcessingFailure as error:

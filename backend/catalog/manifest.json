@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "artist": "Unison Studio",
+  "source": "Original procedural synthesis, app/services/catalog.py",
+  "licenseId": "CC0-1.0",
+  "licenseUri": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "tracks": [
+    {"slug": "quiet-pulse", "title": "Тихий импульс"},
+    {"slug": "after-rain", "title": "После дождя"},
+    {"slug": "northern-light", "title": "Северный свет"},
+    {"slug": "evening-orbit", "title": "Вечерняя орбита"},
+    {"slug": "warm-air", "title": "Тёплый воздух"},
+    {"slug": "slow-tide", "title": "Медленный прилив"}
+  ]
+}
