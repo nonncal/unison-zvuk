@@ -12,7 +12,11 @@ from app.config import Settings
 
 class Resources:
     def __init__(self, settings: Settings) -> None:
-        self.engine: AsyncEngine = create_async_engine(settings.database_url, pool_pre_ping=True)
+        self.engine: AsyncEngine = create_async_engine(
+            settings.database_url,
+            pool_pre_ping=True,
+            connect_args={"timeout": 3, "server_settings": {"statement_timeout": "5000"}},
+        )
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
         self.redis: Redis = Redis.from_url(settings.redis_url, socket_timeout=2)
         self.storage = boto3.client(

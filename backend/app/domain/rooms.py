@@ -1,5 +1,6 @@
 import hmac
 import secrets
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -10,6 +11,7 @@ from app.config import Settings
 from app.contracts import models as wire
 from app.db import models as dbm
 from app.domain.errors import DomainError
+from app.services.clock import Clock
 from app.services.security import Security, payload_hash
 
 
@@ -18,9 +20,17 @@ def milliseconds(value: datetime) -> int:
 
 
 class Rooms:
-    def __init__(self, settings: Settings, security: Security) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        security: Security,
+        clock: Clock | None = None,
+        presence: Callable[[UUID, int], tuple[str, wire.Readiness | None]] | None = None,
+    ) -> None:
         self.settings = settings
         self.security = security
+        self.clock = clock
+        self.presence = presence
 
     def invite_url(self, room: dbm.Room) -> str:
         token = self.security.decrypt(room.invite_token_encrypted)
@@ -60,6 +70,11 @@ class Rooms:
     async def snapshot(self, db: AsyncSession, room: dbm.Room) -> wire.Snapshot:
         state = await db.get(dbm.PlaybackState, room.id)
         assert state is not None
+        if self.clock is not None:
+            from app.domain.playback import promote
+
+            if promote(state, self.clock.now_ms()):
+                await db.flush()
         participants = (
             await db.scalars(
                 select(dbm.Participant)
@@ -82,8 +97,12 @@ class Rooms:
                         "id": p.id,
                         "display_name": p.display_name,
                         "role": p.role,
-                        "connection_state": "offline",
-                        "readiness": None,
+                        "connection_state": self.presence(p.id, p.connection_generation)[0]
+                        if self.presence
+                        else "offline",
+                        "readiness": self.presence(p.id, p.connection_generation)[1]
+                        if self.presence
+                        else None,
                     }
                     for p in participants
                 ],
@@ -141,7 +160,13 @@ class Rooms:
         db.add(host)
         await db.flush()
         room.host_participant_id = host.id
-        db.add(dbm.PlaybackState(room_id=room.id, anchor_server_time_ms=milliseconds(now)))
+        db.add(
+            dbm.PlaybackState(
+                room_id=room.id,
+                anchor_server_time_ms=self.clock.now_ms() if self.clock else milliseconds(now),
+                epoch=self.clock.epoch if self.clock else uuid4(),
+            )
+        )
         await db.flush()
         snapshot = await self.snapshot(db, room)
         result = wire.CreateRoomResult(
@@ -211,7 +236,7 @@ class Rooms:
             )
             if count is not None and count >= room.capacity:
                 raise DomainError("ROOM_FULL", "В комнате уже два участника")
-            role = "listener" if room.host_participant_id else "host"
+            role = "listener"
             if actor is None:
                 actor = dbm.Participant(
                     id=uuid4(),
@@ -223,12 +248,11 @@ class Rooms:
                 db.add(actor)
             else:
                 actor.left_at = None
+                actor.left_reason = None
                 actor.role = role
                 actor.display_name = payload.display_name
                 actor.joined_at = datetime.now(UTC)
             await db.flush()
-            if role == "host":
-                room.host_participant_id = actor.id
             room.empty_since = None
             room.presence_seq += 1
             await db.flush()
@@ -254,20 +278,32 @@ class Rooms:
 
     async def leave(self, db: AsyncSession, room: dbm.Room, actor: dbm.Participant) -> None:
         actor.left_at = datetime.now(UTC)
+        actor.left_reason = "left"
         actor.connection_generation += 1
         actor.role = "listener"
         await db.flush()
         if room.host_participant_id == actor.id:
-            successor = await db.scalar(
-                select(dbm.Participant)
-                .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
-                .order_by(dbm.Participant.joined_at, dbm.Participant.id)
+            candidates = (
+                await db.scalars(
+                    select(dbm.Participant)
+                    .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
+                    .order_by(dbm.Participant.joined_at, dbm.Participant.id)
+                )
+            ).all()
+            successor = next(
+                (
+                    p
+                    for p in candidates
+                    if not self.presence
+                    or self.presence(p.id, p.connection_generation)[0] == "online"
+                ),
+                None,
             )
             room.host_participant_id = successor.id if successor else None
             if successor:
                 successor.role = "host"
             else:
-                room.empty_since = datetime.now(UTC)
+                room.empty_since = datetime.now(UTC) if not candidates else None
             db.add(
                 dbm.Outbox(
                     room_id=room.id,
@@ -298,14 +334,15 @@ class Rooms:
                     )
                 },
             )
+        from app.domain.playback import position_at, promote
+
         now = datetime.now(UTC)
+        now_ms = self.clock.now_ms() if self.clock else milliseconds(now)
+        promote(state, now_ms)
         if state.status == "playing":
-            state.position_ms = min(
-                state.duration_ms,
-                state.position_ms + max(0, milliseconds(now) - state.anchor_server_time_ms),
-            )
+            state.position_ms = position_at(state, now_ms)
             state.status = "paused" if state.position_ms < state.duration_ms else "ended"
-        state.anchor_server_time_ms = milliseconds(now)
+        state.anchor_server_time_ms = now_ms
         state.pending_transition = None
         state.playback_revision += 1
         room.status = "closed"

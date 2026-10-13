@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     create_per_minute: int = Field(default=5, ge=1)
     join_per_minute: int = Field(default=20, ge=1)
     bootstrap_per_minute: int = Field(default=60, ge=1)
+    readiness_wait_seconds: float = Field(default=8, ge=0.1, le=8)
     log_level: str = "INFO"
 
     @model_validator(mode="after")

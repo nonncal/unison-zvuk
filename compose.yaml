@@ -61,6 +61,7 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       storage: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
       interval: 5s
@@ -75,6 +76,13 @@ services:
       redis: {condition: service_healthy}
       postgres: {condition: service_healthy}
       storage: {condition: service_healthy}
+
+  migrate:
+    build: ./backend
+    environment: *backend-env
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
     mem_limit: 512m
     cpus: 1
 

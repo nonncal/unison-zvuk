@@ -7,6 +7,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pythonjsonlogger.json import JsonFormatter
+from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.exc import TimeoutError as DatabaseTimeout
 from starlette.exceptions import HTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
@@ -16,11 +18,15 @@ from app.api.rooms import error_body, router
 from app.config import Settings, load_settings
 from app.domain.errors import DomainError
 from app.resources import Resources, health_result
+from app.services.runtime import Runtime
+from app.services.security import Security
+from app.ws.router import router as ws_router
 
 
 def create_app(
     settings: Settings | None = None,
     resource_factory: Callable[[Settings], Resources] = Resources,
+    start_runtime: bool = True,
 ) -> FastAPI:
     config = settings or load_settings()
 
@@ -34,8 +40,13 @@ def create_app(
         app.state.resources = resource_factory(config)
         app.state.settings = config
         try:
+            if start_runtime:
+                app.state.runtime = Runtime(app.state.resources, Security(config))
+                await app.state.runtime.start()
             yield
         finally:
+            if start_runtime:
+                await app.state.runtime.stop()
             await app.state.resources.close()
 
     app = FastAPI(
@@ -48,6 +59,7 @@ def create_app(
     )
     app.state.settings = config
     app.include_router(router)
+    app.include_router(ws_router)
     app.add_middleware(RequestBodyLimit)
 
     @app.exception_handler(DomainError)
@@ -109,11 +121,14 @@ def create_app(
         logging.getLogger("unison").error(
             "request_failed", extra={"requestId": request_id, "exceptionType": type(error).__name__}
         )
+        unavailable = isinstance(error, (OSError, DatabaseTimeout)) or (
+            isinstance(error, DBAPIError) and not isinstance(error, IntegrityError)
+        )
         return JSONResponse(
-            status_code=500,
+            status_code=503 if unavailable else 500,
             content={
                 "error": {
-                    "code": "INTERNAL_ERROR",
+                    "code": "UNAVAILABLE" if unavailable else "INTERNAL_ERROR",
                     "message": "Попробуйте ещё раз",
                     "requestId": request_id,
                 }
@@ -133,6 +148,8 @@ def create_app(
     @app.get("/health/ready")
     async def ready(request: Request) -> JSONResponse:
         checks = await request.app.state.resources.readiness()
+        if start_runtime:
+            checks["rooms"] = request.app.state.runtime.ready
         status, body = health_result(checks)
         return JSONResponse(status_code=status, content=body)
 

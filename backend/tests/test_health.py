@@ -22,7 +22,7 @@ class FakeResources(Resources):
 
 
 async def test_liveness_and_readiness_have_different_meanings(settings: Settings) -> None:
-    app = create_app(settings, FakeResources)
+    app = create_app(settings, FakeResources, start_runtime=False)
     async with (
         LifespanManager(app),
         AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client,
@@ -43,7 +43,7 @@ async def test_liveness_and_readiness_have_different_meanings(settings: Settings
 async def test_errors_do_not_expose_private_values(
     settings: Settings, caplog: LogCaptureFixture
 ) -> None:
-    app = create_app(settings, FakeResources)
+    app = create_app(settings, FakeResources, start_runtime=False)
 
     @app.get("/failure", response_model=None)
     async def failure() -> NoReturn:

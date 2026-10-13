@@ -10,5 +10,5 @@ COPY migrations ./migrations
 RUN useradd --uid 10001 --create-home unison
 USER 10001
 EXPOSE 8000
-CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log"]
+CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--ws", "websockets-sansio", "--ws-max-size", "16384", "--ws-max-queue", "16", "--no-access-log"]
 

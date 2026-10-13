@@ -40,7 +40,7 @@ async def clients(database: AsyncEngine) -> AsyncIterator[list[AsyncClient]]:
         async def close(self) -> None:
             await self.redis.aclose()
 
-    app = create_app(config, TestResources)
+    app = create_app(config, TestResources, start_runtime=False)
     async with LifespanManager(app):
         clients = [
             AsyncClient(

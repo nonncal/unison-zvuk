@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Identity,
     Index,
     MetaData,
     String,
@@ -77,6 +78,12 @@ class Participant(Base):
         CheckConstraint("role IN ('host','listener')", name="role"),
         CheckConstraint("char_length(display_name) BETWEEN 1 AND 32", name="name_length"),
         CheckConstraint("connection_generation >= 0", name="generation"),
+        CheckConstraint(
+            "(left_at IS NULL AND left_reason IS NULL) OR "
+            "(left_at IS NOT NULL AND left_reason IS NOT NULL "
+            "AND left_reason IN ('left','offlineTimeout'))",
+            name="leave_reason",
+        ),
         Index(
             "uq_participants_active_host",
             "room_id",
@@ -95,6 +102,7 @@ class Participant(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     left_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    left_reason: Mapped[str | None] = mapped_column(String(32))
 
 
 class Asset(Base):
@@ -120,7 +128,8 @@ class Track(Base):
         ),
         CheckConstraint("duration_ms BETWEEN 0 AND 900000", name="duration"),
         CheckConstraint(
-            "status != 'ready' OR (playback_asset_id IS NOT NULL AND duration_ms > 0)",
+            "status != 'ready' OR (playback_asset_id IS NOT NULL "
+            "AND duration_ms IS NOT NULL AND duration_ms > 0)",
             name="ready_asset",
         ),
     )
@@ -168,7 +177,7 @@ class PlaybackState(Base):
     position_ms: Mapped[int] = mapped_column(BigInteger, default=0)
     duration_ms: Mapped[int] = mapped_column(BigInteger, default=0)
     anchor_server_time_ms: Mapped[int] = mapped_column(BigInteger)
-    pending_transition: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    pending_transition: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     epoch: Mapped[UUID] = mapped_column(default=uuid4)
 
 
@@ -232,6 +241,7 @@ class Outbox(Base):
         Index("ix_outbox_pending", "created_at", postgresql_where=text("sent_at IS NULL")),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    sequence: Mapped[int] = mapped_column(BigInteger, Identity(always=True), unique=True)
     room_id: Mapped[UUID] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"))
     revision: Mapped[int] = mapped_column(BigInteger)
     event_type: Mapped[str] = mapped_column(String(64))

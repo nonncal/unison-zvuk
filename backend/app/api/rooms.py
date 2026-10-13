@@ -12,6 +12,7 @@ from app.domain.errors import DomainError
 from app.domain.rooms import Rooms
 from app.resources import Resources
 from app.services.rate_limit import RateLimiter
+from app.services.runtime import Runtime
 from app.services.security import Security
 
 router = APIRouter(prefix="/api/v1")
@@ -20,10 +21,13 @@ router = APIRouter(prefix="/api/v1")
 def services(request: Request) -> tuple[Resources, Security, Rooms, RateLimiter]:
     resources: Resources = request.app.state.resources
     security = Security(request.app.state.settings)
+    runtime: Runtime | None = getattr(request.app.state, "runtime", None)
+    if runtime is not None and not runtime.ready:
+        raise DomainError("UNAVAILABLE", "Сервис комнат временно недоступен", 503)
     return (
         resources,
         security,
-        Rooms(security.settings, security),
+        runtime.rooms if runtime is not None else Rooms(security.settings, security),
         RateLimiter(resources.redis, security),
     )
 

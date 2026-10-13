@@ -37,7 +37,9 @@
 Добавлены Python API, отдельный Celery worker, проверки здоровья, локальные сервисы
 и миграции модели комнат и аудиофайлов с ограничениями PostgreSQL.
 Работают создание комнаты, приглашение, вход, выход с передачей роли и закрытие.
-Синхронизация, подключение экранов и обработка файлов находятся в разработке.
+WebSocket передаёт состояние, готовность и heartbeat. Сервер сохраняет команды общего
+плеера с ревизиями, временем применения и повторяемыми подтверждениями.
+Подключение экранов, каталог и обработка файлов находятся в разработке.
 
 ## Локальный запуск
 
@@ -53,7 +55,6 @@ uv run python -m app.config --write-env ../../unison-runtime/local.env
 cd ..
 docker compose --env-file ../unison-runtime/local.env up --build -d
 docker compose --env-file ../unison-runtime/local.env run --rm api uv run --no-sync python -m app.init_storage
-docker compose --env-file ../unison-runtime/local.env run --rm api uv run --no-sync alembic upgrade head
 ```
 
 Повторно генерировать существующий `local.env` не нужно: команда защищена от перезаписи.
@@ -69,7 +70,10 @@ UNISON_ENV_FILE=../../unison-runtime/local.env uv run uvicorn app.main:create_ap
 
 В каталоге `frontend` выполните `npm install`, затем `npm run dev`.
 Vite проксирует `/api`, `/ws` и `/health` на backend, сохраняя один origin для браузера.
-В MVP API запускается одним процессом; worker обрабатывает отдельную очередь.
+Миграции выполняет сервис `migrate` перед запуском API.
+В MVP API запускается одним процессом; PostgreSQL блокирует второго владельца комнат.
+Worker обрабатывает отдельную очередь. После перезапуска общий плеер восстанавливается
+в паузе с новой эпохой; ведущий может продолжить воспроизведение.
 
 Перед изменяющими запросами клиент получает `/api/v1/bootstrap`: этот запрос создаёт
 анонимную HttpOnly cookie-сессию и возвращает `csrfToken`. Затем отправляет точный
