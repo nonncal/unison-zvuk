@@ -34,4 +34,55 @@
 
 ## Статус
 
-Проект на этапе спецификации. Код приложения и команды запуска будут добавлены вместе с реализацией.
+Добавлены Python API, отдельный Celery worker, проверки здоровья, локальные сервисы
+и миграции модели комнат и аудиофайлов с ограничениями PostgreSQL.
+Комнаты, синхронизация и обработка файлов находятся в разработке.
+
+## Локальный запуск
+
+Требуются Docker Compose, Python 3.13, uv и Node.js для фронтенда.
+Локальные ключи генерируются в соседнем каталоге и не попадают в Git.
+
+```bash
+mkdir -p ../unison-runtime
+chmod 700 ../unison-runtime
+cd backend
+uv sync --frozen
+uv run python -m app.config --write-env ../../unison-runtime/local.env
+cd ..
+docker compose --env-file ../unison-runtime/local.env up --build -d
+docker compose --env-file ../unison-runtime/local.env run --rm api uv run --no-sync python -m app.init_storage
+docker compose --env-file ../unison-runtime/local.env run --rm api uv run --no-sync alembic upgrade head
+```
+
+Повторно генерировать существующий `local.env` не нужно: команда защищена от перезаписи.
+API доступен на `http://localhost:8000`, описание API — `/api/reference`.
+`/health/live` проверяет процесс, `/health/ready` — PostgreSQL, Redis и приватный bucket.
+
+Для разработки без контейнера API:
+
+```bash
+cd backend
+UNISON_ENV_FILE=../../unison-runtime/local.env uv run uvicorn app.main:create_app --factory --workers 1 --no-access-log
+```
+
+В каталоге `frontend` выполните `npm install`, затем `npm run dev`.
+Vite проксирует `/api`, `/ws` и `/health` на backend, сохраняя один origin для браузера.
+В MVP API запускается одним процессом; worker обрабатывает отдельную очередь.
+
+## Проверки Python
+
+```bash
+cd backend
+uv run ruff check app tests migrations
+uv run ruff format --check app tests migrations
+uv run mypy app tests
+uv run pytest
+```
+
+Интеграционные проверки создают и удаляют отдельные тестовые схемы в локальной базе,
+не изменяя таблицы приложения. Для их запуска поднимите PostgreSQL и укажите файл настроек:
+
+```bash
+UNISON_ENV_FILE=../../unison-runtime/local.env uv run pytest
+```

@@ -1,0 +1,85 @@
+name: unison-local
+
+x-backend-env: &backend-env
+  ENVIRONMENT: development
+  APP_ORIGIN: ${APP_ORIGIN:-http://localhost:5173}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-unison}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-unison}
+  REDIS_URL: redis://redis:6379/0
+  SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+  INVITE_ENCRYPTION_KEY: ${INVITE_ENCRYPTION_KEY:?Set INVITE_ENCRYPTION_KEY}
+  S3_ENDPOINT: http://storage:9000
+  S3_BUCKET: ${S3_BUCKET:-unison-audio}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:17.10-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-unison}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-unison}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7.4.7-bookworm
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  storage:
+    build: ./infra/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes: ["audio-data:/data"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/minio/health/live')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment: *backend-env
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      storage: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: ./backend
+    environment: *backend-env
+    command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app:celery_app", "worker", "--concurrency=1", "--loglevel=INFO"]
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      storage: {condition: service_healthy}
+    mem_limit: 512m
+    cpus: 1
+
+volumes:
+  postgres-data:
+  redis-data:
+  audio-data:
+
