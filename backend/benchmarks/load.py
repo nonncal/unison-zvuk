@@ -48,6 +48,7 @@ class Samples:
     clock_ms: list[float] = field(default_factory=list)
     command_ms: list[float] = field(default_factory=list)
     errors: dict[str, int] = field(default_factory=dict)
+    rejected_ms: list[float] = field(default_factory=list)
     active: int = 0
     peak: int = 0
     uploads_ready: int = 0
@@ -87,6 +88,7 @@ class Socket:
             response = await asyncio.wait_for(future, 10)
             elapsed = (time.perf_counter() - started) * 1000
             if response["type"] == "command.error":
+                self.samples.rejected_ms.append(elapsed)
                 self.samples.error(response["payload"]["code"])
             elif kind == "clock.probe":
                 self.samples.clock_ms.append(elapsed)
@@ -117,6 +119,8 @@ class Socket:
                         }
                     )
                 payload = event["payload"]
+                if event["type"] == "command.error" and payload.get("snapshot"):
+                    self.status = payload["snapshot"]["playback"]["status"]
                 identifier = payload.get("requestId") or payload.get("probeId")
                 future = self.waiting.get(identifier)
                 if future is not None and not future.done():
@@ -366,6 +370,7 @@ async def run(
                 "httpMs": percentiles(samples.http_ms),
                 "clockRTTMs": percentiles(samples.clock_ms),
                 "commandAckMs": percentiles(samples.command_ms),
+                "commandRejectedMs": percentiles(samples.rejected_ms),
                 "errors": samples.errors,
                 "platform": platform.system(),
                 "architecture": platform.machine(),
