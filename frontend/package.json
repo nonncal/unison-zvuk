@@ -17,7 +17,8 @@
     "audio:generate": "node scripts/generate-demo-audio.mjs",
     "format": "prettier --write src tests scripts *.ts *.json index.html",
     "format:check": "prettier --check src tests scripts *.ts *.json index.html",
-    "architecture:check": "node scripts/check-architecture.mjs"
+    "architecture:check": "node scripts/check-architecture.mjs",
+    "test:e2e:api": "UNISON_E2E_MODE=api playwright test"
   },
   "dependencies": {
     "ajv": "^8.20.0",
