@@ -50,6 +50,7 @@ jobs:
         run: |
           docker compose --env-file "$UNISON_ENV_FILE" up --build -d --wait
           docker compose --env-file "$UNISON_ENV_FILE" run --rm api uv run --no-sync python -m app.init_storage
+          docker compose --env-file "$UNISON_ENV_FILE" run --rm worker /app/.venv/bin/python -m app.init_catalog
       - name: Check PostgreSQL, Redis, S3 and WebSocket
         working-directory: backend
         run: uv run pytest -q --tb=short --show-capture=no
@@ -58,6 +59,8 @@ jobs:
         env:
           UNISON_SYSTEM_URL: http://localhost:8000
           UNISON_TRANSCODER_CONTAINER: unison-ci-transcoder-1
+          UNISON_RESTART_CONTAINER: unison-ci-api-1
+          UNISON_DATABASE_CONTAINER: unison-ci-postgres-1
         run: uv run pytest -q tests/system --tb=short --show-capture=no
       - name: Check frontend and shared contracts
         working-directory: frontend
