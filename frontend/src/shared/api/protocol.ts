@@ -17,7 +17,8 @@ function json(raw: string, maxBytes: number): unknown {
     return parse(raw, undefined, {
       parseNumber: (value) => {
         const number = Number(value)
-        if (!/^-?(0|[1-9]\d*)$/.test(value) || !Number.isSafeInteger(number)) throw new ProtocolError()
+        if (!/^-?(0|[1-9]\d*)$/.test(value) || !Number.isSafeInteger(number))
+          throw new ProtocolError()
         return number
       },
     })
@@ -39,7 +40,14 @@ export function parseEvent(raw: string): ServerEvent {
 }
 
 export function parseHTTP<K extends keyof HTTPModels>(name: K, raw: string): HTTPModels[K] {
-  const inputs = ['CreateRoom', 'PreviewInvite', 'JoinRoom', 'CloseRoom', 'ReserveUpload', 'CompleteUpload']
+  const inputs = [
+    'CreateRoom',
+    'PreviewInvite',
+    'JoinRoom',
+    'CloseRoom',
+    'ReserveUpload',
+    'CompleteUpload',
+  ]
   const data = json(raw, inputs.includes(name) ? 65_536 : 1_048_576)
   if (name === 'CreateRoom' || name === 'JoinRoom' || name === 'ReserveUpload') {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) throw new ProtocolError()
@@ -47,15 +55,21 @@ export function parseHTTP<K extends keyof HTTPModels>(name: K, raw: string): HTT
     for (const field of ['displayName', 'title', 'fileName']) {
       const value = fields[field]
       if (typeof value === 'string') {
-        if (/[\p{Cc}\p{Cf}\p{Cs}]/u.test(value) || value.trim().length === 0) throw new ProtocolError()
+        if (/[\p{Cc}\p{Cf}\p{Cs}]/u.test(value) || value.trim().length === 0)
+          throw new ProtocolError()
         fields[field] = value.trim()
       }
     }
     if (name === 'ReserveUpload') {
       const filename = String(fields.fileName)
-      const types: Record<string, string[]> = { mp3: ['audio/mpeg'], wav: ['audio/wav', 'audio/x-wav'], m4a: ['audio/mp4', 'audio/x-m4a'] }
+      const types: Record<string, string[]> = {
+        mp3: ['audio/mpeg'],
+        wav: ['audio/wav', 'audio/x-wav'],
+        m4a: ['audio/mp4', 'audio/x-m4a'],
+      }
       const extension = filename.split('.').at(-1)?.toLowerCase() ?? ''
-      if (/[\\/]/.test(filename) || !types[extension]?.includes(String(fields.contentType))) throw new ProtocolError()
+      if (/[\\/]/.test(filename) || !types[extension]?.includes(String(fields.contentType)))
+        throw new ProtocolError()
     }
   }
   const validator = validators[`http${name}`]
