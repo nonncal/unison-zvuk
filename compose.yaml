@@ -75,6 +75,7 @@ services:
       retries: 20
 
   worker:
+    init: true
     build: {context: ./backend, target: api}
     environment: *backend-env
     command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "audio", "--concurrency=1", "--loglevel=INFO"]
@@ -96,6 +97,7 @@ services:
       postgres: {condition: service_healthy}
 
   transcoder:
+    init: true
     build: {context: ./backend, target: transcoder}
     network_mode: none
     read_only: true

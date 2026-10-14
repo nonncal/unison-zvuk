@@ -1,6 +1,8 @@
+import asyncio
 import hashlib
 import json
 import os
+import shutil
 import stat
 import time
 from pathlib import Path
@@ -132,3 +134,27 @@ def wait_for_result(directory: Path, seconds: float = 110) -> MediaReady | Media
         except FileNotFoundError:
             time.sleep(0.1)
     return MediaFailed(error_code="PROCESSING_TIMEOUT")
+
+
+async def wait_for_result_async(directory: Path, seconds: float = 110) -> MediaReady | MediaFailed:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            return result_adapter.validate_json(read_file(directory / "result.json", 16_384))
+        except FileNotFoundError:
+            await asyncio.sleep(0.1)
+    return MediaFailed(error_code="PROCESSING_TIMEOUT")
+
+
+def cancel_request(directory: Path) -> bool:
+    if not directory.is_dir() or directory.is_symlink():
+        return False
+    (directory / "request.json").unlink(missing_ok=True)
+    return True
+
+
+async def abort_job(directory: Path) -> None:
+    if not await asyncio.to_thread(cancel_request, directory):
+        return
+    await wait_for_result_async(directory, 2)
+    await asyncio.to_thread(shutil.rmtree, directory, ignore_errors=True)

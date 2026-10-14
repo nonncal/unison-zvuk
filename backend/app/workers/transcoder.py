@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import resource
+import shutil
 import signal
 import stat
 import subprocess
@@ -95,7 +96,13 @@ def sandbox(directory: Path, command: list[str]) -> list[str]:
 
 
 def execute(
-    directory: Path, command: list[str], output: str, seconds: int, max_file_bytes: int
+    directory: Path,
+    command: list[str],
+    output: str,
+    seconds: int,
+    max_file_bytes: int,
+    *,
+    watch_request: bool = False,
 ) -> None:
     def limits() -> None:
         resource.setrlimit(resource.RLIMIT_CPU, (seconds, seconds))
@@ -127,12 +134,19 @@ def execute(
                 close_fds=True,
                 preexec_fn=limits,
             )
-            try:
-                code = process.wait(timeout=seconds)
-            except subprocess.TimeoutExpired as error:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-                raise ProcessingFailure("PROCESSING_TIMEOUT") from error
+            deadline = time.monotonic() + seconds
+            while True:
+                if time.monotonic() >= deadline or (
+                    watch_request and not (directory / "request.json").exists()
+                ):
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                    raise ProcessingFailure("PROCESSING_TIMEOUT")
+                try:
+                    code = process.wait(timeout=min(0.2, max(0.001, deadline - time.monotonic())))
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
         if code != 0:
             diagnostic = read_prefix(directory / "out" / (output + ".stderr"))
             if b"bwrap:" in diagnostic:
@@ -167,6 +181,7 @@ def probe(directory: Path, path: str, output: str) -> dict[str, Any]:
         output,
         8,
         1024 * 1024,
+        watch_request=True,
     )
     parsed: dict[str, Any] = json.loads(read_file(directory / "out" / output, 1024 * 1024))
     return parsed
@@ -256,6 +271,7 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
         "encode.log",
         90,
         100 * 1024 * 1024,
+        watch_request=True,
     )
     normalized = directory / "out" / "normalized.mp3"
     info = normalized.stat(follow_symlinks=False)
@@ -278,58 +294,60 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
     )
 
 
+def clear_output(directory: Path) -> None:
+    output = directory / "out"
+    if output.is_symlink() or output.resolve(strict=True).parent != directory:
+        raise ProcessingFailure("MEDIA_INVALID")
+    for path in output.iterdir():
+        if path.is_symlink() or not path.is_dir():
+            path.unlink(missing_ok=True)
+        else:
+            shutil.rmtree(path)
+    (output / "tmp").mkdir(mode=0o700, exist_ok=True)
+
+
+def process_directory(directory: Path, root: Path) -> None:
+    try:
+        job_id = UUID(directory.name)
+        if (
+            directory.is_symlink()
+            or directory.resolve(strict=True).parent != root
+            or (directory / "result.json").exists()
+        ):
+            return
+        request = MediaRequest.model_validate_json(read_file(directory / "request.json", 4096))
+        if request.job_id != job_id:
+            raise ValueError("Job ID mismatch")
+        clear_output(directory)
+        (directory / "result.json.tmp").unlink(missing_ok=True)
+        result: MediaReady | MediaFailed = normalize(directory, request)
+    except FileNotFoundError:
+        return
+    except ProcessingFailure as error:
+        result = MediaFailed.model_validate({"errorCode": error.code})
+    except ValueError:
+        result = MediaFailed(error_code="MEDIA_INVALID")
+    except OSError:
+        result = MediaFailed(error_code="PROCESSING_UNAVAILABLE")
+    except Exception:
+        result = MediaFailed(error_code="MEDIA_INVALID")
+    try:
+        if isinstance(result, MediaFailed):
+            clear_output(directory)
+        (directory / "result.json.tmp").unlink(missing_ok=True)
+        atomic_json(directory / "result.json", result.model_dump(mode="json", by_alias=True))
+    except (OSError, ProcessingFailure):
+        # A cancelled job may already have been removed by its owner.
+        return
+
+
 def run(root: Path) -> None:
     root = root.resolve(strict=True)
     while True:
         Path("/tmp/transcoder-live").write_text(str(time.time()))
         for directory in sorted(root.iterdir()):
-            if directory.is_symlink() or not directory.is_dir():
-                continue
-            try:
-                job_id = UUID(directory.name)
-            except ValueError:
-                continue
-            if (
-                directory.resolve(strict=True).parent != root
-                or (directory / "result.json").exists()
-            ):
-                continue
-            try:
-                request = MediaRequest.model_validate_json(
-                    read_file(directory / "request.json", 4096)
-                )
-                if request.job_id != job_id:
-                    raise ValueError("Job ID mismatch")
-            except FileNotFoundError:
-                continue
-            except ValueError:
-                result = MediaFailed(error_code="MEDIA_INVALID")
-                atomic_json(
-                    directory / "result.json", result.model_dump(mode="json", by_alias=True)
-                )
-                continue
-            try:
-                output = directory / "out"
-                if output.is_symlink() or output.resolve(strict=True).parent != directory:
-                    raise ProcessingFailure("MEDIA_INVALID")
-                (directory / "result.json.tmp").unlink(missing_ok=True)
-                for path in output.iterdir():
-                    if path.name == "tmp":
-                        continue
-                    if path.is_symlink() or path.is_file():
-                        path.unlink()
-                ready = normalize(directory, request)
-                atomic_json(directory / "result.json", ready.model_dump(mode="json", by_alias=True))
-            except ProcessingFailure as error:
-                failed = MediaFailed.model_validate({"errorCode": error.code})
-                atomic_json(
-                    directory / "result.json", failed.model_dump(mode="json", by_alias=True)
-                )
-            except Exception:
-                failed = MediaFailed(error_code="MEDIA_INVALID")
-                atomic_json(
-                    directory / "result.json", failed.model_dump(mode="json", by_alias=True)
-                )
+            if directory.is_dir() and not directory.is_symlink():
+                process_directory(directory, root)
         time.sleep(0.1)
 
 

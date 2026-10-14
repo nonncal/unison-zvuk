@@ -135,6 +135,7 @@
         "setsockopt",
         "setuid",
         "sigaltstack",
+        "rt_sigtimedwait",
         "signalfd",
         "signalfd4",
         "socket",

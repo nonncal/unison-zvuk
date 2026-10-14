@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import shutil
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -16,7 +17,7 @@ from app.db import models as dbm
 from app.domain.media import Media
 from app.domain.rooms import Rooms
 from app.resources import Resources
-from app.services.media_jobs import MediaFailed, read_file, submit, wait_for_result
+from app.services.media_jobs import MediaFailed, abort_job, read_file, submit, wait_for_result_async
 from app.services.processing import Processing
 from app.services.security import Security
 from app.services.storage import Storage
@@ -27,8 +28,11 @@ def download(resources: Resources, key: str, expected: int) -> bytes:
     response = resources.storage.get_object(Bucket=resources.bucket, Key=key)
     stream = response["Body"]
     result = bytearray()
+    deadline = time.monotonic() + 8
     try:
         while chunk := stream.read(1024 * 1024):
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Source download deadline exceeded")
             if len(result) + len(chunk) > min(expected, 50 * 1024 * 1024):
                 raise ValueError("Source size mismatch")
             result.extend(chunk)
@@ -104,8 +108,13 @@ async def process_with_resources(
             await processing.fail(upload_id, attempt_id, "CHECKSUM_MISMATCH")
             return
         directory = submit(settings.jobs_dir, job_id, source, content_type)
-        result = await asyncio.to_thread(wait_for_result, directory)
+        result = await wait_for_result_async(directory)
         if isinstance(result, MediaFailed):
+            if (
+                result.error_code == "PROCESSING_TIMEOUT"
+                and not (directory / "result.json").exists()
+            ):
+                await abort_job(directory)
             await processing.fail(upload_id, attempt_id, result.error_code)
             return
         normalized = read_file(directory / "out" / "normalized.mp3", 100 * 1024 * 1024)
@@ -194,10 +203,21 @@ async def process_with_resources(
                 pass
             raise
     except SoftTimeLimitExceeded:
+        if directory is not None:
+            await abort_job(directory)
         resources.metrics.worker_result("interrupted")
         await processing.fail(upload_id, attempt_id, "PROCESSING_TIMEOUT")
+    except OSError:
+        partial = settings.jobs_dir / str(job_id)
+        if not (partial / "request.json").exists() and not partial.is_symlink():
+            shutil.rmtree(partial, ignore_errors=True)
+        await processing.fail(upload_id, attempt_id, "PROCESSING_UNAVAILABLE")
     except ValueError:
         await processing.fail(upload_id, attempt_id, "MEDIA_INVALID")
+    except asyncio.CancelledError:
+        if directory is not None:
+            await abort_job(directory)
+        raise
     finally:
         if not retain_job and directory is not None and (directory / "result.json").exists():
             shutil.rmtree(directory)
@@ -216,6 +236,7 @@ async def interrupted(upload_id: UUID, job_id: UUID) -> None:
     settings = load_settings()
     resources = Resources(settings)
     try:
+        await abort_job(settings.jobs_dir / str(job_id))
         async with resources.sessions() as db:
             upload = await db.get(dbm.Upload, upload_id)
             attempt_id = (

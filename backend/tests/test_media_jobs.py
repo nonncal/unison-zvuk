@@ -3,7 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.services.media_jobs import read_file, submit
+from app.services.media_jobs import MediaReady, MediaRequest, read_file, submit
+from app.workers import transcoder
 from app.workers.transcoder import ProcessingFailure, duration_ms, sandbox, text_metadata
 
 
@@ -69,3 +70,34 @@ def test_transcoder_cannot_bind_a_replaced_temporary_directory(tmp_path: Path) -
     with pytest.raises(ProcessingFailure) as failed:
         sandbox(directory, ["/usr/bin/true"])
     assert failed.value.code == "MEDIA_INVALID"
+
+
+def test_failed_transcoding_frees_output_before_publishing_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    directory = submit(tmp_path, uuid4(), b"wave", "audio/wav")
+
+    def fail(directory: Path, request: MediaRequest) -> MediaReady:
+        (directory / "out" / "large.log").write_bytes(b"x" * 1024 * 1024)
+        raise ProcessingFailure("OUTPUT_LIMIT")
+
+    monkeypatch.setattr(transcoder, "normalize", fail)
+    transcoder.process_directory(directory, tmp_path)
+    assert not (directory / "out" / "large.log").exists()
+    assert b"OUTPUT_LIMIT" in read_file(directory / "result.json", 16384)
+
+
+def test_removed_job_does_not_crash_transcoder_loop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import shutil
+
+    directory = submit(tmp_path, uuid4(), b"wave", "audio/wav")
+
+    def disappear(directory: Path, request: MediaRequest) -> MediaReady:
+        shutil.rmtree(directory)
+        return MediaReady(duration_ms=1000)
+
+    monkeypatch.setattr(transcoder, "normalize", disappear)
+    transcoder.process_directory(directory, tmp_path)
+    assert not directory.exists()

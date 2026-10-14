@@ -66,8 +66,10 @@ async def test_database_failure_after_publish_reuses_one_asset(
     resources = storage.resources
     config = settings.model_copy(update={"jobs_dir": tmp_path})
 
-    def ready(directory: Path) -> MediaReady:
-        (directory / "out" / "normalized.mp3").write_bytes(b"normalized audio")
+    async def ready(directory: Path) -> MediaReady:
+        await asyncio.to_thread(
+            (directory / "out" / "normalized.mp3").write_bytes, b"normalized audio"
+        )
         result = MediaReady(duration_ms=2000)
         atomic_json(directory / "result.json", result.model_dump(mode="json", by_alias=True))
         return result
@@ -82,7 +84,7 @@ async def test_database_failure_after_publish_reuses_one_asset(
             raise OperationalError("", {}, ConnectionError("database unavailable"))
         await original_emit(self, db, track)
 
-    monkeypatch.setattr(audio, "wait_for_result", ready)
+    monkeypatch.setattr(audio, "wait_for_result_async", ready)
     monkeypatch.setattr(Media, "emit_track", faulty_emit)
     with pytest.raises(OperationalError):
         await audio.process_with_resources(resources, config, upload_id, job_id)
@@ -114,10 +116,10 @@ async def test_timeout_marks_failed_and_duplicate_does_not_restart(
 ) -> None:
     upload_id, job_id = await seed_processing(database, storage)
 
-    def timeout(directory: Path) -> MediaReady:
+    async def timeout(directory: Path) -> MediaReady:
         raise SoftTimeLimitExceeded()
 
-    monkeypatch.setattr(audio, "wait_for_result", timeout)
+    monkeypatch.setattr(audio, "wait_for_result_async", timeout)
     config = settings.model_copy(update={"jobs_dir": tmp_path})
     await audio.process_with_resources(storage.resources, config, upload_id, job_id)
     await audio.process_with_resources(storage.resources, config, upload_id, job_id)

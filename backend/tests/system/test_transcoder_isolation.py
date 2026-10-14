@@ -13,6 +13,9 @@ def test_running_transcoder_enforces_file_network_output_and_time_limits() -> No
         pytest.skip("Set UNISON_TRANSCODER_CONTAINER for an isolated running transcoder")
     source = textwrap.dedent("""
         import shutil
+        import threading
+        import time
+        from collections import Counter
         from pathlib import Path
         from uuid import uuid4
         from app.services.media_jobs import job_directory
@@ -43,6 +46,37 @@ def test_running_transcoder_enforces_file_network_output_and_time_limits() -> No
                 else:
                     raise AssertionError('resource limit was bypassed')
             assert (directory / 'out' / 'large.bin').stat().st_size <= 4096
+            for index in range(40):
+                execute(directory, ['/usr/bin/true'], f'reap-{index}.txt', 5, 8192)
+            cancelled = Path('/tmp') / ('cancel-' + str(uuid4()))
+            (cancelled / 'out' / 'tmp').mkdir(parents=True)
+            (cancelled / 'source.bin').write_bytes(b'wave')
+            (cancelled / 'request.json').write_text('{}')
+            timer = threading.Timer(0.2, lambda: (cancelled / 'request.json').unlink())
+            timer.start()
+            started = time.monotonic()
+            try:
+                try:
+                    execute(cancelled, ['/usr/bin/sleep', '5'], 'cancel.txt',
+                        8, 8192, watch_request=True)
+                except ProcessingFailure as error:
+                    assert error.code == 'PROCESSING_TIMEOUT'
+                    assert time.monotonic() - started < 2
+                else:
+                    raise AssertionError('cancelled job kept running')
+            finally:
+                timer.join()
+                shutil.rmtree(cancelled)
+            time.sleep(0.1)
+            states = Counter()
+            for process in Path('/proc').iterdir():
+                if process.name.isdigit():
+                    try:
+                        state = (process / 'stat').read_text().rsplit(') ', 1)[1].split()[0]
+                    except (FileNotFoundError, ProcessLookupError):
+                        continue
+                    states[state] += 1
+            assert states['Z'] == 0, dict(states)
             print('filesystem, network, output and timeout isolation passed')
         finally:
             shutil.rmtree(directory)
