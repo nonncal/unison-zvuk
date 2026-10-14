@@ -123,3 +123,7 @@ Home default/loading/error; Join preview/invalid/full/expired/closed; Room empty
 Vitest: timeline math/offset/revision, audio lifecycle с fake clock. RTL: роли, errors, keyboard и dialogs. Playwright: два независимых context с различными cookies, join/play/pause/seek/reconnect, запрет guest command через WS. Реальный звук/мобильный Safari проверить вручную: mocked audio не проверяет autoplay и акустическое качество.
 
 Результат фронтенда: работающие маршруты, типизированный API/WS, UI по дизайн-спецификации, корректный audio engine, отсутствие leaked connections, отчёт по browser matrix. Общие права проверяет бэкенд; disabled кнопка сама права не защищает.
+
+## Реализация после интеграции
+
+Frontend переведён на FSD: app/pages/widgets/features/entities/shared, публичные API и проверка границ в CI. React Router сохранён; RTK Query используется для подборки комнаты. Основной режим подключается к готовому Python/FastAPI, demo включается явно. Актуальные пути, запуск и проверки — в [frontend/README.md](../../frontend/README.md) и [FRONTEND-ARCHITECTURE.md](../FRONTEND-ARCHITECTURE.md). Исторические шаги выше описывают порядок разработки, а не отсутствие backend.
