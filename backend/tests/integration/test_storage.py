@@ -88,12 +88,12 @@ async def test_private_download_has_range_and_cors_only_for_app(storage: Storage
     assert expires > datetime.now(UTC)
     async with AsyncClient() as client:
         response = await client.get(
-            url, headers={"Range": "bytes=0-9", "Origin": "http://localhost:5173"}
+            url, headers={"Range": "bytes=0-9", "Origin": load_settings().app_origin}
         )
         assert response.status_code == 206 and response.content == data[:10]
         assert response.headers["content-range"] == "bytes 0-9/200"
         assert response.headers["content-type"] == "audio/mpeg"
-        assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+        assert response.headers["access-control-allow-origin"] == load_settings().app_origin
         other = await client.get(url, headers={"Origin": "https://wrong.test"})
         assert "access-control-allow-origin" not in other.headers
         unsigned = await client.get(url.split("?", 1)[0])
