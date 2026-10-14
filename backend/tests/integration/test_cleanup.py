@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, select
@@ -123,4 +124,90 @@ async def test_abandoned_upload_cleanup_observes_signed_url_expiry(
     async with resources.sessions() as db:
         current = await db.get(Upload, upload_id)
         assert current is not None and current.purged_at is not None
+        assert await db.get(Room, room_id) is not None
+
+
+async def test_orphan_sweep_keeps_referenced_and_running_outputs(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    future = datetime.now(UTC) + timedelta(minutes=61)
+    async with resources.sessions.begin() as db:
+        room_id, host_id, _ = await seed_room(db)
+        ready_id, processing_id, orphan_id = uuid4(), uuid4(), uuid4()
+        keys = [
+            f"rooms/{room_id}/media/{upload_id}/hash.mp3"
+            for upload_id in [ready_id, processing_id, orphan_id]
+        ]
+        for key in keys + ["catalog/demo.mp3"]:
+            await asyncio.to_thread(
+                resources.storage.put_object,
+                Bucket=resources.bucket,
+                Key=key,
+                Body=b"test",
+                ContentType="audio/mpeg",
+            )
+        ready_asset = Asset(
+            object_key=keys[0],
+            checksum="a" * 64,
+            content_type="audio/mpeg",
+            size_bytes=4,
+            media_version="v1",
+        )
+        orphan_asset = Asset(
+            object_key=keys[2],
+            checksum="b" * 64,
+            content_type="audio/mpeg",
+            size_bytes=4,
+            media_version="v2",
+        )
+        db.add_all([ready_asset, orphan_asset])
+        await db.flush()
+        db.add(
+            Track(
+                scope="room",
+                room_id=room_id,
+                title="Готов",
+                status="ready",
+                duration_ms=1000,
+                playback_asset_id=ready_asset.id,
+            )
+        )
+        processing_track = Track(
+            scope="room", room_id=room_id, title="Обработка", status="processing"
+        )
+        db.add(processing_track)
+        await db.flush()
+        db.add(
+            Upload(
+                id=processing_id,
+                room_id=room_id,
+                owner_participant_id=host_id,
+                track_id=processing_track.id,
+                object_key="sources/test",
+                expected_size=4,
+                content_type="audio/wav",
+                status="processing",
+                job_id=uuid4(),
+                processing_attempts=1,
+                processing_attempt_id=uuid4(),
+                processing_started_at=future,
+                expires_at=future + timedelta(minutes=10),
+            )
+        )
+    service = Cleanup(resources, settings)
+    await service.clean_orphan_media(datetime.now(UTC))
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert len(listing.get("Contents", [])) == 4
+    await service.clean_orphan_media(future)
+    await service.clean_orphan_media(future)
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert {obj["Key"] for obj in listing.get("Contents", [])} == {
+        keys[0],
+        keys[1],
+        "catalog/demo.mp3",
+    }
+    async with resources.sessions() as db:
+        assert await db.scalar(select(func.count()).select_from(Asset)) == 1
         assert await db.get(Room, room_id) is not None

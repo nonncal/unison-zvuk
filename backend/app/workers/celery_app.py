@@ -2,8 +2,8 @@ from celery import Celery
 
 from app.config import load_settings
 
-settings = load_settings()
-celery_app = Celery("unison", broker=settings.redis_url)
+celery_app = Celery("unison")
+celery_app.add_defaults(lambda: {"broker_url": load_settings().redis_url})
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],

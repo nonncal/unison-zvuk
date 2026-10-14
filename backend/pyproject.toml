@@ -53,5 +53,5 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
-markers = ["integration: local PostgreSQL, Redis and S3 services"]
+markers = ["integration: local PostgreSQL, Redis and S3 services", "system: running isolated Compose stack"]
 

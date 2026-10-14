@@ -35,6 +35,9 @@ def text_metadata(value: object) -> str:
 
 
 def sandbox(directory: Path, command: list[str]) -> list[str]:
+    temporary = directory / "out" / "tmp"
+    if temporary.is_symlink() or temporary.resolve(strict=True).parent != directory / "out":
+        raise ProcessingFailure("MEDIA_INVALID")
     args = [
         "/usr/bin/bwrap",
         "--unshare-user",
@@ -309,6 +312,7 @@ def run(root: Path) -> None:
                 output = directory / "out"
                 if output.is_symlink() or output.resolve(strict=True).parent != directory:
                     raise ProcessingFailure("MEDIA_INVALID")
+                (directory / "result.json.tmp").unlink(missing_ok=True)
                 for path in output.iterdir():
                     if path.name == "tmp":
                         continue

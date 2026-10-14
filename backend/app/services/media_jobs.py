@@ -109,6 +109,10 @@ def submit(root: Path, job_id: UUID, source: bytes, content_type: str) -> Path:
         if existing != request:
             raise ValueError("Media job ID reused with different input")
     else:
+        for partial in [directory / "source.bin", directory / "request.json.tmp"]:
+            if partial.exists() or partial.is_symlink():
+                read_file(partial, 50 * 1024 * 1024)
+                partial.unlink()
         fd = os.open(
             directory / "source.bin", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
         )

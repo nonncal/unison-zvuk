@@ -191,6 +191,7 @@ class Upload(Base):
             "status IN ('reserved','processing','ready','failed','cancelled')", name="status"
         ),
         CheckConstraint("expected_size BETWEEN 1 AND 52428800", name="size"),
+        CheckConstraint("processing_attempts BETWEEN 0 AND 3", name="processing_attempts"),
         ForeignKeyConstraint(
             ["room_id", "owner_participant_id"], ["participants.room_id", "participants.id"]
         ),
@@ -208,6 +209,9 @@ class Upload(Base):
     purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(16), default="reserved")
     job_id: Mapped[UUID | None]
+    processing_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    processing_attempt_id: Mapped[UUID | None]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

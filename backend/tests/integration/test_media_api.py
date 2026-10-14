@@ -1,7 +1,8 @@
 import asyncio
 import secrets
 from collections.abc import AsyncIterator
-from uuid import uuid4
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
 import pytest
 from asgi_lifespan import LifespanManager
@@ -11,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from app.config import Settings, load_settings
-from app.db.models import Outbox, Track, Upload
+from app.db.models import Asset, Outbox, Room, Track, Upload
 from app.main import create_app
 from app.resources import Resources
 
@@ -121,7 +122,7 @@ async def test_reservation_completion_are_idempotent_and_outbox_atomic(
         )
 
 
-async def test_pending_source_and_success_file_quotas_are_enforced(
+async def test_pending_and_source_quotas_are_enforced(
     media_clients: list[AsyncClient], database: AsyncEngine
 ) -> None:
     host = media_clients[0]
@@ -180,3 +181,62 @@ async def test_upload_access_and_bad_file_paths_are_rejected(
         f"/api/v1/rooms/{room_id}/uploads/{first['uploadId']}/complete", json={}
     )
     assert complete.status_code == 410
+
+
+async def test_tenth_file_reservation_is_atomic_under_concurrent_requests(
+    media_clients: list[AsyncClient], database: AsyncEngine
+) -> None:
+    host = media_clients[0]
+    room_id = await room(host)
+    async with async_sessionmaker(database, expire_on_commit=False).begin() as db:
+        current_room = await db.get(Room, UUID(room_id))
+        assert current_room is not None
+        for _ in range(9):
+            asset = Asset(
+                object_key="test/" + uuid4().hex,
+                checksum="a" * 64,
+                media_version="a" * 64,
+                content_type="audio/mpeg",
+                size_bytes=4,
+            )
+            db.add(asset)
+            await db.flush()
+            track = Track(
+                scope="room",
+                room_id=current_room.id,
+                title="Готов",
+                status="ready",
+                duration_ms=1000,
+                playback_asset_id=asset.id,
+            )
+            db.add(track)
+            await db.flush()
+            db.add(
+                Upload(
+                    room_id=current_room.id,
+                    owner_participant_id=current_room.host_participant_id,
+                    track_id=track.id,
+                    object_key="sources/" + uuid4().hex,
+                    content_type="audio/wav",
+                    expected_size=4,
+                    actual_size=4,
+                    status="ready",
+                    expires_at=datetime.now(UTC) + timedelta(minutes=10),
+                )
+            )
+    payload = {"fileName": "аудио.wav", "contentType": "audio/wav", "sizeBytes": 1024}
+    replies = await asyncio.gather(
+        *[
+            host.post(
+                f"/api/v1/rooms/{room_id}/uploads",
+                json=payload,
+                headers={"Idempotency-Key": str(uuid4())},
+            )
+            for _ in range(2)
+        ]
+    )
+    assert sorted(reply.status_code for reply in replies) == [201, 409]
+    rejected = next(reply for reply in replies if reply.status_code == 409)
+    assert rejected.json()["error"]["code"] == "FILE_COUNT_LIMIT"
+    async with async_sessionmaker(database)() as db:
+        assert await db.scalar(select(func.count()).select_from(Upload)) == 10

@@ -17,6 +17,7 @@ from app.db import models as dbm
 from app.domain.media import Media
 from app.domain.rooms import Rooms
 from app.resources import Resources
+from app.services.processing import LEASE_SECONDS, Processing
 from app.services.security import Security
 from app.services.storage import Storage
 
@@ -26,6 +27,7 @@ class Cleanup:
         self.resources = resources
         self.settings = settings
         self.media = Media(Rooms(settings, Security(settings)), Storage(resources))
+        self.processing = Processing(resources, settings)
         self.task: asyncio.Task[None] | None = None
 
     async def delete_object(self, key: str) -> None:
@@ -35,6 +37,7 @@ class Cleanup:
 
     async def sweep(self, now: datetime | None = None) -> None:
         now = now or datetime.now(UTC)
+        await self.processing.recover(now)
         abandoned = now - timedelta(hours=1)
         async with self.resources.sessions() as db:
             ids = (
@@ -146,6 +149,60 @@ class Cleanup:
                 .exists()
             )
             await db.execute(delete(dbm.Session).where(dbm.Session.expires_at <= now, ~referenced))
+        await self.clean_orphan_media(now)
+
+    async def clean_orphan_media(self, now: datetime) -> None:
+        cutoff = now - timedelta(hours=1)
+        token: str | None = None
+        while True:
+            params: ListObjectsV2RequestTypeDef = {
+                "Bucket": self.resources.bucket,
+                "Prefix": "rooms/",
+            }
+            if token:
+                params["ContinuationToken"] = token
+            page = await asyncio.to_thread(self.resources.storage.list_objects_v2, **params)
+            for obj in page.get("Contents", []):
+                parts = obj["Key"].split("/")
+                if len(parts) != 5 or parts[2] != "media" or obj["LastModified"] > cutoff:
+                    continue
+                try:
+                    room_id, upload_id = UUID(parts[1]), UUID(parts[3])
+                except ValueError:
+                    continue
+                async with self.resources.sessions.begin() as db:
+                    room = await db.scalar(
+                        select(dbm.Room).where(dbm.Room.id == room_id).with_for_update()
+                    )
+                    upload = await db.get(dbm.Upload, upload_id)
+                    if (
+                        room is not None
+                        and upload is not None
+                        and upload.room_id == room_id
+                        and upload.status == "processing"
+                        and upload.processing_started_at is not None
+                        and upload.processing_started_at > now - timedelta(seconds=LEASE_SECONDS)
+                    ):
+                        continue
+                    referenced = await db.scalar(
+                        select(dbm.Track.id)
+                        .join(
+                            dbm.Asset,
+                            or_(
+                                dbm.Track.source_asset_id == dbm.Asset.id,
+                                dbm.Track.playback_asset_id == dbm.Asset.id,
+                            ),
+                        )
+                        .where(dbm.Asset.object_key == obj["Key"])
+                        .limit(1)
+                    )
+                    if referenced is not None:
+                        continue
+                    await self.delete_object(obj["Key"])
+                    await db.execute(delete(dbm.Asset).where(dbm.Asset.object_key == obj["Key"]))
+            token = page.get("NextContinuationToken")
+            if not token:
+                break
 
     def clean_jobs(self) -> None:
         root = self.settings.jobs_dir
@@ -157,7 +214,12 @@ class Cleanup:
                 continue
             try:
                 UUID(directory.name)
-                modified = (directory / "request.json").stat(follow_symlinks=False).st_mtime
+                request = directory / "request.json"
+                modified = (
+                    (request if request.exists() else directory)
+                    .stat(follow_symlinks=False)
+                    .st_mtime
+                )
             except (ValueError, FileNotFoundError):
                 continue
             if modified <= cutoff:

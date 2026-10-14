@@ -7,13 +7,17 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from botocore.exceptions import BotoCoreError, ClientError
 from celery import Task
+from celery.exceptions import SoftTimeLimitExceeded
+from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy.exc import TimeoutError as DatabaseTimeout
 
-from app.config import load_settings
+from app.config import Settings, load_settings
 from app.db import models as dbm
 from app.domain.media import Media
 from app.domain.rooms import Rooms
 from app.resources import Resources
 from app.services.media_jobs import MediaFailed, read_file, submit, wait_for_result
+from app.services.processing import Processing
 from app.services.security import Security
 from app.services.storage import Storage
 from app.workers.celery_app import celery_app
@@ -53,39 +57,38 @@ def publish(resources: Resources, key: str, data: bytes) -> None:
             raise ValueError("Immutable asset mismatch") from error
 
 
-async def mark_failed(resources: Resources, upload_id: UUID, code: str) -> None:
-    settings = load_settings()
-    service = Media(Rooms(settings, Security(settings)), Storage(resources))
-    async with resources.sessions.begin() as db:
-        upload = await db.get(dbm.Upload, upload_id)
-        if upload is None:
-            return
-        await service.rooms.room(db, upload.room_id)
-        await db.refresh(upload)
-        if upload.status != "processing":
-            return
-        track = await db.get(dbm.Track, upload.track_id)
-        assert track is not None
-        upload.status = "failed"
-        track.status = "failed"
-        track.error_code = code
-        await db.flush()
-        await service.emit_track(db, track)
-
-
 async def process(upload_id: UUID, job_id: UUID, *, final_attempt: bool = False) -> None:
     settings = load_settings()
     resources = Resources(settings)
+    try:
+        await process_with_resources(
+            resources, settings, upload_id, job_id, final_attempt=final_attempt
+        )
+    finally:
+        await resources.close()
+
+
+async def process_with_resources(
+    resources: Resources,
+    settings: Settings,
+    upload_id: UUID,
+    job_id: UUID,
+    *,
+    final_attempt: bool = False,
+) -> None:
     service = Media(Rooms(settings, Security(settings)), Storage(resources))
+    processing = Processing(resources, settings)
+    claimed = await processing.claim(upload_id, job_id)
+    if claimed is None:
+        return
+    upload, attempt_id = claimed
     directory: Path | None = None
+    retain_job = False
     try:
         async with resources.sessions() as db:
-            upload = await db.get(dbm.Upload, upload_id)
-            if upload is None or upload.status != "processing" or upload.job_id != job_id:
-                return
             room = await db.get(dbm.Room, upload.room_id)
             if room is None or room.status != "active" or room.expires_at <= datetime.now(UTC):
-                await mark_failed(resources, upload_id, "ROOM_CLOSED")
+                await processing.fail(upload_id, attempt_id, "ROOM_CLOSED")
                 return
             key, size, checksum, content_type = (
                 upload.object_key,
@@ -97,12 +100,12 @@ async def process(upload_id: UUID, job_id: UUID, *, final_attempt: bool = False)
         source = await asyncio.to_thread(download, resources, key, size)
         source_digest = hashlib.sha256(source).hexdigest()
         if checksum and checksum != source_digest:
-            await mark_failed(resources, upload_id, "CHECKSUM_MISMATCH")
+            await processing.fail(upload_id, attempt_id, "CHECKSUM_MISMATCH")
             return
         directory = submit(settings.jobs_dir, job_id, source, content_type)
         result = await asyncio.to_thread(wait_for_result, directory)
         if isinstance(result, MediaFailed):
-            await mark_failed(resources, upload_id, result.error_code)
+            await processing.fail(upload_id, attempt_id, result.error_code)
             return
         normalized = read_file(directory / "out" / "normalized.mp3", 100 * 1024 * 1024)
         media_digest = hashlib.sha256(normalized).hexdigest()
@@ -111,7 +114,12 @@ async def process(upload_id: UUID, job_id: UUID, *, final_attempt: bool = False)
         async with resources.sessions.begin() as db:
             room = await service.rooms.room(db, upload.room_id)
             current = await db.get(dbm.Upload, upload_id)
-            if current is None or current.status != "processing" or current.job_id != job_id:
+            if (
+                current is None
+                or current.status != "processing"
+                or current.job_id != job_id
+                or current.processing_attempt_id != attempt_id
+            ):
                 return
             track = await db.get(dbm.Track, current.track_id)
             assert track is not None
@@ -157,18 +165,61 @@ async def process(upload_id: UUID, job_id: UUID, *, final_attempt: bool = False)
             track.status = "ready"
             track.error_code = None
             current.status = "ready"
+            current.processing_started_at = None
+            current.processing_attempt_id = None
             await db.flush()
             await service.emit_track(db, track)
-    except (BotoCoreError, ClientError):
-        if final_attempt:
-            await mark_failed(resources, upload_id, "MEDIA_UNAVAILABLE")
+    except (
+        BotoCoreError,
+        ClientError,
+        DBAPIError,
+        DatabaseTimeout,
+        TimeoutError,
+        ConnectionError,
+    ) as error:
+        retain_job = True
+        if isinstance(error, DBAPIError) and not transient_database_error(error):
+            await processing.fail(upload_id, attempt_id, "PROCESSING_UNAVAILABLE")
+            raise RuntimeError("Media database operation failed") from None
+        if final_attempt or upload.processing_attempts >= 3:
+            await processing.fail(upload_id, attempt_id, "PROCESSING_UNAVAILABLE")
+            retain_job = False
         else:
+            try:
+                await processing.release(upload_id, attempt_id)
+            except (DBAPIError, DatabaseTimeout, TimeoutError, ConnectionError):
+                pass
             raise
+    except SoftTimeLimitExceeded:
+        await processing.fail(upload_id, attempt_id, "PROCESSING_TIMEOUT")
     except ValueError:
-        await mark_failed(resources, upload_id, "MEDIA_INVALID")
+        await processing.fail(upload_id, attempt_id, "MEDIA_INVALID")
     finally:
-        if directory is not None and (directory / "result.json").exists():
+        if not retain_job and directory is not None and (directory / "result.json").exists():
             shutil.rmtree(directory)
+
+
+def transient_database_error(error: DBAPIError) -> bool:
+    return (
+        isinstance(error, OperationalError)
+        or error.connection_invalidated
+        or getattr(error.orig, "sqlstate", None)
+        in {"40001", "40P01", "57P01", "57P02", "57P03", "53300"}
+    )
+
+
+async def interrupted(upload_id: UUID, job_id: UUID) -> None:
+    settings = load_settings()
+    resources = Resources(settings)
+    try:
+        async with resources.sessions() as db:
+            upload = await db.get(dbm.Upload, upload_id)
+            attempt_id = (
+                upload.processing_attempt_id if upload and upload.job_id == job_id else None
+            )
+        if attempt_id:
+            await Processing(resources, settings).fail(upload_id, attempt_id, "PROCESSING_TIMEOUT")
+    finally:
         await resources.close()
 
 
@@ -176,12 +227,26 @@ def process_upload(task: Task, upload_id: str, job_id: str) -> None:
     parsed_upload, parsed_job = UUID(upload_id), UUID(job_id)
     try:
         asyncio.run(process(parsed_upload, parsed_job, final_attempt=task.request.retries >= 2))
-    except (BotoCoreError, ClientError) as error:
+    except SoftTimeLimitExceeded:
+        try:
+            asyncio.run(interrupted(parsed_upload, parsed_job))
+        except (DBAPIError, DatabaseTimeout, TimeoutError, ConnectionError):
+            pass
+    except (
+        BotoCoreError,
+        ClientError,
+        DBAPIError,
+        DatabaseTimeout,
+        TimeoutError,
+        ConnectionError,
+    ) as error:
+        if isinstance(error, DBAPIError) and not transient_database_error(error):
+            raise RuntimeError("Media database operation failed") from None
         raise task.retry(
-            exc=RuntimeError("Storage temporarily unavailable"),
+            exc=RuntimeError("Media processing temporarily unavailable"),
             countdown=2 ** (task.request.retries + 1),
             max_retries=2,
-        ) from error
+        ) from None
 
 
 process_upload_task = celery_app.task(name="unison.audio.process", bind=True, max_retries=2)(
