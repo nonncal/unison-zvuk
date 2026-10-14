@@ -69,8 +69,22 @@ jobs:
           npm ci
           npm run contracts:check
           npm run contracts:test
+          npm run architecture:check
           npm run lint
           npm run build
+      - name: Browser checks against real Python backend
+        working-directory: frontend
+        env:
+          UNISON_E2E_ORIGIN: http://localhost:5173
+        run: |
+          npx playwright install --with-deps chromium --only-shell
+          npm run test:e2e:api
+      - name: Save browser failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unison-api-browser-results
+          path: frontend/test-results/api
       - name: Stop integration services
         if: always()
         run: |
