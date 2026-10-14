@@ -343,3 +343,20 @@ class Runtime:
                     room.presence_seq += 1
                     await db.flush()
                     await self.rooms.emit_snapshot(db, room)
+        async with self.resources.sessions() as db:
+            reserved = set(
+                (
+                    await db.scalars(
+                        select(dbm.Participant.id)
+                        .join(dbm.Room, dbm.Participant.room_id == dbm.Room.id)
+                        .where(
+                            dbm.Room.status == "active",
+                            dbm.Room.expires_at > now,
+                            dbm.Participant.left_at.is_(None),
+                        )
+                    )
+                ).all()
+            )
+        for participant_id in list(self.manager.offline_since):
+            if participant_id not in reserved:
+                self.manager.offline_since.pop(participant_id, None)

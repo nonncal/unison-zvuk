@@ -75,6 +75,11 @@ class Metrics:
         self.connections = Gauge(
             "unison_ws_connections", "Current WS connections", registry=self.registry
         )
+        self.offline = Gauge(
+            "unison_offline_reservations",
+            "Participants within the offline grace period",
+            registry=self.registry,
+        )
         self.rooms = Gauge(
             "unison_active_rooms", "Rooms with connected participants", registry=self.registry
         )

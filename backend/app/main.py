@@ -229,6 +229,7 @@ def create_app(
         if runtime:
             connections = [c for c in runtime.manager.connections.values() if c.close_code is None]
             resources.metrics.connections.set(len(connections))
+            resources.metrics.offline.set(len(runtime.manager.offline_since))
             resources.metrics.rooms.set(len({c.room_id for c in connections}))
         async with resources.sessions() as db:
             count, oldest = (

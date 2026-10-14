@@ -178,12 +178,22 @@ class Manager:
             if self.connections.get(connection.participant_id) is not connection:
                 return
             self.connections.pop(connection.participant_id)
-            self.offline_since[connection.participant_id] = (connection.room_id, datetime.now(UTC))
+            self.offline_since.pop(connection.participant_id, None)
             async with self.resources.sessions.begin() as db:
                 room = await self.rooms.room(db, connection.room_id)
                 actor = await db.get(dbm.Participant, connection.participant_id)
                 if actor is None or actor.connection_generation != connection.generation:
                     return
+                if (
+                    room.status != "active"
+                    or room.expires_at <= datetime.now(UTC)
+                    or actor.left_at is not None
+                ):
+                    return
+                self.offline_since[connection.participant_id] = (
+                    connection.room_id,
+                    datetime.now(UTC),
+                )
                 room.presence_seq += 1
                 await db.flush()
                 await self.rooms.emit_snapshot(db, room)

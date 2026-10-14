@@ -387,3 +387,19 @@ async def test_room_ttl_closes_with_event_and_timestamp(
         assert room is not None and room.status == "expired" and room.closed_at is not None
         events = (await db.scalars(select(Outbox).where(Outbox.event_type == "room.closed"))).all()
         assert len(events) == 1 and events[0].payload["reason"] == "expired"
+
+
+async def test_closed_rooms_do_not_accumulate_offline_reservations(server: Server) -> None:
+    for _ in range(3):
+        room_id, _ = await create_room(server)
+        async with server.ws(room_id, server.clients[0]) as host:
+            hello = await receive(host, "hello")
+            revision = hello["playbackRevision"]
+            closed = await server.clients[0].post(
+                f"/api/v1/rooms/{room_id}/close", json={"expectedPlaybackRevision": revision}
+            )
+            assert closed.status_code == 200
+            assert (await receive(host, "room.closed"))["payload"]["reason"] == "closedByHost"
+        await server.runtime.lifecycle()
+        assert not server.runtime.manager.offline_since
+        assert not server.runtime.manager.connections
