@@ -61,6 +61,7 @@ jobs:
           UNISON_TRANSCODER_CONTAINER: unison-ci-transcoder-1
           UNISON_RESTART_CONTAINER: unison-ci-api-1
           UNISON_DATABASE_CONTAINER: unison-ci-postgres-1
+          UNISON_STORAGE_CONTAINER: unison-ci-storage-1
         run: uv run pytest -q tests/system --tb=short --show-capture=no
       - name: Check frontend and shared contracts
         working-directory: frontend
