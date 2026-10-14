@@ -1,0 +1,5 @@
+export type * from './model/types'
+export { roomActions, roomReducer, selectRoomState } from './model/slice'
+export type { RoomState } from './model/slice'
+export { gateway } from './api/gateway'
+export { timelineAt } from './lib/timeline'
