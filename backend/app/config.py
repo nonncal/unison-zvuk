@@ -17,8 +17,10 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "test", "production"] = "development"
     app_origin: str = "http://localhost:5173"
-    database_url: str = "postgresql+asyncpg://unison:unison@localhost:5432/unison"
-    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = Field(
+        default="postgresql+asyncpg://unison:unison@localhost:5432/unison", repr=False
+    )
+    redis_url: str = Field(default="redis://localhost:6379/0", repr=False)
     session_secret: SecretStr
     invite_encryption_key: SecretStr
     s3_endpoint: str = "http://localhost:9000"

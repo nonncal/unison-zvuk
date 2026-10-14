@@ -21,3 +21,13 @@ def test_remote_http_is_rejected(settings: Settings) -> None:
     values["app_origin"] = "http://example.com"
     with pytest.raises(ValidationError):
         Settings(_env_file=None, **values)
+
+
+def test_connection_credentials_are_hidden_from_configuration_repr(settings: Settings) -> None:
+    config = settings.model_copy(
+        update={
+            "database_url": "postgresql://private-user:private-password@localhost/unison",
+            "redis_url": "redis://:private-cache-password@localhost/0",
+        }
+    )
+    assert "private-" not in repr(config)
