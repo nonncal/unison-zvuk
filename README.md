@@ -191,3 +191,12 @@ play/pause/seek и запросы состояния, параллельно з�
 Созданные комнаты и подключения закрываются в конце. Результаты сохраняйте
 вне репозитория. Нагрузочный сценарий измеряет сервер и транспорт; слышимую
 синхронизацию проверяйте отдельно на независимых устройствах.
+
+## Документация проекта
+
+- [Полная спецификация](docs/spec/README.md)
+- [Frontend flow](docs/frontend/README.md)
+- [Python backend flow](docs/backend/README.md)
+- [Дизайн и Figma-промпт](docs/design/README.md)
+- [Порядок frontend-историй](docs/planning/FRONTEND-ORDER.md)
+- [Запуск фронтенда](frontend/README.md)
