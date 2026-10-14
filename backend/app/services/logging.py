@@ -17,6 +17,7 @@ EVENTS = {
     "ws_request_failed",
     "ws_disconnect_failed",
     "room_runtime_unavailable",
+    "clock_epoch_reset",
     "upload_dispatch_retry",
     "media_cleanup_retry",
     "diagnostics_retry",
