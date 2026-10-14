@@ -174,6 +174,12 @@ async def test_upload_access_and_bad_file_paths_are_rejected(
             headers={"Idempotency-Key": str(uuid4())},
         )
         assert response.status_code == 422
+    oversized = await host.post(
+        f"/api/v1/rooms/{room_id}/uploads",
+        json={**payload, "sizeBytes": 52428801},
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+    assert oversized.status_code == 413 and oversized.json()["error"]["code"] == "FILE_TOO_LARGE"
     first = await reserve(host, room_id)
     cancelled = await host.delete(f"/api/v1/rooms/{room_id}/uploads/{first['uploadId']}")
     assert cancelled.status_code == 204

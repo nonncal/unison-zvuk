@@ -16,7 +16,7 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 
 Milliseconds = Annotated[StrictInt, Field(ge=0, le=9_007_199_254_740_991)]
-Revision = Annotated[StrictInt, Field(ge=0, le=9_223_372_036_854_775_807)]
+Revision = Annotated[StrictInt, Field(ge=0, le=9_007_199_254_740_991)]
 Position = Annotated[StrictInt, Field(ge=0, le=900_000)]
 
 
@@ -226,3 +226,28 @@ class PlaybackURL(WireModel):
     media_version: StrictStr
     checksum: StrictStr
     content_type: StrictStr
+
+
+class ValidationDetail(WireModel):
+    field: StrictStr
+    code: StrictStr
+
+
+class ConflictDetail(WireModel):
+    snapshot: Snapshot
+
+
+class ErrorBody(WireModel):
+    code: StrictStr
+    message: StrictStr
+    request_id: UUID
+    details: list[ValidationDetail] | ConflictDetail | None = None
+
+
+class HTTPError(WireModel):
+    error: ErrorBody
+
+
+class Health(WireModel):
+    status: Literal["alive", "ready", "unavailable"]
+    checks: dict[str, StrictBool] | None = None

@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -17,11 +18,45 @@ from app.api.body_limit import RequestBodyLimit
 from app.api.media import router as media_router
 from app.api.rooms import error_body, router
 from app.config import Settings, load_settings
+from app.contracts.models import Health, HTTPError
 from app.domain.errors import DomainError
 from app.resources import Resources, health_result
 from app.services.runtime import Runtime
 from app.services.security import Security
 from app.ws.router import router as ws_router
+
+
+class UnisonAPI(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        config: Settings = self.state.settings
+        schema = super().openapi()
+        if "SessionCookie" in schema.get("components", {}).get("securitySchemes", {}):
+            return schema
+        schema.setdefault("components", {})["securitySchemes"] = {
+            "SessionCookie": {"type": "apiKey", "in": "cookie", "name": config.session_cookie},
+            "CSRFToken": {"type": "apiKey", "in": "header", "name": "X-CSRF-Token"},
+        }
+        for path, methods in schema["paths"].items():
+            for method, operation in methods.items():
+                if path.startswith("/api/v1/") and path != "/api/v1/bootstrap":
+                    mutation = method in {"post", "delete", "put", "patch"}
+                    operation["security"] = [
+                        {"SessionCookie": [], **({"CSRFToken": []} if mutation else {})}
+                    ]
+                    if mutation:
+                        operation.setdefault("parameters", []).append(
+                            {
+                                "name": "Origin",
+                                "in": "header",
+                                "required": True,
+                                "schema": {"type": "string", "enum": [config.app_origin]},
+                            }
+                        )
+                for response in operation.get("responses", {}).values():
+                    response.setdefault("headers", {})["X-Request-ID"] = {
+                        "schema": {"type": "string", "format": "uuid"}
+                    }
+        return schema
 
 
 def create_app(
@@ -50,13 +85,17 @@ def create_app(
                 await app.state.runtime.stop()
             await app.state.resources.close()
 
-    app = FastAPI(
+    app = UnisonAPI(
         title="Unison API",
         version="1.0.0",
         lifespan=lifespan,
         docs_url="/api/reference",
         redoc_url=None,
         openapi_url="/api/v1/openapi.json",
+        responses={
+            code: {"model": HTTPError}
+            for code in [400, 401, 403, 404, 409, 410, 413, 415, 422, 429, 500, 503]
+        },
     )
     app.state.settings = config
     app.include_router(router)
@@ -89,12 +128,18 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
+        oversized = any(
+            e["loc"] == ("body", "sizeBytes") and e["type"] == "less_than_equal"
+            for e in error.errors()
+        )
         return JSONResponse(
-            status_code=422,
+            status_code=413 if oversized else 422,
             content={
                 "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "Проверьте поля запроса",
+                    "code": "FILE_TOO_LARGE" if oversized else "VALIDATION_ERROR",
+                    "message": "Файл превышает допустимый размер"
+                    if oversized
+                    else "Проверьте поля запроса",
                     "requestId": request.state.request_id,
                     "details": [
                         {"field": ".".join(str(x) for x in e["loc"]), "code": e["type"]}
@@ -143,11 +188,11 @@ def create_app(
             },
         )
 
-    @app.get("/health/live")
+    @app.get("/health/live", response_model=Health, response_model_exclude_none=True)
     async def live() -> dict[str, str]:
         return {"status": "alive"}
 
-    @app.get("/health/ready")
+    @app.get("/health/ready", response_model=Health, responses={503: {"model": Health}})
     async def ready(request: Request) -> JSONResponse:
         checks = await request.app.state.resources.readiness()
         if start_runtime:

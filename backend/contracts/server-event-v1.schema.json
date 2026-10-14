@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "AckPayload": {
       "additionalProperties": false,
@@ -9,7 +10,7 @@
           "type": "string"
         },
         "acceptedPlaybackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Acceptedplaybackrevision",
           "type": "integer"
@@ -41,7 +42,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -57,7 +57,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -72,6 +72,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -141,7 +142,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -157,7 +157,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -172,6 +172,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -186,7 +187,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -202,7 +202,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -217,6 +217,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -274,7 +275,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -290,7 +290,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -305,6 +305,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -319,7 +320,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -335,7 +335,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -350,6 +350,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -395,7 +396,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -411,7 +411,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -426,6 +426,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -684,7 +685,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -700,7 +700,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -715,6 +715,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -729,7 +730,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -745,7 +745,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -760,6 +760,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -773,7 +774,7 @@
       "additionalProperties": false,
       "properties": {
         "presenceSeq": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Presenceseq",
           "type": "integer"
@@ -901,7 +902,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -917,7 +917,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -932,6 +932,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -946,7 +947,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -962,7 +962,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -977,6 +977,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",
@@ -1003,13 +1004,13 @@
           "$ref": "#/$defs/Playback"
         },
         "presenceSeq": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Presenceseq",
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -1165,7 +1166,6 @@
       "properties": {
         "v": {
           "const": 1,
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -1181,7 +1181,7 @@
           "type": "integer"
         },
         "playbackRevision": {
-          "maximum": 9223372036854775807,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
@@ -1196,6 +1196,7 @@
         }
       },
       "required": [
+        "v",
         "eventId",
         "serverTimeMs",
         "playbackRevision",

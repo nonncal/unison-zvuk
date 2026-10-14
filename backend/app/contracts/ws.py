@@ -1,3 +1,4 @@
+import json
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
@@ -131,6 +132,7 @@ command_adapter = TypeAdapter(cast(type[ClientCommand], ClientCommand))
 
 
 class Event(Envelope):
+    v: Literal[1]
     event_id: UUID
     server_time_ms: Milliseconds
     playback_revision: Revision
@@ -253,4 +255,19 @@ event_adapter = TypeAdapter(cast(type[ServerEvent], ServerEvent))
 def parse_command(raw: str | bytes, max_bytes: int = 16_384) -> ClientCommand:
     if len(raw.encode() if isinstance(raw, str) else raw) > max_bytes:
         raise ValueError("Message exceeds the protocol limit")
-    return command_adapter.validate_json(raw, by_alias=True, by_name=False)
+    return command_adapter.validate_python(strict_json(raw), by_alias=True, by_name=False)
+
+
+def strict_json(raw: str | bytes) -> object:
+    def pairs(items: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError("Duplicate JSON field")
+            result[key] = value
+        return result
+
+    def invalid_constant(value: str) -> object:
+        raise ValueError("Non-finite JSON number")
+
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)

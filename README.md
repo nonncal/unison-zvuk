@@ -52,7 +52,7 @@ WebSocket передаёт состояние, готовность и heartbeat
 
 ## Локальный запуск
 
-Требуются Docker Compose, Python 3.13, uv и Node.js для фронтенда.
+Требуются Docker Compose, Python 3.13, uv и Node.js 24 для фронтенда.
 Локальные ключи генерируются в соседнем каталоге и не попадают в Git.
 
 ```bash
@@ -127,3 +127,24 @@ UNISON_TRANSCODER_CONTAINER=unison-local-transcoder-1 uv run pytest tests/system
 
 Первая проверка создаёт и закрывает тестовую комнату. Вторая проверяет файловую
 и сетевую изоляцию, ограничения размера и времени внутри контейнера обработки.
+
+## Контракты
+
+Pydantic задаёт схемы HTTP и WebSocket версии 1. TypeScript-типы и проверки сообщений
+генерируются из тех же схем; общие JSON-примеры проверяются обеими сторонами.
+Время и позиции передаются целыми миллисекундами, ревизии ограничены точными целыми
+JavaScript. Неизвестные поля, повторяющиеся ключи и нечисловые значения отвергаются.
+При изменении моделей обновите схемы и типы:
+
+```bash
+cd backend
+UNISON_ENV_FILE=../../unison-runtime/local.env uv run python -m app.contracts.export --output contracts
+cd ../frontend
+npm run contracts:generate
+npm run contracts:check
+npm run contracts:test
+npm run build
+npm run lint
+```
+
+Проверки сообщений работают без динамической компиляции кода в браузере.

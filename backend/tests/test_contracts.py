@@ -28,7 +28,7 @@ def test_wire_aliases_and_millisecond_units_round_trip() -> None:
 
 @pytest.mark.parametrize("position", [-1, 900_001, True, "65000", 65.5, float("nan"), float("inf")])
 def test_positions_reject_coercion_and_non_finite_numbers(position: object) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         parse_command(json.dumps(seek(position)))
 
 
@@ -54,7 +54,7 @@ def test_sender_cannot_inject_authority_or_unknown_fields() -> None:
 def test_message_size_and_invalid_json_are_bounded() -> None:
     with pytest.raises(ValueError, match="limit"):
         parse_command(" " * 16_385)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         parse_command("{broken")
 
 
