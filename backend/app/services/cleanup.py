@@ -149,9 +149,9 @@ class Cleanup:
                 .exists()
             )
             await db.execute(delete(dbm.Session).where(dbm.Session.expires_at <= now, ~referenced))
-        await self.clean_orphan_media(now)
+        await self.clean_orphans(now)
 
-    async def clean_orphan_media(self, now: datetime) -> None:
+    async def clean_orphans(self, now: datetime) -> None:
         cutoff = now - timedelta(hours=1)
         token: str | None = None
         while True:
@@ -164,7 +164,9 @@ class Cleanup:
             page = await asyncio.to_thread(self.resources.storage.list_objects_v2, **params)
             for obj in page.get("Contents", []):
                 parts = obj["Key"].split("/")
-                if len(parts) != 5 or parts[2] != "media" or obj["LastModified"] > cutoff:
+                media_object = len(parts) == 5 and parts[2] == "media"
+                source_object = len(parts) == 4 and parts[2] == "sources"
+                if not (media_object or source_object):
                     continue
                 try:
                     room_id, upload_id = UUID(parts[1]), UUID(parts[3])
@@ -175,6 +177,22 @@ class Cleanup:
                         select(dbm.Room).where(dbm.Room.id == room_id).with_for_update()
                     )
                     upload = await db.get(dbm.Upload, upload_id)
+                    if source_object:
+                        if (
+                            upload is not None
+                            and upload.room_id == room_id
+                            and upload.object_key == obj["Key"]
+                        ):
+                            if (
+                                upload.purged_at is None
+                                or upload.status == "ready"
+                                or upload.expires_at > now
+                            ):
+                                continue
+                        elif room is not None and obj["LastModified"] > cutoff:
+                            continue
+                    elif room is not None and obj["LastModified"] > cutoff:
+                        continue
                     if (
                         room is not None
                         and upload is not None

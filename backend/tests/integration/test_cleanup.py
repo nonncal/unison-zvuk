@@ -197,11 +197,11 @@ async def test_orphan_sweep_keeps_referenced_and_running_outputs(
             )
         )
     service = Cleanup(resources, settings)
-    await service.clean_orphan_media(datetime.now(UTC))
+    await service.clean_orphans(datetime.now(UTC))
     listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
     assert len(listing.get("Contents", [])) == 4
-    await service.clean_orphan_media(future)
-    await service.clean_orphan_media(future)
+    await service.clean_orphans(future)
+    await service.clean_orphans(future)
     listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
     assert {obj["Key"] for obj in listing.get("Contents", [])} == {
         keys[0],
@@ -210,4 +210,54 @@ async def test_orphan_sweep_keeps_referenced_and_running_outputs(
     }
     async with resources.sessions() as db:
         assert await db.scalar(select(func.count()).select_from(Asset)) == 1
+        assert await db.get(Room, room_id) is not None
+
+
+async def test_late_source_after_purge_is_removed_again_without_waiting_an_hour(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    now = datetime.now(UTC)
+    async with resources.sessions.begin() as db:
+        room_id, host_id, _ = await seed_room(db)
+        track = Track(
+            scope="room",
+            room_id=room_id,
+            title="Отменён",
+            status="failed",
+            error_code="UPLOAD_CANCELLED",
+        )
+        db.add(track)
+        await db.flush()
+        upload_id = uuid4()
+        key = f"rooms/{room_id}/sources/{upload_id}"
+        db.add(
+            Upload(
+                id=upload_id,
+                room_id=room_id,
+                owner_participant_id=host_id,
+                track_id=track.id,
+                object_key=key,
+                content_type="audio/wav",
+                expected_size=4,
+                status="cancelled",
+                expires_at=now - timedelta(minutes=1),
+                purged_at=now,
+            )
+        )
+    await asyncio.to_thread(
+        resources.storage.put_object,
+        Bucket=resources.bucket,
+        Key=key,
+        Body=b"late",
+        ContentType="audio/wav",
+    )
+    service = Cleanup(resources, settings)
+    await service.sweep()
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert not listing.get("Contents", [])
+    async with resources.sessions() as db:
+        upload = await db.get(Upload, upload_id)
+        assert upload is not None and upload.status == "cancelled" and upload.purged_at == now
         assert await db.get(Room, room_id) is not None
