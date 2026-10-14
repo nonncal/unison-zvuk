@@ -27,6 +27,7 @@ from app.contracts.ws import event_adapter
 from app.db.models import Outbox, Participant, PlaybackState, Room
 from app.main import create_app
 from app.resources import Resources
+from app.services.metrics import Metrics
 from app.services.runtime import Runtime
 from tests.integration.test_playback import track
 
@@ -73,8 +74,10 @@ async def server(database: AsyncEngine) -> AsyncIterator[Server]:
             self.engine = database
             self.sessions = async_sessionmaker(database, expire_on_commit=False)
             self.redis = Redis.from_url(settings.redis_url, socket_timeout=2)
+            self.metrics = Metrics(self.redis)
 
         async def close(self) -> None:
+            await self.metrics.stop()
             await self.redis.aclose()
 
     app = create_app(config, TestResources)

@@ -1,13 +1,16 @@
 import logging
+import secrets
+import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pythonjsonlogger.json import JsonFormatter
+from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.exc import TimeoutError as DatabaseTimeout
 from starlette.exceptions import HTTPException
@@ -19,8 +22,10 @@ from app.api.media import router as media_router
 from app.api.rooms import error_body, router
 from app.config import Settings, load_settings
 from app.contracts.models import Health, HTTPError
+from app.db.models import Upload
 from app.domain.errors import DomainError
 from app.resources import Resources, health_result
+from app.services.logging import configure_logging
 from app.services.runtime import Runtime
 from app.services.security import Security
 from app.ws.router import router as ws_router
@@ -68,13 +73,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        handler = logging.StreamHandler()
-        handler.setFormatter(JsonFormatter("%(levelname)s %(name)s %(message)s"))
-        logger = logging.getLogger("unison")
-        logger.handlers = [handler]
-        logger.setLevel(config.log_level)
+        configure_logging(config, "api")
         app.state.resources = resource_factory(config)
         app.state.settings = config
+        app.state.resources.metrics.start()
         try:
             if start_runtime:
                 app.state.runtime = Runtime(app.state.resources, Security(config))
@@ -116,6 +118,7 @@ def create_app(
     @app.middleware("http")
     async def request_context(request: Request, call_next: RequestResponseEndpoint) -> Response:
         request.state.request_id = str(uuid4())
+        started = time.perf_counter()
         try:
             response = await call_next(request)
         except Exception as error:
@@ -124,6 +127,17 @@ def create_app(
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Cache-Control"] = "no-store"
+        resources: Resources | None = getattr(request.app.state, "resources", None)
+        if resources is not None:
+            method = (
+                request.method
+                if request.method in {"GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS", "HEAD"}
+                else "OTHER"
+            )
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            resources.metrics.http.labels(
+                method, route, str(response.status_code // 100) + "xx"
+            ).observe(time.perf_counter() - started)
         return response
 
     @app.exception_handler(RequestValidationError)
@@ -199,5 +213,38 @@ def create_app(
             checks["rooms"] = request.app.state.runtime.ready
         status, body = health_result(checks)
         return JSONResponse(status_code=status, content=body)
+
+    @app.get("/internal/metrics", include_in_schema=False)
+    async def metrics(request: Request) -> Response:
+        token = config.metrics_token
+        if token is None:
+            raise DomainError("NOT_FOUND", "Ресурс недоступен", 404)
+        if not secrets.compare_digest(
+            request.headers.get("authorization", "").encode(),
+            ("Bearer " + token.get_secret_value()).encode(),
+        ):
+            raise DomainError("FORBIDDEN", "Ресурс недоступен", 403)
+        resources: Resources = request.app.state.resources
+        runtime: Runtime | None = getattr(request.app.state, "runtime", None)
+        if runtime:
+            connections = [c for c in runtime.manager.connections.values() if c.close_code is None]
+            resources.metrics.connections.set(len(connections))
+            resources.metrics.rooms.set(len({c.room_id for c in connections}))
+        async with resources.sessions() as db:
+            count, oldest = (
+                await db.execute(
+                    select(func.count(), func.min(Upload.created_at)).where(
+                        Upload.status == "processing"
+                    )
+                )
+            ).one()
+            resources.metrics.processing.set(count)
+            resources.metrics.processing_age.set(
+                max(0, (datetime.now(UTC) - oldest).total_seconds()) if oldest else 0
+            )
+        return Response(
+            await resources.metrics.text(),
+            headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"},
+        )
 
     return app

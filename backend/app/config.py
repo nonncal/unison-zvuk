@@ -11,7 +11,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", hide_input_in_errors=True, env_ignore_empty=True
+    )
 
     environment: Literal["development", "test", "production"] = "development"
     app_origin: str = "http://localhost:5173"
@@ -47,6 +49,8 @@ class Settings(BaseSettings):
     room_max_pending_uploads: int = Field(default=2, ge=1)
     jobs_dir: Path = Path("/jobs")
     log_level: str = "INFO"
+    log_dir: Path | None = None
+    metrics_token: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_security(self) -> Self:
@@ -61,6 +65,8 @@ class Settings(BaseSettings):
         if len(self.session_secret.get_secret_value()) < 32:
             raise ValueError("SESSION_SECRET must have at least 32 characters")
         Fernet(self.invite_encryption_key.get_secret_value().encode())
+        if self.metrics_token is not None and len(self.metrics_token.get_secret_value()) < 32:
+            raise ValueError("METRICS_TOKEN must have at least 32 characters")
         media = urlsplit(self.s3_public_endpoint)
         if (
             media.scheme not in {"http", "https"}
@@ -95,6 +101,7 @@ def write_development_env(path: Path) -> None:
         "REDIS_URL=redis://localhost:6379/0",
         f"SESSION_SECRET={secrets.token_urlsafe(48)}",
         f"INVITE_ENCRYPTION_KEY={Fernet.generate_key().decode()}",
+        f"METRICS_TOKEN={secrets.token_urlsafe(48)}",
         "S3_ENDPOINT=http://localhost:9000",
         "S3_PUBLIC_ENDPOINT=http://localhost:9000",
         "S3_BUCKET=unison-audio",

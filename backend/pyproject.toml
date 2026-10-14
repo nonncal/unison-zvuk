@@ -15,7 +15,7 @@ dependencies = [
   "celery>=5.4,<6",
   "boto3>=1.37,<2",
   "cryptography>=44,<51",
-  "python-json-logger>=3.3,<5",
+  "prometheus-client>=0.22,<1",
 ]
 
 [dependency-groups]

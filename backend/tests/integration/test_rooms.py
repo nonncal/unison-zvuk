@@ -21,6 +21,7 @@ from app.db.models import HttpReceipt, Outbox, Participant, Room, Session
 from app.domain.rooms import Rooms
 from app.main import create_app
 from app.resources import Resources
+from app.services.metrics import Metrics
 
 pytestmark = pytest.mark.integration
 
@@ -36,8 +37,10 @@ async def clients(database: AsyncEngine) -> AsyncIterator[list[AsyncClient]]:
             self.engine = database
             self.sessions = async_sessionmaker(database, expire_on_commit=False)
             self.redis = Redis.from_url(settings.redis_url, socket_timeout=2)
+            self.metrics = Metrics(self.redis)
 
         async def close(self) -> None:
+            await self.metrics.stop()
             await self.redis.aclose()
 
     app = create_app(config, TestResources, start_runtime=False)

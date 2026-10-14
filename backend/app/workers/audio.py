@@ -80,6 +80,7 @@ async def process_with_resources(
     processing = Processing(resources, settings)
     claimed = await processing.claim(upload_id, job_id)
     if claimed is None:
+        resources.metrics.worker_result("duplicate")
         return
     upload, attempt_id = claimed
     directory: Path | None = None
@@ -169,6 +170,7 @@ async def process_with_resources(
             current.processing_attempt_id = None
             await db.flush()
             await service.emit_track(db, track)
+        resources.metrics.worker_result("ready")
     except (
         BotoCoreError,
         ClientError,
@@ -177,6 +179,7 @@ async def process_with_resources(
         TimeoutError,
         ConnectionError,
     ) as error:
+        resources.metrics.worker_result("retry")
         retain_job = True
         if isinstance(error, DBAPIError) and not transient_database_error(error):
             await processing.fail(upload_id, attempt_id, "PROCESSING_UNAVAILABLE")
@@ -191,6 +194,7 @@ async def process_with_resources(
                 pass
             raise
     except SoftTimeLimitExceeded:
+        resources.metrics.worker_result("interrupted")
         await processing.fail(upload_id, attempt_id, "PROCESSING_TIMEOUT")
     except ValueError:
         await processing.fail(upload_id, attempt_id, "MEDIA_INVALID")

@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from app.config import Settings
+from app.services.metrics import Metrics
 
 
 class Resources:
@@ -19,6 +20,7 @@ class Resources:
         )
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
         self.redis: Redis = Redis.from_url(settings.redis_url, socket_timeout=2)
+        self.metrics = Metrics(self.redis)
         self.storage = boto3.client(
             "s3",
             endpoint_url=settings.s3_endpoint,
@@ -67,6 +69,7 @@ class Resources:
         )
 
     async def close(self) -> None:
+        await self.metrics.stop()
         await self.redis.aclose()
         await self.engine.dispose()
         self.storage.close()

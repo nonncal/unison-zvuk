@@ -1,8 +1,10 @@
 from celery import Celery
 
 from app.config import load_settings
+from app.workers.monitoring import install
 
 celery_app = Celery("unison")
+install()
 celery_app.add_defaults(lambda: {"broker_url": load_settings().redis_url})
 celery_app.conf.update(
     task_serializer="json",

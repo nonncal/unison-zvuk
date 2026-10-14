@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
 from app.contracts.models import Readiness
+from app.services.metrics import Metrics
 
 
 @dataclass
@@ -45,6 +46,7 @@ class Connection:
     generation: int
     session_expires_at: datetime
     queue_size: int
+    metrics: Metrics | None = None
     id: UUID = field(default_factory=uuid4)
     frames: deque[Frame] = field(default_factory=deque)
     available: asyncio.Event = field(default_factory=asyncio.Event)
@@ -68,6 +70,8 @@ class Connection:
                 frame for frame in self.frames if frame.payload["type"] != event["type"]
             )
         if len(self.frames) >= self.queue_size:
+            if self.metrics:
+                self.metrics.slow.inc()
             self.stop(4008)
             return False
         self.frames.append(Frame(event, close_after))
@@ -90,6 +94,8 @@ class Connection:
                 if frame.close_after is not None:
                     self.close_code = frame.close_after
         except (TimeoutError, RuntimeError, OSError, WebSocketDisconnect):
+            if self.metrics:
+                self.metrics.slow.inc()
             self.close_code = 4008
         finally:
             if self.websocket.application_state == WebSocketState.CONNECTED:

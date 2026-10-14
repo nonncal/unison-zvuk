@@ -1,23 +1,30 @@
+from pathlib import Path
 from typing import NoReturn
 
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from pytest import LogCaptureFixture
+from redis.asyncio import Redis
 
 from app.config import Settings
 from app.main import create_app
 from app.resources import Resources
+from app.services.metrics import Metrics
 
 
 class FakeResources(Resources):
     def __init__(self, settings: Settings) -> None:
         self.closed = False
+        self.redis = Redis.from_url(settings.redis_url)
+        self.metrics = Metrics(self.redis)
         self.checks = {"database": True, "queue": True, "storage": True}
 
     async def readiness(self) -> dict[str, bool]:
         return self.checks
 
     async def close(self) -> None:
+        await self.metrics.stop()
+        await self.redis.aclose()
         self.closed = True
 
 
@@ -41,9 +48,11 @@ async def test_liveness_and_readiness_have_different_meanings(settings: Settings
 
 
 async def test_errors_do_not_expose_private_values(
-    settings: Settings, caplog: LogCaptureFixture
+    settings: Settings, caplog: LogCaptureFixture, tmp_path: Path
 ) -> None:
-    app = create_app(settings, FakeResources, start_runtime=False)
+    app = create_app(
+        settings.model_copy(update={"log_dir": tmp_path}), FakeResources, start_runtime=False
+    )
 
     @app.get("/failure", response_model=None)
     async def failure() -> NoReturn:
@@ -60,4 +69,6 @@ async def test_errors_do_not_expose_private_values(
         assert response.status_code == 500
         assert response.json()["error"]["code"] == "INTERNAL_ERROR"
         assert response.headers["x-request-id"] == response.json()["error"]["requestId"]
-        assert "private-secret" not in response.text + caplog.text
+        logs = (tmp_path / "api.jsonl").read_text()
+        assert "request_failed" in logs
+        assert "private-secret" not in response.text + caplog.text + logs

@@ -12,7 +12,7 @@ COPY app ./app
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY catalog ./catalog
-RUN useradd --uid 10001 --create-home unison && mkdir /jobs && chown unison:unison /jobs
+RUN useradd --uid 10001 --create-home unison && mkdir /jobs /logs && chown unison:unison /jobs /logs && chmod 700 /jobs /logs
 USER 10001
 EXPOSE 8000
 

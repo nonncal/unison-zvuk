@@ -38,6 +38,7 @@ class Processing:
             track.error_code = code
             await db.flush()
             await self.media.emit_track(db, track)
+        self.resources.metrics.worker_result("failed")
 
     async def claim(self, upload_id: UUID, job_id: UUID) -> tuple[dbm.Upload, UUID] | None:
         now = datetime.now(UTC)

@@ -16,6 +16,7 @@ from app.domain.playback import Playback, position_at
 from app.domain.rooms import Rooms
 from app.resources import Resources
 from app.services.clock import Clock
+from app.services.metrics import SyncState
 from app.services.security import Security
 from app.ws.connection import Connection
 
@@ -31,6 +32,7 @@ class Manager:
         self.registry_lock = asyncio.Lock()
         self.rooms = Rooms(self.settings, security, clock, self.presence)
         self.playback = Playback(self.rooms, clock)
+        self.metrics = resources.metrics
 
     def presence(self, participant_id: UUID, generation: int) -> tuple[str, wire.Readiness | None]:
         connection = self.connections.get(participant_id)
@@ -96,6 +98,7 @@ class Manager:
                     actor.connection_generation + 1,
                     session.expires_at,
                     self.settings.ws_queue_size,
+                    metrics=self.metrics,
                 )
                 if room.status != "active" or room.expires_at <= datetime.now(UTC):
                     reason = "closedByHost" if room.status == "closed" else "expired"
@@ -219,6 +222,7 @@ class Manager:
         )
 
     async def handle(self, connection: Connection, command: ws.ClientCommand) -> None:
+        self.metrics.commands.labels(command.type).inc()
         if isinstance(command, ws.SelectTrack | ws.Play | ws.Pause | ws.Seek):
             if not connection.controls.take():
                 raise DomainError("RATE_LIMITED", "Слишком много команд", 429)
@@ -343,6 +347,7 @@ class Manager:
                     ):
                         readiness = readiness.model_copy(update={"state": "buffering"})
                 connection.readiness = readiness
+                self.metrics.participant_readiness(readiness.state)
                 room.presence_seq += 1
                 await db.flush()
                 snapshot = await self.rooms.snapshot(db, room)
@@ -368,6 +373,15 @@ class Manager:
                     or command.payload.media_version != state.media_version
                 ):
                     raise DomainError("CONFLICT", "Версия трека изменилась")
+                state_name: SyncState = command.payload.local_state
+                if state_name == "playing" and (
+                    state.status != "playing"
+                    or connection.readiness is None
+                    or connection.readiness.state != "ready"
+                    or not connection.readiness.autoplay_allowed
+                ):
+                    state_name = "notReady"
+                self.metrics.telemetry(state_name, command.payload.drift_ms, command.payload.rtt_ms)
                 connection.rtt_ms = command.payload.rtt_ms
                 connection.last_telemetry = time.monotonic()
 
@@ -378,6 +392,18 @@ class Manager:
         error: DomainError,
         close_after: int | None = None,
     ) -> None:
+        categories = {
+            "PROTOCOL_MISMATCH": "protocol",
+            "FORBIDDEN": "authorization",
+            "SESSION_EXPIRED": "authorization",
+            "RATE_LIMITED": "rateLimit",
+            "CONFLICT": "conflict",
+            "PENDING_TRANSITION": "conflict",
+            "UNAVAILABLE": "unavailable",
+            "ROOM_CLOSED": "closed",
+            "ROOM_EXPIRED": "closed",
+        }
+        self.metrics.errors.labels(categories.get(error.code, "other")).inc()
         if error.code in {"ROOM_CLOSED", "ROOM_EXPIRED"}:
             async with self.resources.sessions() as db:
                 state = await db.get(dbm.PlaybackState, connection.room_id)
