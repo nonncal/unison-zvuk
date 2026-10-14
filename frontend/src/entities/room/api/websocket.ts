@@ -223,7 +223,7 @@ export function connectWebSocket(
           receipts.delete(id)
           reject(new Error('Нет подтверждения команды. Обновите состояние и попробуйте снова.'))
           requestSnapshot()
-        }, 8000)
+        }, 15000)
         receipts.set(id, { resolve, reject, timer })
         try {
           send(command.type, command.payload, revision, id)

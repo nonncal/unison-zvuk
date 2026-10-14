@@ -36,6 +36,13 @@ export class AudioEngine {
         this.sync(true)
       }
     })
+    const reportBuffer = () => {
+      if (this.activeVersion && this.audio.readyState >= 2) {
+        this.readiness(this.allowed ? 'ready' : 'autoplayBlocked')
+      }
+    }
+    this.audio.addEventListener('progress', reportBuffer)
+    this.audio.addEventListener('canplaythrough', reportBuffer)
     this.audio.addEventListener('waiting', () => {
       this.observer?.state('buffering')
       this.readiness('buffering')
@@ -172,9 +179,7 @@ export class AudioEngine {
     this.observer?.state('paused')
   }
   private readiness(state: Parameters<Observer['ready']>[0]) {
-    const key = `${this.activeVersion}:${state}`
-    if (!this.observer || this.lastReadiness === key) return
-    this.lastReadiness = key
+    if (!this.observer) return
     let ahead = 0
     for (let i = 0; i < this.audio.buffered.length; i++)
       if (
@@ -182,7 +187,10 @@ export class AudioEngine {
         this.audio.buffered.end(i) >= this.audio.currentTime
       )
         ahead = (this.audio.buffered.end(i) - this.audio.currentTime) * 1000
-    this.observer?.ready(state, ahead)
+    const key = `${this.activeVersion}:${state}:${Math.min(3000, Math.floor(ahead / 500) * 500)}`
+    if (this.lastReadiness === key) return
+    this.lastReadiness = key
+    this.observer.ready(state, ahead)
   }
   private sync(force = false) {
     if (
