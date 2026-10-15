@@ -44,6 +44,18 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "capacity": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
         }
       },
       "required": [
@@ -90,6 +102,11 @@
               "type": "null"
             }
           ]
+        },
+        "canEdit": {
+          "default": false,
+          "title": "Canedit",
+          "type": "boolean"
         }
       },
       "required": [
@@ -259,6 +276,46 @@
       "title": "Playback",
       "type": "object"
     },
+    "Playlist": {
+      "additionalProperties": false,
+      "properties": {
+        "trackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Trackids",
+          "type": "array"
+        },
+        "skippedTrackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Skippedtrackids",
+          "type": "array"
+        },
+        "repeat": {
+          "default": "off",
+          "enum": [
+            "off",
+            "all",
+            "one"
+          ],
+          "title": "Repeat",
+          "type": "string"
+        },
+        "shuffle": {
+          "default": false,
+          "title": "Shuffle",
+          "type": "boolean"
+        }
+      },
+      "title": "Playlist",
+      "type": "object"
+    },
     "Readiness": {
       "additionalProperties": false,
       "properties": {
@@ -349,6 +406,11 @@
             }
           ],
           "title": "Hostparticipantid"
+        },
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
         }
       },
       "required": [
@@ -389,6 +451,9 @@
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
+        },
+        "playlist": {
+          "$ref": "#/$defs/Playlist"
         }
       },
       "required": [
@@ -458,6 +523,11 @@
     "PreviewResult": {
       "additionalProperties": false,
       "properties": {
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
+        },
         "roomId": {
           "format": "uuid",
           "title": "Roomid",
@@ -981,6 +1051,312 @@
       ],
       "title": "HTTPError",
       "type": "object"
+    },
+    "RoomSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "moderated": {
+          "title": "Moderated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "capacity",
+        "moderated"
+      ],
+      "title": "RoomSettings",
+      "type": "object"
+    },
+    "EditorPermission": {
+      "additionalProperties": false,
+      "properties": {
+        "canEdit": {
+          "title": "Canedit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canEdit"
+      ],
+      "title": "EditorPermission",
+      "type": "object"
+    },
+    "PlayerAction": {
+      "additionalProperties": false,
+      "properties": {
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "next",
+            "previous",
+            "add",
+            "remove",
+            "move",
+            "options"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trackid"
+        },
+        "toIndex": {
+          "anyOf": [
+            {
+              "maximum": 99,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Toindex"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "enum": [
+                "off",
+                "all",
+                "one"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat"
+        },
+        "shuffle": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shuffle"
+        }
+      },
+      "required": [
+        "expectedPlaybackRevision",
+        "action"
+      ],
+      "title": "PlayerAction",
+      "type": "object"
+    },
+    "AdmissionStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "approved",
+            "admitted",
+            "rejected",
+            "cancelled",
+            "expired",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "AdmissionStatus",
+      "type": "object"
+    },
+    "EntryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "approved",
+            "admitted",
+            "rejected",
+            "cancelled",
+            "expired",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "membership": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JoinRoomResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "EntryResult",
+      "type": "object"
+    },
+    "WaitingGuest": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "displayName": {
+          "title": "Displayname",
+          "type": "string"
+        },
+        "requestedAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Requestedat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "requestedAt"
+      ],
+      "title": "WaitingGuest",
+      "type": "object"
+    },
+    "WaitingList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WaitingGuest"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "WaitingList",
+      "type": "object"
+    },
+    "AdmissionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "admit": {
+          "title": "Admit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "admit"
+      ],
+      "title": "AdmissionDecision",
+      "type": "object"
+    },
+    "MyRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "role": {
+          "enum": [
+            "host",
+            "listener"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "capacity",
+        "role"
+      ],
+      "title": "MyRoom",
+      "type": "object"
+    },
+    "MyRooms": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/MyRoom"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "MyRooms",
+      "type": "object"
+    },
+    "MemberAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "transfer",
+            "remove"
+          ],
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "MemberAction",
+      "type": "object"
     }
   },
   "anyOf": [
@@ -1037,6 +1413,33 @@
     },
     {
       "$ref": "#/$defs/HTTPError"
+    },
+    {
+      "$ref": "#/$defs/RoomSettings"
+    },
+    {
+      "$ref": "#/$defs/EditorPermission"
+    },
+    {
+      "$ref": "#/$defs/PlayerAction"
+    },
+    {
+      "$ref": "#/$defs/AdmissionStatus"
+    },
+    {
+      "$ref": "#/$defs/EntryResult"
+    },
+    {
+      "$ref": "#/$defs/WaitingList"
+    },
+    {
+      "$ref": "#/$defs/AdmissionDecision"
+    },
+    {
+      "$ref": "#/$defs/MyRooms"
+    },
+    {
+      "$ref": "#/$defs/MemberAction"
     }
   ]
 }

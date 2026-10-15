@@ -39,6 +39,8 @@ def plain_text(value: str) -> str:
 class CreateRoom(InputModel):
     display_name: Annotated[StrictStr, Field(min_length=1, max_length=32)]
     title: Annotated[StrictStr, Field(min_length=1, max_length=64)] = "Музыкальная комната"
+    capacity: Annotated[StrictInt, Field(ge=2, le=10)] = 2
+    moderated: StrictBool = False
 
     @field_validator("display_name", "title", mode="before")
     @classmethod
@@ -104,6 +106,7 @@ class Participant(WireModel):
     role: Literal["host", "listener"]
     connection_state: Literal["online", "offline", "connecting"]
     readiness: Readiness | None
+    can_edit: StrictBool = False
 
 
 class Room(WireModel):
@@ -113,6 +116,14 @@ class Room(WireModel):
     capacity: Annotated[StrictInt, Field(ge=2, le=10)]
     expires_at: Milliseconds
     host_participant_id: UUID | None
+    moderated: StrictBool = False
+
+
+class Playlist(WireModel):
+    track_ids: Annotated[list[UUID], Field(max_length=100)] = Field(default_factory=list)
+    skipped_track_ids: Annotated[list[UUID], Field(max_length=100)] = Field(default_factory=list)
+    repeat: Literal["off", "all", "one"] = "off"
+    shuffle: StrictBool = False
 
 
 class Snapshot(WireModel):
@@ -121,6 +132,7 @@ class Snapshot(WireModel):
     playback: Playback
     presence_seq: Revision
     playback_revision: Revision
+    playlist: Playlist = Field(default_factory=Playlist)
 
 
 class CreateRoomResult(WireModel):
@@ -138,6 +150,7 @@ class JoinRoomResult(WireModel):
 
 
 class PreviewResult(WireModel):
+    moderated: StrictBool = False
     room_id: UUID
     title: StrictStr
     status: Literal["active", "closed", "expired"]
@@ -251,3 +264,58 @@ class HTTPError(WireModel):
 class Health(WireModel):
     status: Literal["alive", "ready", "unavailable"]
     checks: dict[str, StrictBool] | None = None
+
+
+class RoomSettings(InputModel):
+    capacity: Annotated[StrictInt, Field(ge=2, le=10)]
+    moderated: StrictBool
+
+
+class EditorPermission(InputModel):
+    can_edit: StrictBool
+
+
+class PlayerAction(InputModel):
+    expected_playback_revision: Revision
+    action: Literal["next", "previous", "add", "remove", "move", "options"]
+    track_id: UUID | None = None
+    to_index: Annotated[StrictInt, Field(ge=0, le=99)] | None = None
+    repeat: Literal["off", "all", "one"] | None = None
+    shuffle: StrictBool | None = None
+
+
+class AdmissionStatus(WireModel):
+    status: Literal["pending", "approved", "admitted", "rejected", "cancelled", "expired", "none"]
+
+
+class EntryResult(AdmissionStatus):
+    membership: JoinRoomResult | None = None
+
+
+class WaitingGuest(WireModel):
+    id: UUID
+    display_name: StrictStr
+    requested_at: Milliseconds
+
+
+class WaitingList(WireModel):
+    items: list[WaitingGuest]
+
+
+class AdmissionDecision(InputModel):
+    admit: StrictBool
+
+
+class MyRoom(WireModel):
+    id: UUID
+    title: StrictStr
+    capacity: Annotated[StrictInt, Field(ge=2, le=10)]
+    role: Literal["host", "listener"]
+
+
+class MyRooms(WireModel):
+    items: list[MyRoom]
+
+
+class MemberAction(InputModel):
+    action: Literal["transfer", "remove"]

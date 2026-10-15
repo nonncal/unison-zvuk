@@ -18,8 +18,10 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from app.api.body_limit import RequestBodyLimit
+from app.api.covers import router as covers_router
 from app.api.media import router as media_router
 from app.api.rooms import error_body, router
+from app.api.social import router as social_router
 from app.config import Settings, load_settings
 from app.contracts.models import Health, HTTPError
 from app.db.models import Upload
@@ -102,6 +104,8 @@ def create_app(
     app.state.settings = config
     app.include_router(router)
     app.include_router(media_router)
+    app.include_router(covers_router)
+    app.include_router(social_router)
     app.include_router(ws_router)
     app.add_middleware(RequestBodyLimit)
 

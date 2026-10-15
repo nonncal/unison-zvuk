@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.contracts import ws
 from app.db import models as dbm
 from app.domain.errors import DomainError
+from app.domain.playlist import contents, editor, step
 from app.domain.rooms import Rooms
 from app.services.clock import Clock
 from app.services.security import payload_hash
@@ -58,14 +59,16 @@ class Playback:
             and state.pending_transition is None
             and position_at(state, now_ms) >= state.duration_ms
         ):
-            state.anchor_server_time_ms += max(0, state.duration_ms - state.position_ms)
-            state.position_ms = state.duration_ms
-            state.status = "ended"
+            if not await step(db, room, state, now_ms, automatic=True):
+                state.anchor_server_time_ms += max(0, state.duration_ms - state.position_ms)
+                state.position_ms = state.duration_ms
+                state.status = "ended"
             state.playback_revision += 1
             changed = True
         if changed:
             await db.flush()
             await self.event(db, room, state)
+            await self.rooms.emit_snapshot(db, room)
 
     async def mutate(
         self,
@@ -102,8 +105,7 @@ class Playback:
             await db.delete(receipt)
             await db.flush()
         self.rooms.active(room)
-        if actor.role != "host" or room.host_participant_id != actor.id:
-            raise DomainError("FORBIDDEN", "Общим плеером управляет ведущий", 403)
+        editor(room, actor)
         now_ms = self.clock.now_ms()
         await self.advance(db, room, state, now_ms)
         if command.expected_playback_revision != state.playback_revision:
@@ -141,6 +143,10 @@ class Playback:
             state.status = "paused"
             state.position_ms = 0
             state.anchor_server_time_ms = now_ms
+            data = contents(room)
+            if str(track.id) not in data["trackIds"]:
+                data["trackIds"] = (data["trackIds"] + [str(track.id)])[-100:]
+                room.playlist = data
         else:
             if state.status == "empty":
                 raise DomainError("TRACK_NOT_READY", "Сначала выберите трек")

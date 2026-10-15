@@ -89,7 +89,7 @@ class Manager:
                         dbm.Participant.room_id == room.id, dbm.Participant.session_id == session.id
                     )
                 )
-                if actor is None or actor.left_reason == "left":
+                if actor is None or actor.left_reason in {"left", "removed"}:
                     raise DomainError("FORBIDDEN", "Участие больше не действует", 403)
                 connection = Connection(
                     websocket,
@@ -119,7 +119,7 @@ class Manager:
                         )
                     )
                     if count is not None and count >= room.capacity:
-                        raise DomainError("ROOM_FULL", "В комнате уже два участника")
+                        raise DomainError("ROOM_FULL", "В комнате нет свободных мест")
                     actor.left_at = None
                     actor.left_reason = None
                     actor.role = "listener"
@@ -249,7 +249,7 @@ class Manager:
                         dbm.CommandReceipt, (room.id, actor.id, command.request_id)
                     )
                     early = (receipt is not None and receipt.expires_at > datetime.now(UTC)) or (
-                        actor.role != "host"
+                        (actor.role != "host" and not actor.can_edit)
                         or state.status == "empty"
                         or state.pending_transition is not None
                         or command.expected_playback_revision != state.playback_revision
@@ -374,6 +374,19 @@ class Manager:
                             ],
                         },
                     )
+                )
+            elif isinstance(command, ws.SendReaction):
+                if not connection.reactions.take():
+                    raise DomainError(
+                        "RATE_LIMITED", "Подождите немного перед следующей реакцией", 429
+                    )
+                self.broadcast(
+                    room.id,
+                    self.event(
+                        "reaction.created",
+                        state.playback_revision,
+                        {"participantId": str(actor.id), "emoji": command.payload.emoji},
+                    ),
                 )
             elif isinstance(command, ws.Telemetry):
                 if time.monotonic() - connection.last_telemetry < 5:

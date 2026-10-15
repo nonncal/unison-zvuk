@@ -7,6 +7,7 @@ from app.api.rooms import Database, actor_session, limit_request, services
 from app.contracts import models as wire
 from app.domain.errors import DomainError
 from app.domain.media import Media
+from app.domain.playlist import editor
 from app.domain.rooms import milliseconds
 from app.services.storage import Storage
 
@@ -66,7 +67,8 @@ async def reserve(
     await limit_request(request, "upload", session)
     service = media(request)
     room = await service.rooms.room(db, room_id)
-    actor = await service.rooms.member(db, room, session.id, host=True)
+    actor = await service.rooms.member(db, room, session.id)
+    editor(room, actor)
     service.rooms.active(room)
     return await service.reserve(db, room, actor, idempotency_key, payload)
 
@@ -82,7 +84,8 @@ async def complete(
     session = await actor_session(request, db, mutation=True)
     service = media(request)
     room = await service.rooms.room(db, room_id)
-    actor = await service.rooms.member(db, room, session.id, host=True)
+    actor = await service.rooms.member(db, room, session.id)
+    editor(room, actor)
     service.rooms.active(room)
     return await service.complete(db, await service.upload(db, room, actor, upload_id), payload)
 
@@ -92,7 +95,8 @@ async def cancel(request: Request, db: Database, room_id: UUID, upload_id: UUID)
     session = await actor_session(request, db, mutation=True)
     service = media(request)
     room = await service.rooms.room(db, room_id)
-    actor = await service.rooms.member(db, room, session.id, host=True)
+    actor = await service.rooms.member(db, room, session.id)
+    editor(room, actor)
     service.rooms.active(room)
     await service.cancel(db, await service.upload(db, room, actor, upload_id))
     return Response(status_code=204)

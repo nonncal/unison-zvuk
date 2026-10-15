@@ -89,6 +89,7 @@ class Rooms:
                     "title": room.title,
                     "status": room.status,
                     "capacity": room.capacity,
+                    "moderated": room.moderated,
                     "expires_at": milliseconds(room.expires_at),
                     "host_participant_id": room.host_participant_id,
                 },
@@ -97,6 +98,7 @@ class Rooms:
                         "id": p.id,
                         "display_name": p.display_name,
                         "role": p.role,
+                        "can_edit": p.can_edit or p.id == room.host_participant_id,
                         "connection_state": self.presence(p.id, p.connection_generation)[0]
                         if self.presence
                         else "offline",
@@ -116,6 +118,11 @@ class Rooms:
                     "duration_ms": state.duration_ms,
                     "anchor_server_time_ms": state.anchor_server_time_ms,
                     "pending_transition": state.pending_transition,
+                },
+                "playlist": {
+                    k: v
+                    for k, v in (room.playlist or {}).items()
+                    if k in {"trackIds", "repeat", "shuffle", "skippedTrackIds"}
                 },
                 "presence_seq": room.presence_seq,
                 "playback_revision": state.playback_revision,
@@ -143,6 +150,21 @@ class Rooms:
         room = dbm.Room(
             id=uuid4(),
             title=payload.title,
+            capacity=payload.capacity,
+            moderated=payload.moderated,
+            playlist={
+                "trackIds": [
+                    str(i)
+                    for i in (
+                        await db.scalars(
+                            select(dbm.Track.id)
+                            .where(dbm.Track.scope == "catalog", dbm.Track.status == "ready")
+                            .order_by(dbm.Track.title)
+                            .limit(100)
+                        )
+                    ).all()
+                ]
+            },
             host_participant_id=None,
             invite_token_hash=self.security.digest("invite", token),
             invite_token_encrypted=self.security.encrypt(token),
@@ -209,6 +231,7 @@ class Rooms:
                 "title": room.title,
                 "status": "expired" if room.expires_at <= datetime.now(UTC) else room.status,
                 "participant_count": count,
+                "moderated": room.moderated,
                 "capacity": room.capacity,
                 "expires_at": milliseconds(room.expires_at),
             }
@@ -228,14 +251,39 @@ class Rooms:
                 dbm.Participant.room_id == room.id, dbm.Participant.session_id == session.id
             )
         )
+        if actor is not None and actor.left_reason == "removed":
+            raise DomainError("FORBIDDEN", "Ведущий удалил вас из этой комнаты", 403)
+        if (actor is None or actor.left_at is not None) and room.moderated:
+            admission = await db.scalar(
+                select(dbm.Admission).where(
+                    dbm.Admission.room_id == room.id, dbm.Admission.session_id == session.id
+                )
+            )
+            if (
+                admission is None
+                or admission.status != "approved"
+                or admission.expires_at <= datetime.now(UTC)
+            ):
+                raise DomainError("JOIN_PENDING", "Дождитесь допуска ведущего", 403)
+            admission.status = "admitted"
         if actor is None or actor.left_at is not None:
             count = await db.scalar(
                 select(func.count())
                 .select_from(dbm.Participant)
                 .where(dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None))
             )
-            if count is not None and count >= room.capacity:
-                raise DomainError("ROOM_FULL", "В комнате уже два участника")
+            reserved = await db.scalar(
+                select(func.count())
+                .select_from(dbm.Admission)
+                .where(
+                    dbm.Admission.room_id == room.id,
+                    dbm.Admission.session_id != session.id,
+                    dbm.Admission.status == "approved",
+                    dbm.Admission.expires_at > datetime.now(UTC),
+                )
+            )
+            if (count or 0) + (reserved or 0) >= room.capacity:
+                raise DomainError("ROOM_FULL", "В комнате нет свободных мест")
             role = "listener"
             if actor is None:
                 actor = dbm.Participant(

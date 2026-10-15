@@ -59,6 +59,7 @@ class Connection:
     last_telemetry: float = float("-inf")
     rtt_ms: int | None = None
     controls: Bucket = field(default_factory=lambda: Bucket(5, 10))
+    reactions: Bucket = field(default_factory=lambda: Bucket(0.5, 5))
     observations: Bucket = field(default_factory=lambda: Bucket(20, 30))
     readiness_limit: Bucket = field(default_factory=lambda: Bucket(2, 5))
 

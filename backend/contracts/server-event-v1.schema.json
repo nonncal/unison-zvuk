@@ -496,6 +496,11 @@
               "type": "null"
             }
           ]
+        },
+        "canEdit": {
+          "default": false,
+          "title": "Canedit",
+          "type": "boolean"
         }
       },
       "required": [
@@ -725,6 +730,46 @@
       "title": "PlaybackState",
       "type": "object"
     },
+    "Playlist": {
+      "additionalProperties": false,
+      "properties": {
+        "trackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Trackids",
+          "type": "array"
+        },
+        "skippedTrackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Skippedtrackids",
+          "type": "array"
+        },
+        "repeat": {
+          "default": "off",
+          "enum": [
+            "off",
+            "all",
+            "one"
+          ],
+          "title": "Repeat",
+          "type": "string"
+        },
+        "shuffle": {
+          "default": false,
+          "title": "Shuffle",
+          "type": "boolean"
+        }
+      },
+      "title": "Playlist",
+      "type": "object"
+    },
     "PresenceChanged": {
       "additionalProperties": false,
       "properties": {
@@ -792,6 +837,79 @@
         "participants"
       ],
       "title": "PresencePayload",
+      "type": "object"
+    },
+    "ReactionCreated": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "eventId": {
+          "format": "uuid",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "serverTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Servertimems",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "reaction.created",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReactionCreatedPayload"
+        }
+      },
+      "required": [
+        "v",
+        "eventId",
+        "serverTimeMs",
+        "playbackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "ReactionCreated",
+      "type": "object"
+    },
+    "ReactionCreatedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "emoji": {
+          "enum": [
+            "❤️",
+            "🔥",
+            "👏",
+            "✨",
+            "🎶",
+            "😂"
+          ],
+          "title": "Emoji",
+          "type": "string"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "emoji",
+        "participantId"
+      ],
+      "title": "ReactionCreatedPayload",
       "type": "object"
     },
     "Readiness": {
@@ -884,6 +1002,11 @@
             }
           ],
           "title": "Hostparticipantid"
+        },
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1014,6 +1137,9 @@
           "minimum": 0,
           "title": "Playbackrevision",
           "type": "integer"
+        },
+        "playlist": {
+          "$ref": "#/$defs/Playlist"
         }
       },
       "required": [
@@ -1217,6 +1343,7 @@
       "host.changed": "#/$defs/HostChanged",
       "playback.state": "#/$defs/PlaybackState",
       "presence.changed": "#/$defs/PresenceChanged",
+      "reaction.created": "#/$defs/ReactionCreated",
       "room.closed": "#/$defs/RoomClosed",
       "room.snapshot": "#/$defs/RoomSnapshot",
       "track.updated": "#/$defs/TrackUpdated"
@@ -1256,6 +1383,9 @@
     },
     {
       "$ref": "#/$defs/CommandError"
+    },
+    {
+      "$ref": "#/$defs/ReactionCreated"
     }
   ]
 }

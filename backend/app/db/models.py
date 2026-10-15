@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
+    LargeBinary,
     MetaData,
     String,
     UniqueConstraint,
@@ -45,7 +46,7 @@ class Room(Base):
     __tablename__ = "rooms"
     __table_args__ = (
         CheckConstraint("status IN ('active','closed','expired')", name="status"),
-        CheckConstraint("capacity = 2", name="capacity"),
+        CheckConstraint("capacity BETWEEN 2 AND 10", name="capacity"),
         CheckConstraint("char_length(title) BETWEEN 1 AND 64", name="title_length"),
         ForeignKeyConstraint(
             ["id", "host_participant_id"],
@@ -61,6 +62,10 @@ class Room(Base):
     host_participant_id: Mapped[UUID | None]
     status: Mapped[str] = mapped_column(String(16), default="active")
     capacity: Mapped[int] = mapped_column(default=2)
+    moderated: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+    playlist: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     invite_token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     invite_token_encrypted: Mapped[str] = mapped_column(String(256))
     presence_seq: Mapped[int] = mapped_column(BigInteger, default=0)
@@ -81,7 +86,7 @@ class Participant(Base):
         CheckConstraint(
             "(left_at IS NULL AND left_reason IS NULL) OR "
             "(left_at IS NOT NULL AND left_reason IS NOT NULL "
-            "AND left_reason IN ('left','offlineTimeout'))",
+            "AND left_reason IN ('left','offlineTimeout','removed'))",
             name="leave_reason",
         ),
         Index(
@@ -96,6 +101,7 @@ class Participant(Base):
     session_id: Mapped[UUID] = mapped_column(ForeignKey("sessions.id", ondelete="RESTRICT"))
     display_name: Mapped[str] = mapped_column(String(32))
     role: Mapped[str] = mapped_column(String(16), default="listener")
+    can_edit: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
     connection_generation: Mapped[int] = mapped_column(BigInteger, default=0)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_seen_at: Mapped[datetime] = mapped_column(
@@ -149,6 +155,8 @@ class Track(Base):
     )
     status: Mapped[str] = mapped_column(String(16), default="uploading", index=True)
     error_code: Mapped[str | None] = mapped_column(String(64))
+    cover_data: Mapped[bytes | None] = mapped_column(LargeBinary)
+    cover_version: Mapped[int] = mapped_column(default=0, server_default="0")
     source_uri: Mapped[str | None] = mapped_column(String(512))
     license_id: Mapped[str | None] = mapped_column(String(64))
     license_uri: Mapped[str | None] = mapped_column(String(512))
@@ -257,3 +265,20 @@ class Outbox(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Admission(Base):
+    __tablename__ = "admissions"
+    __table_args__ = (
+        UniqueConstraint("room_id", "session_id"),
+        CheckConstraint(
+            "status IN ('pending','approved','admitted','rejected','cancelled')", name="status"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    room_id: Mapped[UUID] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"))
+    display_name: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

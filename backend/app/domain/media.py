@@ -39,6 +39,7 @@ class Media:
                 "id": track.id,
                 "title": track.title,
                 "artist": track.artist,
+                "cover_url": f"tracks/{track.id}/cover?v={track.cover_version}",
                 "duration_ms": track.duration_ms,
                 "status": track.status,
                 "error_code": track.error_code,

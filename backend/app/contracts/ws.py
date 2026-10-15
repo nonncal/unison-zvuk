@@ -116,6 +116,15 @@ class Telemetry(Observation):
     payload: TelemetryPayload
 
 
+class ReactionPayload(WireModel):
+    emoji: Literal["❤️", "🔥", "👏", "✨", "🎶", "😂"]
+
+
+class SendReaction(Observation):
+    type: Literal["reaction.send"]
+    payload: ReactionPayload
+
+
 ClientCommand = Annotated[
     ClockProbe
     | HeartbeatPong
@@ -125,7 +134,8 @@ ClientCommand = Annotated[
     | Play
     | Pause
     | Seek
-    | Telemetry,
+    | Telemetry
+    | SendReaction,
     Field(discriminator="type"),
 ]
 command_adapter = TypeAdapter(cast(type[ClientCommand], ClientCommand))
@@ -235,6 +245,15 @@ class CommandError(Event):
     payload: ErrorPayload
 
 
+class ReactionCreatedPayload(ReactionPayload):
+    participant_id: UUID
+
+
+class ReactionCreated(Event):
+    type: Literal["reaction.created"]
+    payload: ReactionCreatedPayload
+
+
 ServerEvent = Annotated[
     Hello
     | RoomSnapshot
@@ -246,7 +265,8 @@ ServerEvent = Annotated[
     | TrackUpdated
     | RoomClosed
     | CommandAck
-    | CommandError,
+    | CommandError
+    | ReactionCreated,
     Field(discriminator="type"),
 ]
 event_adapter = TypeAdapter(cast(type[ServerEvent], ServerEvent))

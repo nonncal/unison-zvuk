@@ -240,6 +240,28 @@
       "title": "ProbePayload",
       "type": "object"
     },
+    "ReactionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "emoji": {
+          "enum": [
+            "❤️",
+            "🔥",
+            "👏",
+            "✨",
+            "🎶",
+            "😂"
+          ],
+          "title": "Emoji",
+          "type": "string"
+        }
+      },
+      "required": [
+        "emoji"
+      ],
+      "title": "ReactionPayload",
+      "type": "object"
+    },
     "Readiness": {
       "additionalProperties": false,
       "properties": {
@@ -393,6 +415,42 @@
       "title": "SelectTrack",
       "type": "object"
     },
+    "SendReaction": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "reaction.send",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReactionPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "SendReaction",
+      "type": "object"
+    },
     "SnapshotRequest": {
       "additionalProperties": false,
       "properties": {
@@ -523,6 +581,7 @@
       "playback.play": "#/$defs/Play",
       "playback.seek": "#/$defs/Seek",
       "playback.select": "#/$defs/SelectTrack",
+      "reaction.send": "#/$defs/SendReaction",
       "room.snapshot.request": "#/$defs/SnapshotRequest",
       "sync.telemetry": "#/$defs/Telemetry"
     },
@@ -555,6 +614,9 @@
     },
     {
       "$ref": "#/$defs/Telemetry"
+    },
+    {
+      "$ref": "#/$defs/SendReaction"
     }
   ]
 }

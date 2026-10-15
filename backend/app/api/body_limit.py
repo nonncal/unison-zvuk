@@ -1,4 +1,5 @@
 import asyncio
+import re
 import time
 from uuid import uuid4
 
@@ -15,6 +16,14 @@ class RequestBodyLimit:
         if scope["type"] != "http" or scope["method"] in {"GET", "HEAD", "OPTIONS"}:
             await self.app(scope, receive, send)
             return
+        max_bytes = (
+            5 * 1024 * 1024
+            if scope["method"] == "PUT"
+            and re.fullmatch(
+                r"/api/v1/rooms/[0-9a-f-]{36}/tracks/[0-9a-f-]{36}/cover", scope["path"]
+            )
+            else self.max_bytes
+        )
         body = bytearray()
         deadline = time.monotonic() + 10
         while True:
@@ -28,7 +37,7 @@ class RequestBodyLimit:
             if message["type"] == "http.disconnect":
                 return
             chunk = message.get("body", b"")
-            if len(body) + len(chunk) > self.max_bytes:
+            if len(body) + len(chunk) > max_bytes:
                 await self.reject(scope, receive, send, "REQUEST_TOO_LARGE", 413)
                 return
             body.extend(chunk)

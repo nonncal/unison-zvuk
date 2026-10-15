@@ -27,6 +27,15 @@ MODEL_TYPES: tuple[type[wire.WireModel], ...] = (
     wire.TrackList,
     wire.PlaybackURL,
     wire.HTTPError,
+    wire.RoomSettings,
+    wire.EditorPermission,
+    wire.PlayerAction,
+    wire.AdmissionStatus,
+    wire.EntryResult,
+    wire.WaitingList,
+    wire.AdmissionDecision,
+    wire.MyRooms,
+    wire.MemberAction,
 )
 HTTP_MODELS = {model.__name__: model for model in MODEL_TYPES}
 
