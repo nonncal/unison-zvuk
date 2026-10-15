@@ -4,8 +4,9 @@ from uuid import uuid4
 import pytest
 
 from app.services.media_jobs import MediaReady, MediaRequest, read_file, submit
+from app.services.metadata import text_metadata
 from app.workers import transcoder
-from app.workers.transcoder import ProcessingFailure, duration_ms, sandbox, text_metadata
+from app.workers.transcoder import ProcessingFailure, duration_ms, sandbox
 
 
 def test_media_submission_is_idempotent_but_rejects_mismatched_input(tmp_path: Path) -> None:
@@ -101,3 +102,19 @@ def test_removed_job_does_not_crash_transcoder_loop(
     monkeypatch.setattr(transcoder, "normalize", disappear)
     transcoder.process_directory(directory, tmp_path)
     assert not directory.exists()
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("挀甀琀\u2000栀愀渀搀猀", "cut hands"),
+        ("䐀攀昀琀漀渀攀猀", "Deftones"),
+        ("После дождя", "После дождя"),
+        ("宇多田ヒカル", "宇多田ヒカル"),
+        ("周杰倫 — 夜曲", "周杰倫 — 夜曲"),
+        ("Beyoncé 🎶", "Beyoncé 🎶"),
+        ("挀甀琀 mixed", "挀甀琀 mixed"),
+    ],
+)
+def test_metadata_repairs_only_unambiguous_swapped_ascii(raw: str, expected: str) -> None:
+    assert text_metadata(raw) == expected

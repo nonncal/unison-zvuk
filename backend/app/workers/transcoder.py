@@ -8,7 +8,6 @@ import signal
 import stat
 import subprocess
 import time
-import unicodedata
 from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -22,17 +21,12 @@ from app.services.media_jobs import (
     read_file,
     read_prefix,
 )
+from app.services.metadata import text_metadata
 
 
 class ProcessingFailure(Exception):
     def __init__(self, code: str) -> None:
         self.code = code
-
-
-def text_metadata(value: object) -> str:
-    if not isinstance(value, str):
-        return ""
-    return "".join(c for c in value if not unicodedata.category(c).startswith("C")).strip()[:200]
 
 
 def sandbox(directory: Path, command: list[str]) -> list[str]:
