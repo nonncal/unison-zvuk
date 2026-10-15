@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 import { roomActions, selectRoomState, timelineAt, gateway } from '@/entities/room'
 import type { RoomConnection, RoomState } from '@/entities/room'
@@ -25,7 +25,10 @@ export function useListeningRoom(roomId: string, retry: number) {
       snapshot.room.status !== 'active',
   })
   const { refetch } = remoteTracks
-  const tracks = appMode === 'api' ? (remoteTracks.data ?? []) : demoTracks
+  const tracks = useMemo(
+    () => (appMode === 'api' ? (remoteTracks.data ?? []) : demoTracks),
+    [remoteTracks.data, demoTracks],
+  )
   const selected = tracks.find((t) => t.id === snapshot?.playback.trackId)
   const reloadTracks = useCallback(() => {
     if (appMode === 'api') {
@@ -53,6 +56,10 @@ export function useListeningRoom(roomId: string, retry: number) {
           (value) => dispatch(roomActions.received(value)),
           (value) => dispatch(roomActions.connection(value)),
           (value) => dispatch(roomActions.error(value)),
+          (reaction) => dispatch(roomActions.reaction(reaction)),
+          () => {
+            void refetch()
+          },
         )
       })
       .catch((e) => {
@@ -66,7 +73,7 @@ export function useListeningRoom(roomId: string, retry: number) {
       transport.current?.dispose()
       transport.current = null
     }
-  }, [roomId, dispatch, retry])
+  }, [roomId, dispatch, retry, refetch])
   useEffect(() => {
     if (snapshot?.room.id === roomId) reloadTracks()
   }, [snapshot?.room.id, snapshot?.playback.trackId, roomId, reloadTracks])
@@ -108,6 +115,15 @@ export function useListeningRoom(roomId: string, retry: number) {
     }
     void audioEngine.update(snapshot.playback, selected, () => gateway.audioUrl(roomId, selected!))
   }, [snapshot, selected, roomId])
+  useEffect(() => {
+    if (!snapshot || snapshot.playlist?.shuffle || !snapshot.playback.trackId) return
+    const ids = snapshot.playlist?.trackIds ?? [],
+      index = ids.indexOf(snapshot.playback.trackId)
+    const nextId = ids[index + 1] ?? (snapshot.playlist?.repeat === 'all' ? ids[0] : undefined)
+    const next = tracks.find((t) => t.id === nextId)
+    if (next && next.id !== selected?.id)
+      void audioEngine.preload(next, () => gateway.audioUrl(roomId, next))
+  }, [snapshot, tracks, selected?.id, roomId])
   useEffect(() => {
     if (connection === 'connected') {
       audioEngine.resumeForConnection()

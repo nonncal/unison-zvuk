@@ -23,17 +23,29 @@ export class AudioEngine {
   private schedule = 0
   private correctionStart = 0
   private starting = false
+  private prefetched: { key: string; url: string; expires: number } | null = null
+  private prefetchAudio: HTMLAudioElement | null = null
+  private prefetchKey = ''
+  private sourcePending = false
+  private buffering = false
+  private retryTimer = 0
+  private retryCount = 0
+  private lastTrack: Track | undefined
+  private resolveSource: (() => Promise<string>) | null = null
   private volume = 0.65
   private suspended = false
+  private lastReadinessAt = 0
+  private readinessTimer = 0
   private lastReadiness = ''
   constructor() {
     this.audio.preload = 'auto'
     this.audio.preservesPitch = true
     this.audio.addEventListener('loadedmetadata', () => this.sync(true))
     this.audio.addEventListener('canplay', () => {
+      this.buffering = false
       if (this.activeVersion) {
         this.readiness(this.allowed ? 'ready' : 'autoplayBlocked')
-        this.sync(true)
+        this.sync()
       }
     })
     const reportBuffer = () => {
@@ -44,6 +56,8 @@ export class AudioEngine {
     this.audio.addEventListener('progress', reportBuffer)
     this.audio.addEventListener('canplaythrough', reportBuffer)
     this.audio.addEventListener('waiting', () => {
+      this.buffering = true
+      this.correctionStart = 0
       this.observer?.state('buffering')
       this.readiness('buffering')
     })
@@ -55,6 +69,19 @@ export class AudioEngine {
       if (this.activeVersion) {
         this.observer?.state('error')
         this.readiness('error')
+        if (this.retryCount < 2 && this.playback && this.lastTrack && this.resolveSource) {
+          const version = this.activeVersion,
+            track = this.lastTrack,
+            resolve = this.resolveSource
+          clearTimeout(this.retryTimer)
+          clearTimeout(this.readinessTimer)
+          this.retryTimer = window.setTimeout(() => {
+            if (this.activeVersion !== version || !this.playback || !this.observer) return
+            this.activeVersion = null
+            this.prefetched = null
+            void this.update(this.playback, track, resolve)
+          }, 1000 * ++this.retryCount)
+        }
       }
     })
     this.audio.addEventListener('timeupdate', () =>
@@ -94,7 +121,14 @@ export class AudioEngine {
     this.timer = window.setInterval(() => this.sync(), 1000)
     return () => {
       clearInterval(this.timer)
+      clearTimeout(this.retryTimer)
       clearTimeout(this.schedule)
+      clearTimeout(this.readinessTimer)
+      this.prefetchKey = ''
+      this.prefetched = null
+      this.prefetchAudio?.removeAttribute('src')
+      this.prefetchAudio?.load()
+      this.prefetchAudio = null
       this.observer = null
       this.audio.pause()
       this.generation++
@@ -112,9 +146,37 @@ export class AudioEngine {
     if (this.activeUrl?.startsWith('blob:')) URL.revokeObjectURL(this.activeUrl)
     this.activeUrl = null
   }
+  async preload(track: Track, resolve: () => Promise<string>) {
+    const key = `${track.id}:${track.mediaVersion}`
+    if (
+      this.prefetchKey === key ||
+      this.sourcePending ||
+      this.buffering ||
+      this.audio.readyState < 3
+    )
+      return
+    this.prefetchKey = key
+    try {
+      const url = await resolve()
+      if (this.prefetchKey !== key || !this.observer) return
+      this.prefetched = { key, url, expires: Date.now() + 120000 }
+      this.prefetchAudio?.removeAttribute('src')
+      this.prefetchAudio = new Audio(url)
+      this.prefetchAudio.preload = 'auto'
+      this.prefetchAudio.load()
+    } catch {
+      if (this.prefetchKey === key) this.prefetchKey = ''
+    }
+  }
   async update(playback: Playback, track: Track | undefined, url: () => Promise<string>) {
     const epochChanged = this.playback?.epoch !== playback.epoch
     this.playback = playback
+    if (this.lastTrack?.id !== track?.id || this.lastTrack?.mediaVersion !== track?.mediaVersion) {
+      this.retryCount = 0
+      clearTimeout(this.retryTimer)
+    }
+    this.lastTrack = track
+    this.resolveSource = url
     clearTimeout(this.schedule)
     if (!track) {
       this.audio.pause()
@@ -127,13 +189,18 @@ export class AudioEngine {
     const version = `${track.id}:${track.mediaVersion}`
     if (this.activeVersion !== version) {
       const generation = ++this.generation
+      this.sourcePending = true
+      this.buffering = false
       this.activeVersion = version
       this.audio.pause()
       this.audio.playbackRate = 1
       this.observer?.state('loading')
       this.readiness('loading')
       try {
-        const source = await url()
+        const source =
+          this.prefetched?.key === version && this.prefetched.expires > Date.now()
+            ? this.prefetched.url
+            : await url()
         if (generation !== this.generation) {
           if (source.startsWith('blob:')) URL.revokeObjectURL(source)
           return
@@ -143,8 +210,10 @@ export class AudioEngine {
         this.audio.src = source
         this.audio.volume = this.volume
         this.audio.load()
+        this.sourcePending = false
       } catch {
         if (generation === this.generation) {
+          this.sourcePending = false
           this.observer?.state('error')
           this.readiness('error')
           this.activeVersion = null
@@ -189,17 +258,43 @@ export class AudioEngine {
         ahead = (this.audio.buffered.end(i) - this.audio.currentTime) * 1000
     const key = `${this.activeVersion}:${state}:${Math.min(3000, Math.floor(ahead / 500) * 500)}`
     if (this.lastReadiness === key) return
+    if (state === 'ready' && Date.now() - this.lastReadinessAt < 600) {
+      clearTimeout(this.readinessTimer)
+      this.readinessTimer = window.setTimeout(
+        () => this.readiness(state),
+        Math.max(1, 600 - (Date.now() - this.lastReadinessAt)),
+      )
+      return
+    }
     this.lastReadiness = key
+    this.lastReadinessAt = Date.now()
     this.observer.ready(state, ahead)
   }
   private sync(force = false) {
+    if (this.buffering && this.audio.readyState >= 3) this.buffering = false
     if (
       this.suspended ||
+      this.sourcePending ||
+      this.buffering ||
       !this.playback?.trackId ||
       !this.activeVersion ||
       this.audio.readyState < 2
     )
       return
+    // A newly selected track gets a shared preload window before the server anchor.
+    if (
+      this.playback.status === 'playing' &&
+      !this.playback.pendingTransition &&
+      this.playback.anchorServerTimeMs > this.now()
+    ) {
+      this.audio.pause()
+      clearTimeout(this.schedule)
+      this.schedule = window.setTimeout(
+        () => this.sync(true),
+        this.playback.anchorServerTimeMs - this.now(),
+      )
+      return
+    }
     const target = timelineAt(this.playback, this.now()),
       drift = target.positionMs - this.audio.currentTime * 1000
     if (!this.allowed) {
