@@ -118,3 +118,30 @@ def test_removed_job_does_not_crash_transcoder_loop(
 )
 def test_metadata_repairs_only_unambiguous_swapped_ascii(raw: str, expected: str) -> None:
     assert text_metadata(raw) == expected
+
+
+@pytest.mark.parametrize("failure", [True, False])
+def test_optional_artwork_is_bounded_and_failure_is_nonfatal(tmp_path, monkeypatch, failure):
+    directory = submit(tmp_path, uuid4(), b"wave", "audio/mpeg")
+    calls = []
+
+    def execute(directory, command, output, seconds, max_file_bytes, **kwargs):
+        calls.append(command)
+        assert seconds == 8 and max_file_bytes == 5 * 1024 * 1024
+        if failure:
+            raise ProcessingFailure("MEDIA_INVALID")
+        (directory / "out" / "cover.webp").write_bytes(b"image")
+
+    monkeypatch.setattr(transcoder, "execute", execute)
+    assert not transcoder.extract_cover(directory, [])
+    stream = {
+        "index": 2,
+        "codec_type": "video",
+        "width": 600,
+        "height": 600,
+        "disposition": {"attached_pic": 1},
+    }
+    assert transcoder.extract_cover(directory, [stream]) is not failure
+    assert calls[0][calls[0].index("-map") + 1] == "0:2"
+    assert not transcoder.extract_cover(directory, [{**stream, "width": 100_000}])
+    assert len(calls) == 1

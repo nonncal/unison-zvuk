@@ -1,38 +1,17 @@
 import asyncio
 import hashlib
 import html
-from io import BytesIO
 from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
-from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.api.media import media
 from app.api.rooms import Database, actor_session
 from app.domain.errors import DomainError
 from app.domain.playlist import editor
+from app.services.covers import normalize_cover
 
 router = APIRouter(prefix="/api/v1")
-
-
-def normalize_cover(raw: bytes) -> bytes:
-    try:
-        with Image.open(BytesIO(raw)) as image:
-            if (
-                image.format not in {"PNG", "JPEG", "WEBP"}
-                or image.width * image.height > 16_777_216
-            ):
-                raise ValueError("Unsupported cover")
-            image.load()
-            normalized = ImageOps.exif_transpose(image).convert("RGB")
-            normalized.thumbnail((512, 512))
-            output = BytesIO()
-            normalized.save(output, format="WEBP", quality=85)
-            return output.getvalue()
-    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as error:
-        raise DomainError(
-            "INVALID_COVER", "Выберите PNG, JPEG или WebP до 5 МБ и 16 мегапикселей", 422
-        ) from error
 
 
 @router.get("/rooms/{room_id}/tracks/{track_id}/cover")

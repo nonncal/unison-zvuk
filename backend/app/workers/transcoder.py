@@ -194,6 +194,67 @@ def duration_ms(data: dict[str, Any]) -> int:
     return result
 
 
+def extract_cover(directory: Path, streams: list[dict[str, Any]]) -> bool:
+    """Artwork is optional: a malformed image must never discard valid audio."""
+    stream = next(
+        (
+            s
+            for s in streams
+            if s.get("disposition", {}).get("attached_pic") and s.get("codec_type") == "video"
+        ),
+        None,
+    )
+    if stream is None:
+        return False
+    try:
+        width, height = int(stream.get("width", 0)), int(stream.get("height", 0))
+        if not 0 < width * height <= 16_777_216:
+            return False
+        index = int(stream["index"])
+        execute(
+            directory,
+            [
+                "/usr/bin/ffmpeg",
+                "-nostdin",
+                "-v",
+                "error",
+                "-n",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-threads",
+                "1",
+                "-i",
+                "/input",
+                "-map",
+                f"0:{index}",
+                "-frames:v",
+                "1",
+                "-an",
+                "-sn",
+                "-dn",
+                "-map_metadata",
+                "-1",
+                "-vf",
+                "scale=512:512:force_original_aspect_ratio=decrease",
+                "-filter_threads",
+                "1",
+                "-threads",
+                "1",
+                "-c:v",
+                "libwebp",
+                "/work/cover.webp",
+            ],
+            "cover.log",
+            8,
+            5 * 1024 * 1024,
+            watch_request=True,
+        )
+        return bool(read_file(directory / "out" / "cover.webp", 5 * 1024 * 1024))
+    except (ProcessingFailure, OSError, ValueError, KeyError, TypeError):
+        (directory / "out" / "cover.webp").unlink(missing_ok=True)
+        return False
+
+
 def normalize(directory: Path, request: MediaRequest) -> MediaReady:
     source = read_file(directory / "source.bin", 50 * 1024 * 1024)
     if not source:
@@ -285,6 +346,7 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
         duration_ms=duration_ms(output),
         title=text_metadata(tags.get("title", "")),
         artist=text_metadata(tags.get("artist", "")),
+        has_cover=extract_cover(directory, streams),
     )
 
 

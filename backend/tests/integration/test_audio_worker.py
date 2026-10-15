@@ -166,3 +166,45 @@ async def test_crashed_worker_is_requeued_twice_and_old_attempt_is_fenced(
         )
         assert retries == 2
     assert await service.claim(upload_id, job_id) is None
+
+
+@pytest.mark.parametrize("manual", [False, True])
+async def test_embedded_cover_is_published_without_overwriting_manual(
+    database, storage, settings, tmp_path, monkeypatch, manual
+):
+    from io import BytesIO
+
+    from PIL import Image
+
+    upload_id, job_id = await seed_processing(database, storage)
+    resources = storage.resources
+    output = BytesIO()
+    Image.new("RGB", (64, 64), "blue").save(output, format="WEBP")
+    async with resources.sessions.begin() as db:
+        upload = await db.get(Upload, upload_id)
+        track = await db.get(Track, upload.track_id)
+        if manual:
+            track.cover_data = b"manual cover"
+            track.cover_version = 3
+
+    async def ready(directory):
+        (directory / "out" / "normalized.mp3").write_bytes(b"audio")
+        (directory / "out" / "cover.webp").write_bytes(output.getvalue())
+        result = MediaReady(duration_ms=2000, has_cover=True)
+        atomic_json(directory / "result.json", result.model_dump(mode="json", by_alias=True))
+        return result
+
+    monkeypatch.setattr(audio, "wait_for_result_async", ready)
+    config = settings.model_copy(update={"jobs_dir": tmp_path})
+    await audio.process_with_resources(resources, config, upload_id, job_id)
+    await audio.process_with_resources(resources, config, upload_id, job_id)
+    async with resources.sessions() as db:
+        upload = await db.get(Upload, upload_id)
+        track = await db.get(Track, upload.track_id)
+        assert upload.status == "ready"
+        if manual:
+            assert track.cover_data == b"manual cover" and track.cover_version == 3
+        else:
+            assert track.cover_data and track.cover_version == 1
+            with Image.open(BytesIO(track.cover_data)) as image:
+                assert image.format == "WEBP" and image.size == (64, 64)

@@ -14,9 +14,11 @@ from sqlalchemy.exc import TimeoutError as DatabaseTimeout
 
 from app.config import Settings, load_settings
 from app.db import models as dbm
+from app.domain.errors import DomainError
 from app.domain.media import Media
 from app.domain.rooms import Rooms
 from app.resources import Resources
+from app.services.covers import normalize_cover
 from app.services.media_jobs import MediaFailed, abort_job, read_file, submit, wait_for_result_async
 from app.services.processing import Processing
 from app.services.security import Security
@@ -118,6 +120,14 @@ async def process_with_resources(
             await processing.fail(upload_id, attempt_id, result.error_code)
             return
         normalized = read_file(directory / "out" / "normalized.mp3", 100 * 1024 * 1024)
+        embedded_cover = None
+        if result.has_cover:
+            try:
+                embedded_cover = await asyncio.to_thread(
+                    normalize_cover, read_file(directory / "out" / "cover.webp", 5 * 1024 * 1024)
+                )
+            except (DomainError, OSError, ValueError):
+                pass  # Optional artwork cannot fail an otherwise valid audio upload.
         media_digest = hashlib.sha256(normalized).hexdigest()
         output_key = f"rooms/{upload.room_id}/media/{upload_id}/{media_digest}.mp3"
         await asyncio.to_thread(publish, resources, output_key, normalized)
@@ -171,6 +181,9 @@ async def process_with_resources(
             track.playback_asset_id = media_id
             track.duration_ms = result.duration_ms
             title = result.title or track.title
+            if embedded_cover is not None and track.cover_data is None:
+                track.cover_data = embedded_cover
+                track.cover_version += 1
             if title != track.title and track.cover_data is None:
                 track.cover_version += 1
             track.title = title

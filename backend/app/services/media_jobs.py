@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
-from pydantic import Field, StrictInt, StrictStr, TypeAdapter
+from pydantic import Field, StrictBool, StrictInt, StrictStr, TypeAdapter
 
 from app.contracts.models import WireModel
 
@@ -25,6 +25,7 @@ class MediaReady(WireModel):
     duration_ms: Annotated[StrictInt, Field(gt=0, le=900_000)]
     title: Annotated[StrictStr, Field(max_length=200)] = ""
     artist: Annotated[StrictStr, Field(max_length=200)] = ""
+    has_cover: StrictBool = False
     sample_rate: Literal[44100] = 44100
     channels: Literal[2] = 2
 
