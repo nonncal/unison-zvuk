@@ -107,7 +107,7 @@ test('independent sessions play actual S3 audio, pause, seek and transfer host',
     await expect.poll(async () => (await media(g.page)).ready).toBeGreaterThanOrEqual(2)
     await page.getByRole('button', { name: 'Воспроизвести для всех' }).click()
     await expect.poll(async () => (await media(g.page)).position).toBeGreaterThan(1500)
-    expect((await media(g.page)).source).toMatch(/9000.*unison-audio/)
+    expect(new URL((await media(g.page)).source).pathname).toMatch(/^\/unison-audio\//)
     expect((await media(page)).paused).toBe(false)
     await expect(g.page.getByRole('button', { name: 'Пауза для всех' })).toBeDisabled()
     await page.getByRole('button', { name: 'Пауза для всех' }).click()

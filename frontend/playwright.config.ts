@@ -12,9 +12,12 @@ export default defineConfig({
   timeout: api ? 120000 : 30000,
   expect: { timeout: 15000 },
   use: { baseURL: origin, viewport: { width: 1440, height: 1000 }, trace: 'retain-on-failure' },
-  webServer: {
-    command: `VITE_APP_MODE=${api ? 'api' : 'demo'} npm run dev -- --host 127.0.0.1 --port ${new URL(origin).port} --strictPort`,
-    url: origin,
-    reuseExistingServer: api && !process.env.CI,
-  },
+  webServer:
+    process.env.UNISON_E2E_EXTERNAL === '1'
+      ? undefined
+      : {
+          command: `VITE_APP_MODE=${api ? 'api' : 'demo'} npm run dev -- --host 127.0.0.1 --port ${new URL(origin).port} --strictPort`,
+          url: origin,
+          reuseExistingServer: api && !process.env.CI,
+        },
 })
