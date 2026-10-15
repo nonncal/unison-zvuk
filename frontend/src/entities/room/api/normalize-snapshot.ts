@@ -8,6 +8,12 @@ export function normalizeParticipants(
 export function normalizeSnapshot(value: HTTPModels['Snapshot']): Snapshot {
   return {
     ...value,
+    playlist: {
+      skippedTrackIds: value.playlist?.skippedTrackIds ?? [],
+      trackIds: value.playlist?.trackIds ?? [],
+      repeat: value.playlist?.repeat ?? 'off',
+      shuffle: value.playlist?.shuffle ?? false,
+    },
     participants: normalizeParticipants(value.participants),
     playback: { ...value.playback, playbackRevision: value.playbackRevision },
   }

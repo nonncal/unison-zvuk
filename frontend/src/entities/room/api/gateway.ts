@@ -1,3 +1,4 @@
+import { AppError } from '@/shared/lib/errors'
 import type { Gateway } from '../model/types'
 import { demoGateway } from './demo-gateway'
 import { request, requestModel } from '@/shared/api'
@@ -8,11 +9,11 @@ import { connectWebSocket } from './websocket'
 import { validateFile } from '@/shared/lib/media'
 const remoteGateway: Gateway = {
   mode: 'api',
-  async create(name, title) {
+  async create(name, title, options) {
     const data = await requestModel('CreateRoomResult', '/rooms', {
       method: 'POST',
       headers: { 'Idempotency-Key': crypto.randomUUID() },
-      body: JSON.stringify({ displayName: name, title }),
+      body: JSON.stringify({ displayName: name, title, ...options }),
     })
     return { ...data, role: 'host', snapshot: normalizeSnapshot(data.snapshot) }
   },
@@ -25,23 +26,26 @@ const remoteGateway: Gateway = {
     return data
   },
   async join(roomId, token, name) {
-    const data = await requestModel('JoinRoomResult', `/rooms/${roomId}/join`, {
+    const entry = await requestModel('EntryResult', `/rooms/${roomId}/entry`, {
       method: 'POST',
       body: JSON.stringify({ inviteToken: token, displayName: name }),
     })
+    if (entry.status !== 'admitted' || !entry.membership)
+      throw new AppError(
+        entry.status === 'pending' ? 'JOIN_PENDING' : 'JOIN_REJECTED',
+        entry.status === 'pending' ? 'Ожидаем допуска ведущего' : 'Ведущий отклонил заявку',
+      )
+    const data = entry.membership
     localStorage.setItem(`unison:api:participant:${roomId}`, data.participantId)
     return { ...data, snapshot: normalizeSnapshot(data.snapshot) }
   },
   async restore(roomId) {
-    const snapshot = normalizeSnapshot(await requestModel('Snapshot', `/rooms/${roomId}`))
-    const pid = localStorage.getItem(`unison:api:participant:${roomId}`)
-    if (!pid || !snapshot.participants.some((p) => p.id === pid))
-      throw new Error('Сессия завершена. Войдите по приглашению.')
-    return {
-      participantId: pid,
-      role: snapshot.participants.find((p) => p.id === pid)!.role,
-      snapshot,
-    }
+    const data = await requestModel('JoinRoomResult', `/rooms/${roomId}/resume`, {
+      method: 'POST',
+      body: '{}',
+    })
+    localStorage.setItem(`unison:api:participant:${roomId}`, data.participantId)
+    return { ...data, snapshot: normalizeSnapshot(data.snapshot) }
   },
   async invite(roomId) {
     return (await requestModel('InviteResult', `/rooms/${roomId}/invite`)).inviteUrl
@@ -144,13 +148,13 @@ const remoteGateway: Gateway = {
       body: JSON.stringify({ expectedPlaybackRevision: revision }),
     })
   },
-  connect(roomId, _pid, onSnapshot, onConnection, onError) {
-    return connectWebSocket(roomId, onSnapshot, onConnection, onError)
+  connect(roomId, _pid, onSnapshot, onConnection, onError, onReaction, onTracksChanged) {
+    return connectWebSocket(roomId, onSnapshot, onConnection, onError, onReaction, onTracksChanged)
   },
 }
 const originalCreate = remoteGateway.create
-remoteGateway.create = async (name, title) => {
-  const room = await originalCreate(name, title)
+remoteGateway.create = async (name, title, options) => {
+  const room = await originalCreate(name, title, options)
   localStorage.setItem(`unison:api:participant:${room.roomId}`, room.participantId)
   return room
 }

@@ -1,5 +1,11 @@
 import { AppError } from '@/shared/lib/errors'
-import type { ConnectionState, RoomConnection, Snapshot } from '../model/types'
+import type {
+  ConnectionState,
+  RoomConnection,
+  Snapshot,
+  Reaction,
+  ReactionEmoji,
+} from '../model/types'
 import { clockSample, estimateOffset } from '@/shared/lib/clock'
 import { apiOrigin } from '@/shared/config'
 import type { HTTPModels } from '@/shared/api'
@@ -10,6 +16,8 @@ export function connectWebSocket(
   onSnapshot: (snapshot: Snapshot) => void,
   onConnection: (state: ConnectionState) => void,
   onError: (error: string) => void,
+  onReaction?: (reaction: Reaction) => void,
+  onTracksChanged?: () => void,
 ): RoomConnection {
   let socket: WebSocket | null = null,
     disposed = false,
@@ -151,7 +159,15 @@ export function connectWebSocket(
             onSnapshot(snapshot)
           }
           onConnection('closed')
-        } else if (message.type === 'command.ack' || message.type === 'command.error') {
+        } else if (message.type === 'reaction.created') {
+          onReaction?.({
+            id: message.eventId,
+            participantId: message.payload.participantId,
+            emoji: message.payload.emoji,
+            createdAt: Date.now(),
+          })
+        } else if (message.type === 'track.updated') onTracksChanged?.()
+        else if (message.type === 'command.ack' || message.type === 'command.error') {
           const p = message.payload
           const id = String(p.requestId),
             pending = receipts.get(id)
@@ -216,6 +232,9 @@ export function connectWebSocket(
   document.addEventListener('visibilitychange', visible)
   connect()
   return {
+    react(emoji: ReactionEmoji) {
+      send('reaction.send', { emoji })
+    },
     send(command, revision) {
       return new Promise((resolve, reject) => {
         const id = crypto.randomUUID()

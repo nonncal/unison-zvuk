@@ -5,6 +5,7 @@ export interface Track {
   durationMs: number
   status: 'ready' | 'processing' | 'failed'
   mediaVersion: string
+  coverUrl?: string
   cover?: string
   source?: 'catalog' | 'upload'
 }

@@ -8,6 +8,7 @@ export interface Participant {
   id: string
   displayName: string
   role: Role
+  canEdit?: boolean
   connectionState: 'online' | 'offline' | 'connecting'
   readiness: 'loading' | 'ready' | 'buffering' | 'autoplayBlocked' | 'error'
 }
@@ -36,11 +37,18 @@ export interface Snapshot {
     title: string
     status: 'active' | 'closed' | 'expired'
     capacity: number
+    moderated?: boolean
     expiresAt: number
     hostParticipantId: string | null
   }
   participants: Participant[]
   playback: Playback
+  playlist?: {
+    skippedTrackIds?: string[]
+    trackIds: string[]
+    repeat: 'off' | 'all' | 'one'
+    shuffle: boolean
+  }
   presenceSeq: number
 }
 export interface Membership {
@@ -54,6 +62,7 @@ export interface CreatedRoom extends Membership {
   expiresAt: number
 }
 export interface Preview {
+  moderated?: boolean
   roomId: string
   title: string
   status: string
@@ -73,7 +82,15 @@ export interface Readiness {
   bufferedAheadMs: number
   autoplayAllowed: boolean
 }
+export type ReactionEmoji = '❤️' | '🔥' | '👏' | '✨' | '🎶' | '😂'
+export interface Reaction {
+  id: string
+  participantId: string
+  emoji: ReactionEmoji
+  createdAt: number
+}
 export interface RoomConnection {
+  react?(emoji: ReactionEmoji): void
   send(command: PlaybackCommand, revision: number): Promise<void>
   readiness(value: Readiness): void
   snapshot(): void
@@ -82,7 +99,11 @@ export interface RoomConnection {
 }
 export interface Gateway {
   mode: 'demo' | 'api'
-  create(name: string, title: string): Promise<CreatedRoom>
+  create(
+    name: string,
+    title: string,
+    options?: { capacity: number; moderated: boolean },
+  ): Promise<CreatedRoom>
   preview(roomId: string, token: string): Promise<Preview>
   join(roomId: string, token: string, name: string): Promise<Membership>
   restore(roomId: string): Promise<Membership>
@@ -103,5 +124,7 @@ export interface Gateway {
     onSnapshot: (snapshot: Snapshot) => void,
     onConnection: (state: ConnectionState) => void,
     onError: (error: string) => void,
+    onReaction?: (reaction: Reaction) => void,
+    onTracksChanged?: () => void,
   ): RoomConnection
 }

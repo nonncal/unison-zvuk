@@ -1,7 +1,16 @@
 /* Types from the versioned JSON Schema. */
 
 export type ClientCommand =
-  ClockProbe | HeartbeatPong | SnapshotRequest | ParticipantReadiness | SelectTrack | Play | Pause | Seek | Telemetry;
+  | ClockProbe
+  | HeartbeatPong
+  | SnapshotRequest
+  | ParticipantReadiness
+  | SelectTrack
+  | Play
+  | Pause
+  | Seek
+  | Telemetry
+  | SendReaction;
 export type V = 1;
 export type Requestid = string;
 export type Expectedplaybackrevision = null;
@@ -54,6 +63,11 @@ export type Mediaversion1 = string;
 export type Driftms = number;
 export type Rttms = number;
 export type Localstate = "playing" | "paused" | "buffering" | "autoplayBlocked" | "error";
+export type V9 = 1;
+export type Requestid9 = string;
+export type Expectedplaybackrevision9 = null;
+export type Type9 = "reaction.send";
+export type Emoji = "❤️" | "🔥" | "👏" | "✨" | "🎶" | "😂";
 
 export interface ClockProbe {
   v: V;
@@ -148,4 +162,14 @@ export interface TelemetryPayload {
   driftMs: Driftms;
   rttMs: Rttms;
   localState: Localstate;
+}
+export interface SendReaction {
+  v: V9;
+  requestId: Requestid9;
+  expectedPlaybackRevision?: Expectedplaybackrevision9;
+  type: Type9;
+  payload: ReactionPayload;
+}
+export interface ReactionPayload {
+  emoji: Emoji;
 }

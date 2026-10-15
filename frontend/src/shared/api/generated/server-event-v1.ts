@@ -11,7 +11,8 @@ export type ServerEvent =
   | TrackUpdated
   | RoomClosed
   | CommandAck
-  | CommandError;
+  | CommandError
+  | ReactionCreated;
 export type V = 1;
 export type Eventid = string;
 export type Servertimems = number;
@@ -26,6 +27,7 @@ export type Status = "active" | "closed" | "expired";
 export type Capacity = number;
 export type Expiresat = number;
 export type Hostparticipantid = string | null;
+export type Moderated = boolean;
 export type Id1 = string;
 export type Displayname = string;
 export type Role = "host" | "listener";
@@ -35,6 +37,7 @@ export type Mediaversion = string;
 export type State = "loading" | "ready" | "buffering" | "autoplayBlocked" | "error";
 export type Bufferedaheadms = number;
 export type Autoplayallowed = boolean;
+export type Canedit = boolean;
 export type Participants = Participant[];
 export type Roomid = string;
 export type Epoch1 = string;
@@ -52,6 +55,16 @@ export type Trackid2 = string | null;
 export type Mediaversion2 = string | null;
 export type Presenceseq = number;
 export type Playbackrevision1 = number;
+/**
+ * @maxItems 100
+ */
+export type Trackids = string[];
+/**
+ * @maxItems 100
+ */
+export type Skippedtrackids = string[];
+export type Repeat = "off" | "all" | "one";
+export type Shuffle = boolean;
 export type V1 = 1;
 export type Eventid1 = string;
 export type Servertimems1 = number;
@@ -128,6 +141,13 @@ export type Type11 = "command.error";
 export type Requestid1 = string | null;
 export type Code = string;
 export type Message = string;
+export type V11 = 1;
+export type Eventid11 = string;
+export type Servertimems11 = number;
+export type Playbackrevision12 = number;
+export type Type12 = "reaction.created";
+export type Emoji = "❤️" | "🔥" | "👏" | "✨" | "🎶" | "😂";
+export type Participantid1 = string;
 
 export interface Hello {
   v: V;
@@ -149,6 +169,7 @@ export interface Snapshot {
   playback: Playback;
   presenceSeq: Presenceseq;
   playbackRevision: Playbackrevision1;
+  playlist?: Playlist;
 }
 export interface Room {
   id: Id;
@@ -157,6 +178,7 @@ export interface Room {
   capacity: Capacity;
   expiresAt: Expiresat;
   hostParticipantId: Hostparticipantid;
+  moderated?: Moderated;
 }
 export interface Participant {
   id: Id1;
@@ -164,6 +186,7 @@ export interface Participant {
   role: Role;
   connectionState: Connectionstate;
   readiness: Readiness | null;
+  canEdit?: Canedit;
 }
 export interface Readiness {
   trackId: Trackid;
@@ -190,6 +213,12 @@ export interface PendingTransition {
   effectiveAtServerTimeMs: Effectiveatservertimems;
   trackId?: Trackid2;
   mediaVersion?: Mediaversion2;
+}
+export interface Playlist {
+  trackIds?: Trackids;
+  skippedTrackIds?: Skippedtrackids;
+  repeat?: Repeat;
+  shuffle?: Shuffle;
 }
 export interface RoomSnapshot {
   v: V1;
@@ -316,4 +345,16 @@ export interface ErrorPayload {
   code: Code;
   message: Message;
   snapshot?: Snapshot | null;
+}
+export interface ReactionCreated {
+  v: V11;
+  eventId: Eventid11;
+  serverTimeMs: Servertimems11;
+  playbackRevision: Playbackrevision12;
+  type: Type12;
+  payload: ReactionCreatedPayload;
+}
+export interface ReactionCreatedPayload {
+  emoji: Emoji;
+  participantId: Participantid1;
 }

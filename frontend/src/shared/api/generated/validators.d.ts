@@ -19,3 +19,12 @@ export const httpTrack: ValidateFunction<unknown>
 export const httpTrackList: ValidateFunction<unknown>
 export const httpPlaybackURL: ValidateFunction<unknown>
 export const httpHTTPError: ValidateFunction<unknown>
+export const httpRoomSettings: ValidateFunction<unknown>
+export const httpEditorPermission: ValidateFunction<unknown>
+export const httpPlayerAction: ValidateFunction<unknown>
+export const httpAdmissionStatus: ValidateFunction<unknown>
+export const httpEntryResult: ValidateFunction<unknown>
+export const httpWaitingList: ValidateFunction<unknown>
+export const httpAdmissionDecision: ValidateFunction<unknown>
+export const httpMyRooms: ValidateFunction<unknown>
+export const httpMemberAction: ValidateFunction<unknown>

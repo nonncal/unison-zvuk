@@ -24,7 +24,7 @@ export async function request<T>(
     await bootstrapPromise
   }
   const headers = new Headers(init.headers)
-  if (init.body) headers.set('Content-Type', 'application/json')
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   if (csrfToken) headers.set('X-CSRF-Token', csrfToken)
   let response: Response
   try {

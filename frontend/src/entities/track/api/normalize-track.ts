@@ -8,6 +8,7 @@ export function normalizeTrack(track: HTTPModels['Track']): Track {
     durationMs: track.durationMs ?? 0,
     status: track.status === 'uploading' ? 'processing' : track.status,
     mediaVersion: track.mediaVersion ?? '',
+    coverUrl: track.coverUrl ?? undefined,
     cover: undefined,
     source: track.licenseId ? 'catalog' : 'upload',
   }

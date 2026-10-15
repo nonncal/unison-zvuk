@@ -1,10 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { ConnectionState, Snapshot } from './types'
+import type { ConnectionState, Snapshot, Reaction } from './types'
 export interface RoomState {
   snapshot: Snapshot | null
   participantId: string | null
   connection: ConnectionState
+  reactions: Reaction[]
   error: string | null
 }
 const initialState: RoomState = {
@@ -12,6 +13,7 @@ const initialState: RoomState = {
   participantId: null,
   connection: 'idle',
   error: null,
+  reactions: [],
 }
 const room = createSlice({
   name: 'room',
@@ -26,6 +28,14 @@ const room = createSlice({
       )
         return
       state.snapshot = incoming
+    },
+    reaction(state, action: PayloadAction<Reaction>) {
+      state.reactions = [
+        ...state.reactions.filter(
+          (r) => r.createdAt > Date.now() - 6000 && r.id !== action.payload.id,
+        ),
+        action.payload,
+      ].slice(-20)
     },
     membership(state, action: PayloadAction<string>) {
       state.participantId = action.payload

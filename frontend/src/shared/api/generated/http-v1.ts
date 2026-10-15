@@ -18,11 +18,22 @@ export type HTTPMessage =
   | Track
   | TrackList
   | PlaybackURL
-  | HTTPError;
+  | HTTPError
+  | RoomSettings
+  | EditorPermission
+  | PlayerAction
+  | AdmissionStatus
+  | EntryResult
+  | WaitingList
+  | AdmissionDecision
+  | MyRooms
+  | MemberAction;
 export type Csrftoken = string;
 export type Protocolversion = 1;
 export type Displayname = string;
 export type Title = string;
+export type Capacity = number;
+export type Moderated = boolean;
 export type Roomid = string;
 export type Participantid = string;
 export type Inviteurl = string;
@@ -30,9 +41,10 @@ export type Expiresat = number;
 export type Id = string;
 export type Title1 = string;
 export type Status = "active" | "closed" | "expired";
-export type Capacity = number;
+export type Capacity1 = number;
 export type Expiresat1 = number;
 export type Hostparticipantid = string | null;
+export type Moderated1 = boolean;
 export type Id1 = string;
 export type Displayname1 = string;
 export type Role = "host" | "listener";
@@ -42,6 +54,7 @@ export type Mediaversion = string;
 export type State = "loading" | "ready" | "buffering" | "autoplayBlocked" | "error";
 export type Bufferedaheadms = number;
 export type Autoplayallowed = boolean;
+export type Canedit = boolean;
 export type Participants = Participant[];
 export type Roomid1 = string;
 export type Epoch = string;
@@ -59,12 +72,23 @@ export type Trackid2 = string | null;
 export type Mediaversion2 = string | null;
 export type Presenceseq = number;
 export type Playbackrevision = number;
+/**
+ * @maxItems 100
+ */
+export type Trackids = string[];
+/**
+ * @maxItems 100
+ */
+export type Skippedtrackids = string[];
+export type Repeat = "off" | "all" | "one";
+export type Shuffle = boolean;
 export type Invitetoken = string;
+export type Moderated2 = boolean;
 export type Roomid2 = string;
 export type Title2 = string;
 export type Status2 = "active" | "closed" | "expired";
 export type Participantcount = number;
-export type Capacity1 = number;
+export type Capacity2 = number;
 export type Expiresat2 = number;
 export type Invitetoken1 = string;
 export type Displayname2 = string;
@@ -106,6 +130,28 @@ export type Requestid = string;
 export type Details = ValidationDetail[] | ConflictDetail | null;
 export type Field = string;
 export type Code1 = string;
+export type Capacity3 = number;
+export type Moderated3 = boolean;
+export type Canedit1 = boolean;
+export type Expectedplaybackrevision1 = number;
+export type Action = "next" | "previous" | "add" | "remove" | "move" | "options";
+export type Trackid4 = string | null;
+export type Toindex = number | null;
+export type Repeat1 = ("off" | "all" | "one") | null;
+export type Shuffle1 = boolean | null;
+export type Status5 = "pending" | "approved" | "admitted" | "rejected" | "cancelled" | "expired" | "none";
+export type Status6 = "pending" | "approved" | "admitted" | "rejected" | "cancelled" | "expired" | "none";
+export type Id3 = string;
+export type Displayname3 = string;
+export type Requestedat = number;
+export type Items1 = WaitingGuest[];
+export type Admit = boolean;
+export type Id4 = string;
+export type Title4 = string;
+export type Capacity4 = number;
+export type Role2 = "host" | "listener";
+export type Items2 = MyRoom[];
+export type Action1 = "transfer" | "remove";
 
 export interface Bootstrap {
   csrfToken: Csrftoken;
@@ -118,6 +164,8 @@ export interface Limits {
 export interface CreateRoom {
   displayName: Displayname;
   title?: Title;
+  capacity?: Capacity;
+  moderated?: Moderated;
 }
 export interface CreateRoomResult {
   roomId: Roomid;
@@ -132,14 +180,16 @@ export interface Snapshot {
   playback: Playback;
   presenceSeq: Presenceseq;
   playbackRevision: Playbackrevision;
+  playlist?: Playlist;
 }
 export interface Room {
   id: Id;
   title: Title1;
   status: Status;
-  capacity: Capacity;
+  capacity: Capacity1;
   expiresAt: Expiresat1;
   hostParticipantId: Hostparticipantid;
+  moderated?: Moderated1;
 }
 export interface Participant {
   id: Id1;
@@ -147,6 +197,7 @@ export interface Participant {
   role: Role;
   connectionState: Connectionstate;
   readiness: Readiness | null;
+  canEdit?: Canedit;
 }
 export interface Readiness {
   trackId: Trackid;
@@ -174,15 +225,22 @@ export interface PendingTransition {
   trackId?: Trackid2;
   mediaVersion?: Mediaversion2;
 }
+export interface Playlist {
+  trackIds?: Trackids;
+  skippedTrackIds?: Skippedtrackids;
+  repeat?: Repeat;
+  shuffle?: Shuffle;
+}
 export interface PreviewInvite {
   inviteToken: Invitetoken;
 }
 export interface PreviewResult {
+  moderated?: Moderated2;
   roomId: Roomid2;
   title: Title2;
   status: Status2;
   participantCount: Participantcount;
-  capacity: Capacity1;
+  capacity: Capacity2;
   expiresAt: Expiresat2;
 }
 export interface JoinRoom {
@@ -261,4 +319,49 @@ export interface ValidationDetail {
 }
 export interface ConflictDetail {
   snapshot: Snapshot;
+}
+export interface RoomSettings {
+  capacity: Capacity3;
+  moderated: Moderated3;
+}
+export interface EditorPermission {
+  canEdit: Canedit1;
+}
+export interface PlayerAction {
+  expectedPlaybackRevision: Expectedplaybackrevision1;
+  action: Action;
+  trackId?: Trackid4;
+  toIndex?: Toindex;
+  repeat?: Repeat1;
+  shuffle?: Shuffle1;
+}
+export interface AdmissionStatus {
+  status: Status5;
+}
+export interface EntryResult {
+  status: Status6;
+  membership?: JoinRoomResult | null;
+}
+export interface WaitingList {
+  items: Items1;
+}
+export interface WaitingGuest {
+  id: Id3;
+  displayName: Displayname3;
+  requestedAt: Requestedat;
+}
+export interface AdmissionDecision {
+  admit: Admit;
+}
+export interface MyRooms {
+  items: Items2;
+}
+export interface MyRoom {
+  id: Id4;
+  title: Title4;
+  capacity: Capacity4;
+  role: Role2;
+}
+export interface MemberAction {
+  action: Action1;
 }
