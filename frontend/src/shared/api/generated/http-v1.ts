@@ -72,6 +72,239 @@ export type Trackid2 = string | null;
 export type Mediaversion2 = string | null;
 export type Presenceseq = number;
 export type Playbackrevision = number;
+export type Nexttrackid = string | null;
+/**
+ * @maxItems 20
+ */
+export type Suggestions =
+  | []
+  | [TrackSuggestion]
+  | [TrackSuggestion, TrackSuggestion]
+  | [TrackSuggestion, TrackSuggestion, TrackSuggestion]
+  | [TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion]
+  | [TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion]
+  | [TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion, TrackSuggestion]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ]
+  | [
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion,
+      TrackSuggestion
+    ];
+export type Id2 = string;
+export type Trackid3 = string;
+export type Participantid1 = string;
+export type Displayname2 = string;
 /**
  * @maxItems 100
  */
@@ -91,8 +324,8 @@ export type Participantcount = number;
 export type Capacity2 = number;
 export type Expiresat2 = number;
 export type Invitetoken1 = string;
-export type Displayname2 = string;
-export type Participantid1 = string;
+export type Displayname3 = string;
+export type Participantid2 = string;
 export type Role1 = "host" | "listener";
 export type Expectedplaybackrevision = number;
 export type Inviteurl1 = string;
@@ -104,9 +337,9 @@ export type Uploadid = string;
 export type Uploadurl = string;
 export type Expiresat4 = number;
 export type Checksum = string | null;
-export type Trackid3 = string;
+export type Trackid4 = string;
 export type Status3 = "processing";
-export type Id2 = string;
+export type Id3 = string;
 export type Title3 = string;
 export type Artist = string;
 export type Durationms1 = number | null;
@@ -135,18 +368,18 @@ export type Moderated3 = boolean;
 export type Canedit1 = boolean;
 export type Expectedplaybackrevision1 = number;
 export type Action = "next" | "previous" | "add" | "remove" | "move" | "options";
-export type Trackid4 = string | null;
+export type Trackid5 = string | null;
 export type Toindex = number | null;
 export type Repeat1 = ("off" | "all" | "one") | null;
 export type Shuffle1 = boolean | null;
 export type Status5 = "pending" | "approved" | "admitted" | "rejected" | "cancelled" | "expired" | "none";
 export type Status6 = "pending" | "approved" | "admitted" | "rejected" | "cancelled" | "expired" | "none";
-export type Id3 = string;
-export type Displayname3 = string;
+export type Id4 = string;
+export type Displayname4 = string;
 export type Requestedat = number;
 export type Items1 = WaitingGuest[];
 export type Admit = boolean;
-export type Id4 = string;
+export type Id5 = string;
 export type Title4 = string;
 export type Capacity4 = number;
 export type Role2 = "host" | "listener";
@@ -226,10 +459,18 @@ export interface PendingTransition {
   mediaVersion?: Mediaversion2;
 }
 export interface Playlist {
+  nextTrackId?: Nexttrackid;
+  suggestions?: Suggestions;
   trackIds?: Trackids;
   skippedTrackIds?: Skippedtrackids;
   repeat?: Repeat;
   shuffle?: Shuffle;
+}
+export interface TrackSuggestion {
+  id: Id2;
+  trackId: Trackid3;
+  participantId: Participantid1;
+  displayName: Displayname2;
 }
 export interface PreviewInvite {
   inviteToken: Invitetoken;
@@ -245,10 +486,10 @@ export interface PreviewResult {
 }
 export interface JoinRoom {
   inviteToken: Invitetoken1;
-  displayName: Displayname2;
+  displayName: Displayname3;
 }
 export interface JoinRoomResult {
-  participantId: Participantid1;
+  participantId: Participantid2;
   role: Role1;
   snapshot: Snapshot;
 }
@@ -277,11 +518,11 @@ export interface CompleteUpload {
   checksum?: Checksum;
 }
 export interface CompleteUploadResult {
-  trackId: Trackid3;
+  trackId: Trackid4;
   status?: Status3;
 }
 export interface Track {
-  id: Id2;
+  id: Id3;
   title: Title3;
   artist: Artist;
   durationMs: Durationms1;
@@ -330,7 +571,7 @@ export interface EditorPermission {
 export interface PlayerAction {
   expectedPlaybackRevision: Expectedplaybackrevision1;
   action: Action;
-  trackId?: Trackid4;
+  trackId?: Trackid5;
   toIndex?: Toindex;
   repeat?: Repeat1;
   shuffle?: Shuffle1;
@@ -346,8 +587,8 @@ export interface WaitingList {
   items: Items1;
 }
 export interface WaitingGuest {
-  id: Id3;
-  displayName: Displayname3;
+  id: Id4;
+  displayName: Displayname4;
   requestedAt: Requestedat;
 }
 export interface AdmissionDecision {
@@ -357,7 +598,7 @@ export interface MyRooms {
   items: Items2;
 }
 export interface MyRoom {
-  id: Id4;
+  id: Id5;
   title: Title4;
   capacity: Capacity4;
   role: Role2;

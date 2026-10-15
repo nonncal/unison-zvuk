@@ -733,6 +733,27 @@
     "Playlist": {
       "additionalProperties": false,
       "properties": {
+        "nextTrackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nexttrackid"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/TrackSuggestion"
+          },
+          "maxItems": 20,
+          "title": "Suggestions",
+          "type": "array"
+        },
         "trackIds": {
           "items": {
             "format": "uuid",
@@ -1285,6 +1306,40 @@
         "track"
       ],
       "title": "TrackPayload",
+      "type": "object"
+    },
+    "TrackSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        },
+        "displayName": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "trackId",
+        "participantId",
+        "displayName"
+      ],
+      "title": "TrackSuggestion",
       "type": "object"
     },
     "TrackUpdated": {

@@ -44,6 +44,8 @@ export interface Snapshot {
   participants: Participant[]
   playback: Playback
   playlist?: {
+    nextTrackId?: string | null
+    suggestions?: { id: string; trackId: string; participantId: string; displayName: string }[]
     skippedTrackIds?: string[]
     trackIds: string[]
     repeat: 'off' | 'all' | 'one'

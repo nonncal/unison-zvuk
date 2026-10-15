@@ -119,7 +119,26 @@ class Room(WireModel):
     moderated: StrictBool = False
 
 
+class TrackSuggestion(WireModel):
+    id: UUID
+    track_id: UUID
+    participant_id: UUID
+    display_name: Annotated[StrictStr, Field(min_length=1, max_length=32)]
+
+
+class SuggestTrack(WireModel):
+    track_id: UUID
+
+
+class DecideSuggestion(WireModel):
+    accept: StrictBool
+
+
 class Playlist(WireModel):
+    next_track_id: UUID | None = None
+    suggestions: Annotated[list[TrackSuggestion], Field(max_length=20)] = Field(
+        default_factory=list
+    )
     track_ids: Annotated[list[UUID], Field(max_length=100)] = Field(default_factory=list)
     skipped_track_ids: Annotated[list[UUID], Field(max_length=100)] = Field(default_factory=list)
     repeat: Literal["off", "all", "one"] = "off"

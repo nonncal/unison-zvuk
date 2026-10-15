@@ -9,6 +9,8 @@ export function normalizeSnapshot(value: HTTPModels['Snapshot']): Snapshot {
   return {
     ...value,
     playlist: {
+      nextTrackId: value.playlist?.nextTrackId ?? null,
+      suggestions: value.playlist?.suggestions ?? [],
       skippedTrackIds: value.playlist?.skippedTrackIds ?? [],
       trackIds: value.playlist?.trackIds ?? [],
       repeat: value.playlist?.repeat ?? 'off',

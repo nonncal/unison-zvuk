@@ -31,8 +31,24 @@ class Manager:
         self.offline_since: dict[UUID, tuple[UUID, datetime]] = {}
         self.registry_lock = asyncio.Lock()
         self.rooms = Rooms(self.settings, security, clock, self.presence)
+        self.rooms.start_delay = self.start_delay
         self.playback = Playback(self.rooms, clock)
         self.metrics = resources.metrics
+
+    def start_delay(self, room_id: UUID) -> int:
+        active = [c for c in self.connections.values() if c.room_id == room_id and not c.close_code]
+        rtts = [
+            c.rtt_ms
+            for c in active
+            if c.rtt_ms is not None and time.monotonic() - c.last_telemetry <= 60
+        ]
+        # Bounded network lead: buffering clients cannot hold everyone indefinitely.
+        delay = max(600, 2 * max(rtts, default=250) + 300)
+        if any(
+            c.readiness is None or c.readiness.state in {"loading", "buffering"} for c in active
+        ):
+            delay = max(delay, 1500)
+        return min(2000, delay)
 
     def presence(self, participant_id: UUID, generation: int) -> tuple[str, wire.Readiness | None]:
         connection = self.connections.get(participant_id)

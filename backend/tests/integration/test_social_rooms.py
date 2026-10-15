@@ -15,7 +15,7 @@ from app.contracts import models as wire
 from app.db import models as dbm
 from app.domain.errors import DomainError
 from app.domain.playback import Playback
-from app.domain.playlist import edit, step
+from app.domain.playlist import edit, next_track, step
 from app.domain.rooms import Rooms
 from app.services.security import Security
 from tests.integration.test_database import seed_room
@@ -261,7 +261,11 @@ async def test_playlist_repeat_shuffle_previous_conflicts_and_auto_once(
         state.track_id = ids[0]
         seen = {ids[0]}
         for _ in range(2):
-            assert await step(db, room, state, clock.value, automatic=True)
+            expected = next_track(room, state)
+            assert next_track(room, state) == expected
+            assert await step(db, room, state, clock.value, automatic=True, lead_ms=700)
+            assert str(state.track_id) == expected
+            assert state.anchor_server_time_ms == clock.value + 700
             assert state.track_id not in seen
             seen.add(state.track_id)
         assert seen == set(ids)
@@ -346,3 +350,48 @@ async def test_real_cover_validation_and_access(
     actual = await guest.get(path)
     assert actual.status_code == 200 and actual.headers["content-type"].startswith("image/webp")
     assert Image.open(BytesIO(actual.content)).size == (32, 32)
+
+
+async def test_suggestions_need_membership_and_host_approval(
+    social_clients,  # noqa: F811
+    database,
+):
+    host, guest, other, _ = social_clients
+    room = await create(host, capacity=10)
+    await join(guest, room)
+    sessions = async_sessionmaker(database, expire_on_commit=False)
+    async with sessions.begin() as db:
+        ids = [str(await track(db)) for _ in range(4)]
+    base = f"/api/v1/rooms/{room['roomId']}"
+    assert (await other.post(base + "/suggestions", json={"trackId": ids[0]})).status_code == 403
+    for tid in ids[:3]:
+        response = await guest.post(base + "/suggestions", json={"trackId": tid})
+        assert response.status_code == 200, response.text
+    assert (await guest.post(base + "/suggestions", json={"trackId": ids[3]})).status_code == 409
+    snapshot = (await guest.get(base)).json()
+    assert snapshot["playlist"]["trackIds"] == []
+    items = snapshot["playlist"]["suggestions"]
+    assert len(items) == 3
+    # Duplicate submission does not grow the queue or consume the quota.
+    assert (
+        len(
+            (await guest.post(base + "/suggestions", json={"trackId": ids[0]})).json()["playlist"][
+                "suggestions"
+            ]
+        )
+        == 3
+    )
+    path = base + f"/suggestions/{items[0]['id']}"
+    assert (await guest.post(path, json={"accept": True})).status_code == 403
+    responses = await asyncio.gather(
+        host.post(path, json={"accept": True}), host.post(path, json={"accept": True})
+    )
+    assert all(r.status_code == 200 for r in responses)
+    snap = (await guest.get(base)).json()
+    assert snap["playlist"]["trackIds"] == [ids[0]]
+    assert len(snap["playlist"]["suggestions"]) == 2
+    assert snap["playbackRevision"] == 1 and snap["playback"]["status"] == "empty"
+    declined = await host.post(base + f"/suggestions/{items[1]['id']}", json={"accept": False})
+    assert declined.status_code == 200
+    assert len(declined.json()["playlist"]["suggestions"]) == 1
+    assert (await guest.post(base + "/suggestions", json={"trackId": ids[0]})).status_code == 409

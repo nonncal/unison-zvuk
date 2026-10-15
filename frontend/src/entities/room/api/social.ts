@@ -1,6 +1,22 @@
 import { request, requestModel, type HTTPModels } from '@/shared/api'
 import { normalizeSnapshot } from './normalize-snapshot'
 export const roomApi = {
+  async suggest(roomId: string, trackId: string) {
+    return normalizeSnapshot(
+      await requestModel('Snapshot', `/rooms/${roomId}/suggestions`, {
+        method: 'POST',
+        body: JSON.stringify({ trackId }),
+      }),
+    )
+  },
+  async decideSuggestion(roomId: string, id: string, accept: boolean) {
+    return normalizeSnapshot(
+      await requestModel('Snapshot', `/rooms/${roomId}/suggestions/${id}`, {
+        method: 'POST',
+        body: JSON.stringify({ accept }),
+      }),
+    )
+  },
   async memberAction(roomId: string, id: string, action: 'transfer' | 'remove') {
     return normalizeSnapshot(
       await requestModel('Snapshot', `/rooms/${roomId}/participants/${id}/action`, {

@@ -11,6 +11,7 @@ from app.config import Settings
 from app.contracts import models as wire
 from app.db import models as dbm
 from app.domain.errors import DomainError
+from app.domain.playlist import next_track
 from app.services.clock import Clock
 from app.services.security import Security, payload_hash
 
@@ -31,6 +32,7 @@ class Rooms:
         self.security = security
         self.clock = clock
         self.presence = presence
+        self.start_delay: Callable[[UUID], int] = lambda _: 1000
 
     def invite_url(self, room: dbm.Room) -> str:
         token = self.security.decrypt(room.invite_token_encrypted)
@@ -120,9 +122,12 @@ class Rooms:
                     "pending_transition": state.pending_transition,
                 },
                 "playlist": {
-                    k: v
-                    for k, v in (room.playlist or {}).items()
-                    if k in {"trackIds", "repeat", "shuffle", "skippedTrackIds"}
+                    **{
+                        k: v
+                        for k, v in (room.playlist or {}).items()
+                        if k in {"trackIds", "repeat", "shuffle", "skippedTrackIds", "suggestions"}
+                    },
+                    "nextTrackId": next_track(room, state),
                 },
                 "presence_seq": room.presence_seq,
                 "playback_revision": state.playback_revision,

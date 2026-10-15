@@ -10,7 +10,7 @@ from app.api.rooms import Database, actor_session, limit_request, services
 from app.contracts import models as wire
 from app.db import models as dbm
 from app.domain.errors import DomainError
-from app.domain.playlist import edit
+from app.domain.playlist import contents, edit, ready_track
 from app.domain.rooms import milliseconds
 
 router = APIRouter(prefix="/api/v1")
@@ -163,7 +163,7 @@ async def player(
     from app.domain.playback import promote
 
     promote(state, now)
-    await edit(db, room, actor, state, payload, now)
+    await edit(db, room, actor, state, payload, now, lead_ms=rooms.start_delay(room.id))
     await rooms.emit_snapshot(db, room)
     return await rooms.snapshot(db, room)
 
@@ -404,6 +404,75 @@ async def member_action(
         target.left_reason = "removed"
         target.connection_generation += 1
     room.presence_seq += 1
+    await db.flush()
+    await rooms.emit_snapshot(db, room)
+    return await rooms.snapshot(db, room)
+
+
+@router.post("/rooms/{room_id}/suggestions", response_model=wire.Snapshot)
+async def suggest_track(
+    request: Request, db: Database, room_id: UUID, payload: wire.SuggestTrack
+) -> wire.Snapshot:
+    session = await actor_session(request, db, mutation=True)
+    _, _, rooms, _ = services(request)
+    room = await rooms.room(db, room_id)
+    rooms.active(room)
+    actor = await rooms.member(db, room, session.id)
+    await ready_track(db, room, payload.track_id)
+    data = contents(room)
+    pending = data.get("suggestions", [])
+    if str(payload.track_id) in data["trackIds"]:
+        raise DomainError("ALREADY_QUEUED", "Эта песня уже в очереди", 409)
+    if any(i["trackId"] == str(payload.track_id) for i in pending):
+        return await rooms.snapshot(db, room)
+    if len(pending) >= 20 or sum(i["participantId"] == str(actor.id) for i in pending) >= 3:
+        raise DomainError("SUGGESTION_LIMIT", "Дождитесь решения по предыдущим предложениям", 409)
+    pending.append(
+        {
+            "id": str(uuid4()),
+            "trackId": str(payload.track_id),
+            "participantId": str(actor.id),
+            "displayName": actor.display_name,
+        }
+    )
+    data["suggestions"] = pending
+    room.playlist = data
+    await db.flush()
+    await rooms.emit_snapshot(db, room)
+    return await rooms.snapshot(db, room)
+
+
+@router.post("/rooms/{room_id}/suggestions/{suggestion_id}", response_model=wire.Snapshot)
+async def decide_suggestion(
+    request: Request,
+    db: Database,
+    room_id: UUID,
+    suggestion_id: UUID,
+    payload: wire.DecideSuggestion,
+) -> wire.Snapshot:
+    session = await actor_session(request, db, mutation=True)
+    _, _, rooms, _ = services(request)
+    room = await rooms.room(db, room_id)
+    rooms.active(room)
+    await rooms.member(db, room, session.id, host=True)
+    data = contents(room)
+    pending = data.get("suggestions", [])
+    item = next((i for i in pending if i["id"] == str(suggestion_id)), None)
+    if item is None:
+        return await rooms.snapshot(db, room)  # Repeated decision is harmless.
+    if payload.accept:
+        await ready_track(db, room, UUID(item["trackId"]))
+        if item["trackId"] not in data["trackIds"]:
+            if len(data["trackIds"]) >= 100:
+                raise DomainError("QUEUE_FULL", "Освободите место в очереди", 409)
+            data["trackIds"].append(item["trackId"])
+            data["bag"] = []
+            data["shuffleStarted"] = False
+            state = await db.get(dbm.PlaybackState, room.id)
+            assert state is not None
+            state.playback_revision += 1
+    data["suggestions"] = [i for i in pending if i["id"] != str(suggestion_id)]
+    room.playlist = data
     await db.flush()
     await rooms.emit_snapshot(db, room)
     return await rooms.snapshot(db, room)

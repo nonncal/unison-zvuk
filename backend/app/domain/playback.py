@@ -59,7 +59,9 @@ class Playback:
             and state.pending_transition is None
             and position_at(state, now_ms) >= state.duration_ms
         ):
-            if not await step(db, room, state, now_ms, automatic=True):
+            if not await step(
+                db, room, state, now_ms, automatic=True, lead_ms=self.rooms.start_delay(room.id)
+            ):
                 state.anchor_server_time_ms += max(0, state.duration_ms - state.position_ms)
                 state.position_ms = state.duration_ms
                 state.status = "ended"

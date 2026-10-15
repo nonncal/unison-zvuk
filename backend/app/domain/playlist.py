@@ -1,6 +1,6 @@
 """Persistent shared playlist. All writes hold the room row lock."""
 
-import secrets
+import hashlib
 from copy import deepcopy
 from typing import Any
 from uuid import UUID
@@ -30,6 +30,32 @@ def contents(room: dbm.Room) -> dict[str, Any]:
     }
 
 
+def shuffle_order(
+    room_id: UUID, data: dict[str, Any], ids: list[str], current: str | None
+) -> list[str]:
+    # The next item is stable before playback, so every client can prebuffer it.
+    seed = f"{room_id}:{data.get('shuffleCycle', 0)}"
+    return sorted(
+        (i for i in ids if i != current),
+        key=lambda i: hashlib.sha256(f"{seed}:{i}".encode()).digest(),
+    )
+
+
+def next_track(room: dbm.Room, state: dbm.PlaybackState) -> str | None:
+    data = contents(room)
+    ids = data["trackIds"]
+    current = str(state.track_id) if state.track_id else None
+    if data["repeat"] == "one" and current in ids:
+        return current
+    if data["shuffle"]:
+        bag = [i for i in data["bag"] if i in ids and i != current]
+        if not bag and (not data["shuffleStarted"] or data["repeat"] == "all"):
+            bag = shuffle_order(room.id, data, ids, current)
+        return bag[0] if bag else (current if data["repeat"] == "all" and current in ids else None)
+    index = ids.index(current) + 1 if current in ids else 0
+    return ids[index] if index < len(ids) else (ids[0] if ids and data["repeat"] == "all" else None)
+
+
 async def ready_track(db: AsyncSession, room: dbm.Room, track_id: UUID) -> dbm.Track:
     track = await db.scalar(
         select(dbm.Track).where(
@@ -55,6 +81,7 @@ async def step(
     *,
     previous: bool = False,
     automatic: bool = False,
+    lead_ms: int = 1000,
 ) -> bool:
     data = contents(room)
     original: list[str] = data["trackIds"]
@@ -89,8 +116,8 @@ async def step(
     elif data["shuffle"]:
         bag = [i for i in data["bag"] if i in ids and i != current]
         if not bag and (not data["shuffleStarted"] or data["repeat"] == "all"):
-            bag = [i for i in ids if i != current]
-            secrets.SystemRandom().shuffle(bag)
+            bag = shuffle_order(room.id, data, ids, current)
+            data["shuffleCycle"] = data.get("shuffleCycle", 0) + 1
         target = (
             bag.pop(0) if bag else (current if data["repeat"] == "all" and current in ids else None)
         )
@@ -115,7 +142,7 @@ async def step(
     state.media_version = asset.media_version
     state.duration_ms = track.duration_ms
     state.position_ms = 0
-    state.anchor_server_time_ms = now + 1000
+    state.anchor_server_time_ms = now + max(500, min(2000, lead_ms))
     state.status = "playing" if automatic or state.status == "playing" else "paused"
     state.pending_transition = None
     return True
@@ -128,6 +155,7 @@ async def edit(
     state: dbm.PlaybackState,
     payload: wire.PlayerAction,
     now: int,
+    lead_ms: int = 1000,
 ) -> None:
     editor(room, actor)
     if state.playback_revision != payload.expected_playback_revision:
@@ -137,7 +165,9 @@ async def edit(
     data = contents(room)
     ids: list[str] = data["trackIds"]
     if payload.action in {"next", "previous"}:
-        if not await step(db, room, state, now, previous=payload.action == "previous"):
+        if not await step(
+            db, room, state, now, previous=payload.action == "previous", lead_ms=lead_ms
+        ):
             raise DomainError("QUEUE_END", "В очереди больше нет композиций", 409)
     elif payload.action == "options":
         if payload.repeat is not None:
