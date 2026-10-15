@@ -203,11 +203,12 @@ play/pause/seek и запросы состояния, параллельно з�
 
 ## Документация проекта
 
-- [Полная спецификация](docs/spec/README.md)
-- [Frontend flow](docs/frontend/README.md)
-- [Python backend flow](docs/backend/README.md)
-- [Дизайн и Figma-промпт](docs/design/README.md)
-- [Порядок frontend-историй](docs/planning/FRONTEND-ORDER.md)
+- [Навигация по документации](docs/README.md)
+- [Требования к продукту](docs/01-PRODUCT.md)
+- [Frontend flow](docs/04-FRONTEND-FLOW.md)
+- [Python backend flow](docs/05-BACKEND-FLOW.md)
+- [Дизайн и адаптивность](docs/06-DESIGN.md)
+- [Эпики и пользовательские истории](docs/07-EPICS-STORIES.md)
 - [Запуск фронтенда](frontend/README.md)
 
 ## Frontend: FSD и коммиты
