@@ -16,6 +16,16 @@ location = /nginx-health {
 location ~ ^/(internal|minio|metrics|prometheus|grafana)(/|$) { return 404; }
 location ~ /\. { return 404; }
 
+# Covers have their own bounded upload; control JSON stays limited to 64 KiB.
+location ~ ^/api/v1/rooms/[0-9a-f-]+/tracks/[0-9a-f-]+/cover$ {
+    proxy_pass http://unison_api;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_read_timeout 30s;
+    client_max_body_size 5m;
+}
 location /api/ {
     proxy_pass http://unison_api;
     proxy_http_version 1.1;
