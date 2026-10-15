@@ -403,3 +403,38 @@ async def test_closed_rooms_do_not_accumulate_offline_reservations(server: Serve
         await server.runtime.lifecycle()
         assert not server.runtime.manager.offline_since
         assert not server.runtime.manager.connections
+
+
+async def test_reconnect_cannot_take_an_approved_guests_reserved_seat(
+    server: Server, database: AsyncEngine
+) -> None:
+    room_id, token = await create_room(server)
+    await join_guest(server, room_id, token)
+    base = f"/api/v1/rooms/{room_id}"
+    host, returning, waiting = server.clients
+    async with async_sessionmaker(database).begin() as db:
+        member = await db.scalar(
+            select(Participant).where(
+                Participant.room_id == UUID(room_id), Participant.role == "listener"
+            )
+        )
+        assert member is not None
+        member.left_at = datetime.now(UTC)
+        member.left_reason = "offlineTimeout"
+    configured = await host.patch(base + "/settings", json={"capacity": 2, "moderated": True})
+    assert configured.status_code == 200
+    pending = await waiting.post(
+        base + "/entry", json={"inviteToken": token, "displayName": "Ожидающий"}
+    )
+    assert pending.json()["status"] == "pending"
+    items = (await host.get(base + "/waiting")).json()["items"]
+    approved = await host.post(base + f"/waiting/{items[0]['id']}", json={"admit": True})
+    assert approved.status_code == 200
+    assert (await returning.post(base + "/resume", json={})).status_code == 409
+    with pytest.raises(InvalidStatus):
+        async with server.ws(room_id, returning):
+            pass
+    admitted = await waiting.post(
+        base + "/entry", json={"inviteToken": token, "displayName": "Ожидающий"}
+    )
+    assert admitted.json()["status"] == "admitted"

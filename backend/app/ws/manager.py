@@ -118,7 +118,17 @@ class Manager:
                             dbm.Participant.room_id == room.id, dbm.Participant.left_at.is_(None)
                         )
                     )
-                    if count is not None and count >= room.capacity:
+                    reserved = await db.scalar(
+                        select(func.count())
+                        .select_from(dbm.Admission)
+                        .where(
+                            dbm.Admission.room_id == room.id,
+                            dbm.Admission.session_id != session.id,
+                            dbm.Admission.status == "approved",
+                            dbm.Admission.expires_at > datetime.now(UTC),
+                        )
+                    )
+                    if (count or 0) + (reserved or 0) >= room.capacity:
                         raise DomainError("ROOM_FULL", "В комнате нет свободных мест")
                     actor.left_at = None
                     actor.left_reason = None
