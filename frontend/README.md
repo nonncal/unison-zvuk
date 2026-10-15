@@ -31,7 +31,7 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 | `src/app` | Redux store, Provider, React Router, глобальные стили |
 | `src/pages` | `home`, `join`, `room`: экраны и их композиция |
 | `src/widgets` | Самостоятельная панель участников |
-| `src/features` | `create-room`, `listen-together`, `select-track`, `upload-track` |
+| `src/features` | `create-room`, `listen-together`, `select-track`, `upload-track`, `room-playlist`, `send-reaction`, `manage-room`, `switch-room`, `edit-cover` |
 | `src/entities` | `room`: состояние и транспорт; `track`: модель, RTK Query и преобразование API |
 | `src/shared` | Генерируемые контракты, HTTP, конфигурация, UI, часы, медиа и ошибки |
 
@@ -92,3 +92,9 @@ VITE_APP_MODE=demo npm run dev -- --host 127.0.0.1
 Приглашение работает между вкладками **одного** браузерного профиля. Комнаты хранятся в localStorage, файлы — в IndexedDB; BroadcastChannel и Web Locks согласуют вкладки. Здесь нет серверной авторизации, FFmpeg и серверной очистки. Шесть оригинальных фрагментов по 24 секунды генерируются командой `npm run audio:generate`.
 
 [Текущий прогресс и ограничения](../docs/FRONTEND-PROGRESS.md). Проверки Chromium на одном компьютере не заменяют Safari/Android и измерение слышимой синхронизации на независимых устройствах.
+
+## Групповые функции
+
+[Плеер, очередь, права, зал ожидания и смена комнаты](../docs/POST-MVP.md) работают через Python API. React Router переключает существующие `/room/:roomId`; авторизация восстанавливается серверной cookie через `/resume`. Нажатие стрелки рядом с названием открывает список комнат. RTK Query обновляет подборку при `track.updated`, включая название и версию обложки. Очередь и права приходят в общем snapshot; реакции — отдельные эфемерные WS-события.
+
+`test:e2e:api` дополнительно включает `social.spec.ts`: допуск гостя, отзыв прав, repeat/shuffle, реальные обложки, реакции и room switcher. `UNISON_E2E_EXTERNAL=1` использует уже поднятый UI. Новые серверные функции не эмулируются в demo.

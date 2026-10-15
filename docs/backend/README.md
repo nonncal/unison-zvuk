@@ -124,3 +124,9 @@ APP_ORIGIN, DATABASE_URL, REDIS_URL, SESSION_SECRET/INVITE_ENCRYPTION_KEY, S3_EN
 MVP run: 1 API Uvicorn process + 1 Celery worker + PostgreSQL + Redis + MinIO/reverse proxy через Compose. API остаётся responsive во время transcoding. `--workers >1` запрещён до реализации distributed presence и room ownership. Миграции отдельным release step перед API. Rolling restart MVP вызывает документированную общую паузу, после которой ведущий продолжает.
 
 Тесты Python: timezone/offset math, authorization и state transitions, row lock race joins/commands, receipt idempotency, expiry, late generation disconnect, worker duplicate/corrupt/oversize, DB outage, outbox retry. Интеграционные tests на PostgreSQL/Redis/S3, а не только SQLite: блокировки и типы различаются. Результат: reproducible run, API contracts, healthy WS, проверенные quotas/cleanup, worker вне event loop, фактические нагрузочные показатели.
+
+## Реализованное расширение: группы и метаданные
+
+После обновления пересоберите API/worker/transcoder и выполните `alembic upgrade head`. Контракт расширен совместимыми значениями по умолчанию: `capacity=2`, `moderated=false`, `canEdit=false`, пустая очередь для старых fixtures. Новые комнаты заполняют очередь готовым каталогом.
+
+[Описание расширения](../POST-MVP.md): HTTP API настроек/допуска/прав/очереди/обложек; WS-реакции; миграции, ограничения и команда исправления уже сохранённых ID3-названий. Обложки требуют Pillow, который закреплён в `backend/uv.lock`; обработка аудио остаётся в изолированном FFmpeg.
