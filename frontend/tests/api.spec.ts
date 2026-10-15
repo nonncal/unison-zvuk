@@ -27,10 +27,25 @@ async function create(page: Page) {
   await expect(page.getByText('Локальная демоверсия', { exact: false })).toHaveCount(0)
   await page.getByRole('button', { name: 'Создать комнату', exact: true }).click()
   await page.getByLabel('Как вас зовут').fill('Кирилл')
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Создать комнату', exact: true })
-    .click()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (r) => new URL(r.url()).pathname === '/api/v1/rooms' && r.request().method() === 'POST',
+      ),
+      page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Создать комнату', exact: true })
+        .click(),
+    ])
+    if (response.status() === 429 && attempt === 0) {
+      await page.waitForTimeout(
+        Math.min(60, Number(response.headers()['retry-after']) || 60) * 1000,
+      )
+      continue
+    }
+    expect(response.status()).toBe(201)
+    break
+  }
   await expect(page.getByRole('heading', { name: 'Хорошо, когда вместе.' })).toBeVisible()
   await page.getByRole('button', { name: 'Пригласить друга' }).click()
   await expect(page.getByLabel('Ссылка-приглашение')).toHaveValue(/#invite=/)
@@ -108,7 +123,7 @@ test('independent sessions play actual S3 audio, pause, seek and transfer host',
     await page.getByRole('button', { name: 'Воспроизвести для всех' }).click()
     await expect.poll(async () => (await media(g.page)).position).toBeGreaterThan(1500)
     expect(new URL((await media(g.page)).source).pathname).toMatch(/^\/unison-audio\//)
-    expect((await media(page)).paused).toBe(false)
+    await expect.poll(async () => (await media(page)).paused).toBe(false)
     await expect(g.page.getByRole('button', { name: 'Пауза для всех' })).toBeDisabled()
     await page.getByRole('button', { name: 'Пауза для всех' }).click()
     await expect.poll(async () => (await media(g.page)).paused).toBe(true)
@@ -182,9 +197,29 @@ test('upload passes signed PUT and worker processing before both can listen', as
     await page.getByRole('button', { name: 'Закрыть окно' }).click()
     await select(page, 'demo-1')
     await expect(g.page.getByRole('heading', { name: 'demo-1', exact: true })).toBeVisible()
+    await page.getByLabel('Файл обложки').setInputFiles({
+      name: 'cover.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    })
+    for (const listener of [page, g.page]) {
+      const cover = listener.getByRole('img', { name: 'Обложка: demo-1' })
+      await expect(cover).toHaveAttribute('src', /cover\?v=1$/)
+      await expect
+        .poll(() => cover.evaluate((e) => (e as HTMLImageElement).naturalWidth))
+        .toBeGreaterThan(0)
+    }
     await expect.poll(async () => (await media(g.page)).ready).toBeGreaterThanOrEqual(2)
     await page.getByRole('button', { name: 'Воспроизвести для всех' }).click()
     await expect.poll(async () => (await media(g.page)).position).toBeGreaterThan(1000)
+    const startingPosition = (await media(g.page)).position
+    await expect
+      .poll(async () => (await media(g.page)).position)
+      .toBeGreaterThan(startingPosition + 5000)
+    expect((await media(g.page)).paused).toBe(false)
     await close(page)
   } finally {
     await g.ctx.close()

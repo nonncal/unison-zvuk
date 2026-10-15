@@ -21,6 +21,17 @@ async function selectTrack(page: Page) {
   await page.getByRole('button', { name: 'Выбрать После дождя', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'После дождя', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Открыть подборку' })).toBeFocused()
+  await expect
+    .poll(() =>
+      page
+        .locator('.participant-state')
+        .evaluateAll(
+          (nodes) =>
+            nodes.length > 0 &&
+            nodes.every((n) => n.getAttribute('title') === 'Готов к прослушиванию'),
+        ),
+    )
+    .toBe(true)
 }
 test('two listeners share play, pause, seek and host transfer', async ({ page, context }) => {
   await createRoom(page)
