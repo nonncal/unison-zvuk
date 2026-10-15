@@ -116,14 +116,12 @@ export function useListeningRoom(roomId: string, retry: number) {
     void audioEngine.update(snapshot.playback, selected, () => gateway.audioUrl(roomId, selected!))
   }, [snapshot, selected, roomId])
   useEffect(() => {
-    if (!snapshot || snapshot.playlist?.shuffle || !snapshot.playback.trackId) return
-    const ids = snapshot.playlist?.trackIds ?? [],
-      index = ids.indexOf(snapshot.playback.trackId)
-    const nextId = ids[index + 1] ?? (snapshot.playlist?.repeat === 'all' ? ids[0] : undefined)
+    if (!snapshot || !snapshot.playback.trackId) return
+    const nextId = snapshot.playlist?.nextTrackId
     const next = tracks.find((t) => t.id === nextId)
     if (next && next.id !== selected?.id)
       void audioEngine.preload(next, () => gateway.audioUrl(roomId, next))
-  }, [snapshot, tracks, selected?.id, roomId])
+  }, [snapshot, tracks, selected?.id, roomId, audio.state])
   useEffect(() => {
     if (connection === 'connected') {
       audioEngine.resumeForConnection()

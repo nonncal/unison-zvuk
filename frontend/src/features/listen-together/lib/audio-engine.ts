@@ -118,7 +118,7 @@ export class AudioEngine {
     this.now = now
     this.observer.state(this.allowed ? 'ready' : 'locked')
     clearInterval(this.timer)
-    this.timer = window.setInterval(() => this.sync(), 1000)
+    this.timer = window.setInterval(() => this.sync(), 250)
     return () => {
       clearInterval(this.timer)
       clearTimeout(this.retryTimer)
@@ -149,7 +149,7 @@ export class AudioEngine {
   async preload(track: Track, resolve: () => Promise<string>) {
     const key = `${track.id}:${track.mediaVersion}`
     if (
-      this.prefetchKey === key ||
+      (this.prefetchKey === key && (this.prefetched?.expires ?? 0) > Date.now()) ||
       this.sourcePending ||
       this.buffering ||
       this.audio.readyState < 3
@@ -161,6 +161,7 @@ export class AudioEngine {
       if (this.prefetchKey !== key || !this.observer) return
       this.prefetched = { key, url, expires: Date.now() + 120000 }
       this.prefetchAudio?.removeAttribute('src')
+      this.prefetchAudio?.load()
       this.prefetchAudio = new Audio(url)
       this.prefetchAudio.preload = 'auto'
       this.prefetchAudio.load()
@@ -319,7 +320,7 @@ export class AudioEngine {
       if (
         force ||
         action.seek ||
-        (this.correctionStart && this.now() - this.correctionStart > 3000)
+        (this.correctionStart && this.now() - this.correctionStart > 12000)
       ) {
         if (Math.abs(drift) > 40) this.audio.currentTime = target.positionMs / 1000
         this.audio.playbackRate = 1
