@@ -14,7 +14,9 @@ export function CreateRoomDialog({
     [name, setName] = useState(''),
     [title, setTitle] = useState('Вечер на двоих'),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState('')
+    [error, setError] = useState(''),
+    [capacity, setCapacity] = useState(2),
+    [moderated, setModerated] = useState(false)
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy) return
@@ -22,7 +24,8 @@ export function CreateRoomDialog({
     setError('')
     void onUnlock().catch(() => undefined)
     try {
-      const room = await gateway.create(name.trim(), title.trim())
+      const room = await gateway.create(name.trim(), title.trim(), { capacity, moderated })
+      onClose()
       navigate(`/room/${room.roomId}`)
     } catch (e) {
       setError(errorMessage(e))
@@ -53,6 +56,24 @@ export function CreateRoomDialog({
         <label className="field">
           Название комнаты
           <input required maxLength={64} value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label className="field">
+          Участников в комнате
+          <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}>
+            {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
+              <option key={n} value={n}>
+                {n} человек
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={moderated}
+            onChange={(e) => setModerated(e.target.checked)}
+          />
+          Впускать по одобрению ведущего
         </label>
         {error && (
           <p className="error-message" role="alert">

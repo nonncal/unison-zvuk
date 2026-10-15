@@ -1,17 +1,22 @@
 import { useState } from 'react'
-import { Check, Search, Music2 } from 'lucide-react'
+import { Check, Search, Music2, Plus } from 'lucide-react'
 import type { Track } from '@/entities/track'
 import { formatTime } from '@/shared/lib/time'
+import { apiOrigin } from '@/shared/config'
 import { Cover } from '@/shared/ui/Cover'
 export function Library({
   tracks,
   selected,
   onSelect,
   busy,
+  roomId,
+  onAdd,
 }: {
   tracks: Track[]
   selected: string | null
   onSelect: (track: Track) => void
+  roomId?: string
+  onAdd?: (track: Track) => void
   busy: boolean
 }) {
   const [query, setQuery] = useState('')
@@ -33,12 +38,30 @@ export function Library({
       <div className="track-list">
         {filtered.map((track) => (
           <div className={`track-row ${selected === track.id ? 'selected' : ''}`} key={track.id}>
-            <Cover small theme={track.cover} />
+            <Cover
+              small
+              theme={track.cover}
+              src={
+                track.coverUrl && roomId
+                  ? `${apiOrigin}/api/v1/rooms/${roomId}/${track.coverUrl}`
+                  : undefined
+              }
+            />
             <div className="track-description">
               <strong>{track.title}</strong>
               <span>{track.artist}</span>
             </div>
             <span className="track-duration">{formatTime(track.durationMs)}</span>
+            {onAdd && (
+              <button
+                className="track-select"
+                disabled={busy || track.status !== 'ready'}
+                aria-label={`В очередь ${track.title}`}
+                onClick={() => onAdd(track)}
+              >
+                <Plus size={18} />
+              </button>
+            )}
             <button
               className="track-select"
               aria-label={`Выбрать ${track.title}`}

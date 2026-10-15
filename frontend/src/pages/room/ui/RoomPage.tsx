@@ -1,3 +1,13 @@
+import { useDispatch, useSelector } from 'react-redux'
+import { RoomPlaylist, PlaybackNavigation } from '@/features/room-playlist'
+import { RoomReactions } from '@/features/send-reaction'
+import { RoomSwitcher } from '@/features/switch-room'
+import { RoomSettings, WaitingRoom, ParticipantActions } from '@/features/manage-room'
+import { CreateRoomDialog } from '@/features/create-room'
+import { EditCover } from '@/features/edit-cover'
+import { audioEngine } from '@/features/listen-together'
+import { apiOrigin } from '@/shared/config'
+import { roomActions, selectRoomState } from '@/entities/room'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -51,6 +61,9 @@ export function Room() {
     position,
     displayStatus,
     isHost,
+    canEdit,
+    playerAction,
+    react,
     selected,
     host,
     reloadTracks,
@@ -59,6 +72,7 @@ export function Room() {
     unlock,
     openInvite,
     copyInvite,
+    rotateInvite,
     leave,
     statusText,
     dismissError,
@@ -66,6 +80,9 @@ export function Room() {
     setVolume,
     retryAudio,
   } = useRoomPage()
+  const dispatch = useDispatch(),
+    { reactions } = useSelector(selectRoomState)
+  const received = (value: NonNullable<typeof snapshot>) => dispatch(roomActions.received(value))
   if (!snapshot || snapshot.room.id !== roomId)
     return (
       <div className="entry-page">
@@ -122,11 +139,15 @@ export function Room() {
     <div className="room-page">
       <header className="site-header room-header">
         <Brand />
-        <div className="room-title">
+        <button
+          className="room-title room-switch-trigger"
+          aria-label="Сменить комнату"
+          onClick={() => setDialog('rooms')}
+        >
           <span className="little-dot" />
           <span>{snapshot.room.title}</span>
           <ChevronDown size={15} />
-        </div>
+        </button>
         <div className="header-actions">
           {isHost && (
             <button
@@ -186,7 +207,15 @@ export function Room() {
           <section className="listening-area" aria-label="Общий плеер">
             <div className="music-stage">
               <div className={`album-wrap ${displayStatus === 'playing' ? 'is-playing' : ''}`}>
-                <Cover theme={selected?.cover} />
+                <Cover
+                  theme={selected?.cover}
+                  src={
+                    selected?.coverUrl
+                      ? `${apiOrigin}/api/v1/rooms/${roomId}/${selected.coverUrl}`
+                      : undefined
+                  }
+                  alt={`Обложка: ${selected?.title ?? 'композиция'}`}
+                />
                 <span className="album-tag">
                   <Headphones size={14} />
                   {selected ? 'Сейчас в вашей комнате' : 'Здесь будет ваша музыка'}
@@ -208,7 +237,7 @@ export function Room() {
                       композицию.
                     </h2>
                     <p>
-                      {isHost
+                      {canEdit
                         ? 'Настроение начинается с одной песни.'
                         : 'Ведущий скоро выберет первую песню.'}
                     </p>
@@ -216,6 +245,9 @@ export function Room() {
                 )}
               </div>
             </div>
+            {canEdit && selected?.source === 'upload' && gateway.mode === 'api' && (
+              <EditCover roomId={roomId} trackId={selected.id} onDone={reloadTracks} />
+            )}
             <div className="player">
               <div className="player-status" aria-live="polite">
                 <span
@@ -223,7 +255,7 @@ export function Room() {
                 />
                 {statusText}
                 <span className="player-status-right">
-                  {snapshot.participants.length}/2 в комнате
+                  {snapshot.participants.length}/{snapshot.room.capacity} в комнате
                 </span>
               </div>
               <div className="seek-wrap">
@@ -315,7 +347,7 @@ export function Room() {
                   )}
                 </button>
                 <span className="control-caption">
-                  {isHost ? 'Общий плеер' : `Управляет ${host?.displayName ?? 'ведущий'}`}
+                  {canEdit ? 'Общий плеер' : `Управляет ${host?.displayName ?? 'ведущий'}`}
                 </span>
               </div>
               {audio.state === 'locked' && selected && (
@@ -328,6 +360,13 @@ export function Room() {
                   <Headphones size={18} />
                   Включить звук
                 </button>
+              )}
+              {gateway.mode === 'api' && (
+                <PlaybackNavigation
+                  snapshot={snapshot}
+                  disabled={controlsDisabled}
+                  onAction={(payload) => void playerAction(payload)}
+                />
               )}
               {audio.state === 'error' && (
                 <p className="error-message" role="alert">
@@ -364,7 +403,7 @@ export function Room() {
                 </div>
               )}
             </div>
-            {isHost && (
+            {canEdit && (
               <div className="source-actions">
                 <button
                   className="button button-secondary"
@@ -385,6 +424,26 @@ export function Room() {
               </div>
             )}
             <p className="player-footnote">Одна композиция для всех. Громкость — только ваша.</p>
+            {gateway.mode === 'api' && (
+              <>
+                <RoomReactions
+                  reactions={reactions}
+                  participants={snapshot.participants}
+                  disabled={connection !== 'connected'}
+                  onReact={react}
+                />
+                <RoomPlaylist
+                  snapshot={snapshot}
+                  tracks={tracks}
+                  canEdit={canEdit}
+                  busy={busy || controlsDisabled}
+                  onAction={(payload) => void playerAction(payload)}
+                  onSelect={(track) =>
+                    void command({ type: 'playback.select', payload: { trackId: track.id } })
+                  }
+                />
+              </>
+            )}
           </section>
           <RoomParticipants
             snapshot={snapshot}
@@ -392,6 +451,29 @@ export function Room() {
             isHost={isHost}
             onInvite={() => void openInvite()}
             onClose={() => setDialog('close')}
+            renderActions={
+              gateway.mode === 'api'
+                ? (p) => (
+                    <ParticipantActions
+                      roomId={roomId}
+                      id={p.id}
+                      name={p.displayName}
+                      canEdit={p.canEdit ?? false}
+                      onSnapshot={received}
+                    />
+                  )
+                : undefined
+            }
+            extra={
+              isHost && gateway.mode === 'api' ? (
+                <>
+                  <button className="text-link" onClick={() => setDialog('settings')}>
+                    Настройки комнаты
+                  </button>
+                  {snapshot.room.moderated && <WaitingRoom roomId={roomId} />}
+                </>
+              ) : null
+            }
           />
         </div>
         <Link to="/" className="back-link">
@@ -408,10 +490,29 @@ export function Room() {
         <span>unison. Звучать вместе.</span>
         <span>Пусть этот момент будет вашим.</span>
       </footer>
+      {dialog === 'rooms' && (
+        <RoomSwitcher
+          currentId={roomId}
+          onClose={() => setDialog(null)}
+          onCreate={() => setDialog('create')}
+        />
+      )}
+      {dialog === 'create' && (
+        <CreateRoomDialog onClose={() => setDialog(null)} onUnlock={() => audioEngine.unlock()} />
+      )}
+      {dialog === 'settings' && isHost && (
+        <RoomSettings snapshot={snapshot} onClose={() => setDialog(null)} onSnapshot={received} />
+      )}
       {dialog === 'library' && (
         <Dialog title="Ваша подборка" wide onClose={() => setDialog(null)}>
           <Library
             tracks={tracks}
+            roomId={roomId}
+            onAdd={
+              gateway.mode === 'api'
+                ? (track) => void playerAction({ action: 'add', trackId: track.id })
+                : undefined
+            }
             selected={snapshot.playback.trackId}
             busy={busy}
             onSelect={(track) => {
@@ -429,6 +530,21 @@ export function Room() {
       {dialog === 'upload' && (
         <Dialog title="Своя композиция" onClose={() => setDialog(null)}>
           <Upload roomId={roomId} onDone={reloadTracks} />
+        </Dialog>
+      )}
+      {dialog === 'rotate' && (
+        <Dialog title="Заменить приглашение?" onClose={() => setDialog(null)}>
+          <p className="dialog-description">
+            Старая ссылка перестанет впускать новых гостей. Текущие участники останутся. Заявки в
+            зале ожидания будут отменены.
+          </p>
+          <button
+            className="button button-danger full-width"
+            disabled={busy}
+            onClick={() => void rotateInvite()}
+          >
+            Заменить ссылку
+          </button>
         </Dialog>
       )}
       {dialog === 'invite' && (
@@ -460,10 +576,15 @@ export function Room() {
               {inviteError}
             </p>
           )}
+          {isHost && gateway.mode === 'api' && (
+            <button className="text-link" onClick={() => setDialog('rotate')}>
+              Сменить ссылку-приглашение
+            </button>
+          )}
           <p className="field-hint">
             {gateway.mode === 'demo'
               ? 'Откройте ссылку в новом окне того же браузера. Между устройствами демокомнаты не работают.'
-              : 'Войти сможет один слушатель. Регистрация не нужна.'}
+              : `В комнате до ${snapshot.room.capacity} участников. Регистрация не нужна.`}
           </p>
         </Dialog>
       )}

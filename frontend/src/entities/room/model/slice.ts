@@ -32,7 +32,7 @@ const room = createSlice({
     reaction(state, action: PayloadAction<Reaction>) {
       state.reactions = [
         ...state.reactions.filter(
-          (r) => r.createdAt > Date.now() - 6000 && r.id !== action.payload.id,
+          (r) => r.createdAt > action.payload.createdAt - 6000 && r.id !== action.payload.id,
         ),
         action.payload,
       ].slice(-20)

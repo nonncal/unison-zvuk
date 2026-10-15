@@ -6,18 +6,24 @@ export function RoomParticipants({
   isHost,
   onInvite,
   onClose,
+  extra,
+  renderActions,
 }: {
   snapshot: Snapshot
   participantId: string | null
   isHost: boolean
   onInvite: () => void
+  extra?: React.ReactNode
+  renderActions?: (participant: Snapshot['participants'][number]) => React.ReactNode
   onClose: () => void
 }) {
   return (
     <aside className="together-panel">
       <div className="panel-heading">
         <h2>На одной волне</h2>
-        <span>{snapshot.participants.length} из 2</span>
+        <span>
+          {snapshot.participants.length} из {snapshot.room.capacity}
+        </span>
       </div>
       <div className="participants">
         {snapshot.participants.map((p, index) => (
@@ -31,8 +37,11 @@ export function RoomParticipants({
                 {p.displayName}{' '}
                 {p.id === participantId && <span className="you-label">это вы</span>}
               </strong>
-              <span>{p.role === 'host' ? 'Ведущий комнаты' : 'Слушатель'}</span>
+              <span>
+                {p.role === 'host' ? 'Ведущий комнаты' : p.canEdit ? 'Редактор' : 'Слушатель'}
+              </span>
             </div>
+            {isHost && p.id !== snapshot.room.hostParticipantId && renderActions?.(p)}
             <span
               className="participant-state"
               title={
@@ -57,7 +66,7 @@ export function RoomParticipants({
             </span>
           </div>
         ))}
-        {snapshot.participants.length < 2 && (
+        {snapshot.participants.length < snapshot.room.capacity && (
           <div className="participant empty-participant">
             <div className="avatar avatar-empty">
               <Plus size={22} />
@@ -69,7 +78,7 @@ export function RoomParticipants({
           </div>
         )}
       </div>
-      {snapshot.participants.length < 2 && isHost && (
+      {snapshot.participants.length < snapshot.room.capacity && isHost && (
         <button
           className="text-link panel-invite"
           onClick={() => {
@@ -79,6 +88,7 @@ export function RoomParticipants({
           Отправить приглашение <Link2 size={16} />
         </button>
       )}
+      {extra}
       <div className="together-note">
         <span className="note-icon">
           <Headphones size={21} />

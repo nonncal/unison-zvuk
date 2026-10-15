@@ -37,7 +37,7 @@ export function Home() {
               <Plus size={20} />
               Создать комнату
             </button>
-            <p className="cta-caption">По ссылке. Без регистрации. Для двоих.</p>
+            <p className="cta-caption">По ссылке. Без регистрации. До 10 человек.</p>
           </div>
           <div className="hero-scene">
             <div className="scene-note">

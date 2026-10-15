@@ -237,6 +237,7 @@ export class AudioEngine {
     this.sync(true)
   }
   retrySource() {
+    this.prefetched = null
     this.activeVersion = null
     this.lastReadiness = ''
     this.audio.pause()

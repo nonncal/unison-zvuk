@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector, useStore } from 'react-redux'
-import { gateway, roomActions, selectRoomState } from '@/entities/room'
+import {
+  gateway,
+  roomActions,
+  selectRoomState,
+  roomApi,
+  type PlayerAction,
+  type ReactionEmoji,
+} from '@/entities/room'
 import type { PlaybackCommand, RoomState } from '@/entities/room'
 import {
   audioActions,
@@ -17,7 +24,9 @@ export function useRoomPage() {
     store = useStore<{ room: RoomState }>()
   const { snapshot, participantId, connection, error } = useSelector(selectRoomState),
     audio = useSelector(selectAudioState)
-  const [dialog, setDialog] = useState<'library' | 'upload' | 'invite' | 'close' | null>(null),
+  const [dialog, setDialog] = useState<
+      'library' | 'upload' | 'invite' | 'close' | 'rooms' | 'create' | 'settings' | 'rotate' | null
+    >(null),
     [busy, setBusy] = useState(false),
     [invite, setInvite] = useState(''),
     [copied, setCopied] = useState(false),
@@ -31,6 +40,7 @@ export function useRoomPage() {
   useEffect(() => () => clearTimeout(toastTimer.current), [])
   const me = snapshot?.participants.find((p) => p.id === participantId),
     isHost = me?.id === snapshot?.room.hostParticipantId,
+    canEdit = Boolean(isHost || me?.canEdit),
     host = snapshot?.participants.find((p) => p.id === snapshot.room.hostParticipantId)
   const command = useCallback(
     async (value: PlaybackCommand) => {
@@ -51,8 +61,36 @@ export function useRoomPage() {
     },
     [dispatch, busy, store, transport],
   )
+  async function playerAction(payload: Omit<PlayerAction, 'expectedPlaybackRevision'>) {
+    const current = store.getState().room.snapshot
+    if (!current || busy) return
+    setBusy(true)
+    dispatch(roomActions.error(null))
+    try {
+      dispatch(
+        roomActions.received(
+          await roomApi.player(roomId, {
+            ...payload,
+            expectedPlaybackRevision: current.playback.playbackRevision,
+          }),
+        ),
+      )
+    } catch (error) {
+      dispatch(roomActions.error(errorMessage(error)))
+      transport.current?.snapshot()
+    } finally {
+      setBusy(false)
+    }
+  }
+  const react = (emoji: ReactionEmoji) => {
+    try {
+      transport.current?.react?.(emoji)
+    } catch (error) {
+      dispatch(roomActions.error(errorMessage(error)))
+    }
+  }
   const controlsDisabled =
-    !isHost ||
+    !canEdit ||
     connection !== 'connected' ||
     busy ||
     Boolean(
@@ -74,6 +112,18 @@ export function useRoomPage() {
       setInvite(await gateway.invite(roomId))
     } catch (e) {
       dispatch(roomActions.error(errorMessage(e)))
+    }
+  }
+  async function rotateInvite() {
+    setBusy(true)
+    try {
+      setInvite((await roomApi.rotate(roomId)).inviteUrl)
+      setCopied(false)
+      setDialog('invite')
+    } catch (e) {
+      dispatch(roomActions.error(errorMessage(e)))
+    } finally {
+      setBusy(false)
     }
   }
   async function copyInvite() {
@@ -126,8 +176,10 @@ export function useRoomPage() {
     return () => document.removeEventListener('keydown', key)
   }, [dialog, controlsDisabled, selected, displayStatus, command])
   const allPlaying =
-    snapshot?.participants.length === 2 &&
-    snapshot.participants.every((p) => p.connectionState === 'online' && p.readiness === 'ready') &&
+    (snapshot?.participants.length ?? 0) > 1 &&
+    snapshot?.participants.every(
+      (p) => p.connectionState === 'online' && p.readiness === 'ready',
+    ) &&
     audio.state === 'playing' &&
     connection === 'connected'
   const statusText =
@@ -169,6 +221,9 @@ export function useRoomPage() {
     position,
     displayStatus,
     isHost,
+    canEdit,
+    playerAction,
+    react,
     selected,
     host,
     reloadTracks,
@@ -177,6 +232,7 @@ export function useRoomPage() {
     unlock,
     openInvite,
     copyInvite,
+    rotateInvite,
     leave,
     statusText,
     retryAudio: () => {
