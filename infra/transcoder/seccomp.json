@@ -88,6 +88,7 @@
         "newfstatat",
         "open",
         "openat",
+        "openat2",
         "pause",
         "pipe",
         "pipe2",

@@ -1,0 +1,36 @@
+# Use AFTER compose.yaml and compose.app.yaml. Only Nginx is publicly reachable.
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  storage:
+    ports: !reset []
+  api:
+    ports: !reset []
+    environment:
+      ENVIRONMENT: production
+  worker:
+    environment:
+      ENVIRONMENT: production
+  migrate:
+    environment:
+      ENVIRONMENT: production
+  catalog-init:
+    environment:
+      ENVIRONMENT: production
+  storage-init:
+    environment:
+      ENVIRONMENT: production
+  prometheus:
+    ports: !reset []
+  frontend:
+    environment:
+      APP_HOST: ${APP_HOST:?Set the public hostname}
+    ports: !override ["80:8080", "443:8443"]
+    volumes:
+      - ./infra/nginx/production.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${TLS_CERT_DIR:?Set TLS_CERT_DIR}:/etc/nginx/tls:ro
+  # Grafana remains available only on loopback, via an SSH tunnel.
+  grafana:
+    ports: !override ["127.0.0.1:${GRAFANA_PORT:-3000}:3000"]

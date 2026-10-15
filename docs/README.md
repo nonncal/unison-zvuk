@@ -1,5 +1,6 @@
 # Документы проекта Unison
 
+- [Docker и размещение](DEPLOYMENT.md) — полный стек, HTTPS, мониторинг, обновление и backup/restore.
 - [Полная спецификация](spec/README.md) — требования, архитектура, API, дизайн, эпики и истории, QA.
 - [Flow фронтенда](frontend/README.md) — порядок реализации React/TS/Redux/WebSocket.
 - [Flow Python-бэкенда](backend/README.md) — порядок реализации FastAPI и обработки аудио.

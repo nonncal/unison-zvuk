@@ -1,7 +1,7 @@
 name: unison-local
 
 x-backend-env: &backend-env
-  ENVIRONMENT: development
+  ENVIRONMENT: ${ENVIRONMENT:-development}
   APP_ORIGIN: ${APP_ORIGIN:-http://localhost:5173}
   DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-unison}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-unison}
   REDIS_URL: redis://redis:6379/0

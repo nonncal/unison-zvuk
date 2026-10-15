@@ -1,0 +1,8 @@
+# Dedicated functional-test stack only; never include this overlay on a public server.
+services:
+  api:
+    environment:
+      CREATE_PER_MINUTE: 1000
+      JOIN_PER_MINUTE: 1000
+      BOOTSTRAP_PER_MINUTE: 1000
+      UPLOAD_PER_MINUTE: 1000
