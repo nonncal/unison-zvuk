@@ -170,7 +170,10 @@ async def process_with_resources(
             track.source_asset_id = source_id
             track.playback_asset_id = media_id
             track.duration_ms = result.duration_ms
-            track.title = result.title or track.title
+            title = result.title or track.title
+            if title != track.title and track.cover_data is None:
+                track.cover_version += 1
+            track.title = title
             track.artist = result.artist
             track.status = "ready"
             track.error_code = None

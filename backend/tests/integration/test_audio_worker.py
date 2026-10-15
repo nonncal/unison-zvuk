@@ -70,7 +70,7 @@ async def test_database_failure_after_publish_reuses_one_asset(
         await asyncio.to_thread(
             (directory / "out" / "normalized.mp3").write_bytes, b"normalized audio"
         )
-        result = MediaReady(duration_ms=2000)
+        result = MediaReady(duration_ms=2000, title="Название из тегов", artist="Автор")
         atomic_json(directory / "result.json", result.model_dump(mode="json", by_alias=True))
         return result
 
@@ -101,6 +101,10 @@ async def test_database_failure_after_publish_reuses_one_asset(
     async with resources.sessions() as db:
         upload = await db.get(Upload, upload_id)
         assert upload is not None and upload.status == "ready" and upload.processing_attempts == 2
+        track = await db.get(Track, upload.track_id)
+        assert track is not None and (track.title, track.artist) == ("Название из тегов", "Автор")
+        # A retry and duplicate job must not keep invalidating the generated cover.
+        assert track.cover_version == 1
         assert await db.scalar(select(func.count()).select_from(Asset)) == 2
         assert await db.scalar(select(func.count()).select_from(Outbox)) == 1
     listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)

@@ -36,6 +36,8 @@ async def repair(room_id: UUID, apply: bool) -> None:
                 print(f"{track.id}: {track.title!r} / {track.artist!r} -> {title!r} / {artist!r}")
                 if apply:
                     track.title, track.artist = title, artist
+                    if track.cover_data is None:
+                        track.cover_version += 1
                     await db.flush()
                     await media.emit_track(db, track)
             print(f"{'Updated' if apply else 'Would update'}: {count}")
