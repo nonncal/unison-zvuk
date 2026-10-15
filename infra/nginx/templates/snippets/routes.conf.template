@@ -1,0 +1,63 @@
+root /usr/share/nginx/html;
+index index.html;
+server_tokens off;
+client_max_body_size 50m;
+client_body_timeout 60s;
+access_log /var/log/nginx/access.log unison;
+# Error logs can include signed URLs; keep them out of container logs.
+error_log /dev/null crit;
+add_header X-Content-Type-Options nosniff always;
+add_header Referrer-Policy no-referrer always;
+
+location = /nginx-health {
+    access_log off;
+    return 200 'ok';
+}
+location ~ ^/(internal|minio|metrics|prometheus|grafana)(/|$) { return 404; }
+location ~ /\. { return 404; }
+
+location /api/ {
+    proxy_pass http://unison_api;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_read_timeout 30s;
+    client_max_body_size 64k;
+}
+location /health/ {
+    proxy_pass http://unison_api;
+    proxy_set_header Host $http_host;
+}
+location /ws {
+    proxy_pass http://unison_api;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_read_timeout 75s;
+    proxy_send_timeout 75s;
+    proxy_buffering off;
+}
+# No prefix rewrite: the bucket path AND original Host are part of S3's signature.
+location ^~ /${S3_BUCKET}/ {
+    proxy_pass http://unison_storage;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header Connection '';
+    proxy_request_buffering off;
+    proxy_buffering off;
+    proxy_read_timeout 120s;
+    proxy_send_timeout 120s;
+}
+location /assets/ {
+    try_files $uri =404;
+    expires 1y;
+    add_header Cache-Control 'public, immutable';
+}
+location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control 'no-cache';
+}

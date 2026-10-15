@@ -1,6 +1,12 @@
 groups:
   - name: unison
     rules:
+      - alert: UnisonAPIUnavailable
+        expr: up{job="unison-api"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "API Unison не отвечает на сбор метрик"
       - alert: AudioWorkerUnavailable
         expr: unison_audio_worker_online == 0
         for: 30s
