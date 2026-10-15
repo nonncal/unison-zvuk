@@ -18,7 +18,9 @@ export function PlaybackNavigation({
   snapshot,
   disabled,
   onAction,
+  children,
 }: {
+  children?: React.ReactNode
   snapshot: Snapshot
   disabled: boolean
   onAction: Action
@@ -29,12 +31,22 @@ export function PlaybackNavigation({
     <div className="playback-navigation">
       <button
         className="icon-button"
+        aria-label="Перемешивание"
+        aria-pressed={shuffle}
+        disabled={disabled}
+        onClick={() => onAction({ action: 'options', shuffle: !shuffle })}
+      >
+        <Shuffle size={20} />
+      </button>
+      <button
+        className="icon-button"
         aria-label="Предыдущая песня"
         disabled={disabled || !snapshot.playback.trackId}
         onClick={() => onAction({ action: 'previous' })}
       >
         <SkipBack size={22} />
       </button>
+      {children}
       <button
         className="icon-button"
         aria-label="Следующая песня"
@@ -56,15 +68,6 @@ export function PlaybackNavigation({
         }
       >
         {repeat === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
-      </button>
-      <button
-        className="icon-button"
-        aria-label="Перемешивание"
-        aria-pressed={shuffle}
-        disabled={disabled}
-        onClick={() => onAction({ action: 'options', shuffle: !shuffle })}
-      >
-        <Shuffle size={20} />
       </button>
     </div>
   )
@@ -88,7 +91,7 @@ export function RoomPlaylist({
   return (
     <section className="playlist-panel" aria-label="Общая очередь">
       <div className="panel-heading">
-        <h2>Дальше на вашей волне</h2>
+        <h2>Очередь</h2>
         <span>{ids.length}/100</span>
       </div>
       {!ids.length && <p>Добавьте песни из подборки. Очередь общая для всех участников.</p>}

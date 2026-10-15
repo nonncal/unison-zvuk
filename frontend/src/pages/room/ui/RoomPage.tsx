@@ -1,5 +1,9 @@
+import { TrackSuggestions } from '@/features/suggest-track'
+import { useState } from 'react'
+import { RoomPlayer } from '@/widgets/room-player'
+import './room-page.css'
 import { useDispatch, useSelector } from 'react-redux'
-import { RoomPlaylist, PlaybackNavigation } from '@/features/room-playlist'
+import { RoomPlaylist } from '@/features/room-playlist'
 import { RoomReactions } from '@/features/send-reaction'
 import { RoomSwitcher } from '@/features/switch-room'
 import { RoomSettings, WaitingRoom, ParticipantActions } from '@/features/manage-room'
@@ -19,13 +23,9 @@ import {
   LoaderCircle,
   LogOut,
   Music2,
-  Pause,
-  Play,
   Radio,
   RefreshCw,
   UploadCloud,
-  Volume2,
-  VolumeX,
   X,
 } from 'lucide-react'
 import { Brand } from '@/shared/ui/Brand'
@@ -36,9 +36,9 @@ import { Library } from '@/features/select-track'
 import { Upload } from '@/features/upload-track'
 import { gateway } from '@/entities/room'
 import { RoomParticipants } from '@/widgets/room-participants'
-import { formatTime } from '@/shared/lib/time'
 import { useRoomPage } from '../model/use-room-page'
 export function Room() {
+  const [panel, setPanel] = useState<'queue' | 'people'>('queue')
   const {
     roomId,
     snapshot,
@@ -93,7 +93,7 @@ export function Room() {
           <div className="entry-icon">
             {error ? <Radio size={30} /> : <LoaderCircle className="spin" size={30} />}
           </div>
-          <h1>{error ? 'Комната недоступна' : 'Ваш момент уже близко'}</h1>
+          <h1>{error ? 'Комната недоступна' : 'Подключение к комнате'}</h1>
           <p className="entry-description" role={error ? 'alert' : 'status'}>
             {error || 'Подключаемся к комнате…'}
           </p>
@@ -123,7 +123,7 @@ export function Room() {
           <div className="entry-icon">
             <Headphones size={32} />
           </div>
-          <h1>Этот момент завершён.</h1>
+          <h1>Комната закрыта.</h1>
           <p className="entry-description">
             Музыка остановилась. Следующая встреча
             <br />
@@ -136,7 +136,7 @@ export function Room() {
       </div>
     )
   return (
-    <div className="room-page">
+    <div className={`room-page room-panel-${panel}`}>
       <header className="site-header room-header">
         <Brand />
         <button
@@ -175,8 +175,11 @@ export function Room() {
       <ModeNotice />
       <main className="room-main">
         <div className="room-intro">
-          <span className="soft-label">Ваша музыкальная комната</span>
-          <h1>Хорошо, когда вместе.</h1>
+          <h1>{snapshot.room.title}</h1>
+          <p>
+            {snapshot.participants.filter((p) => p.connectionState === 'online').length} в сети •{' '}
+            {snapshot.room.moderated ? 'Вход с одобрением' : 'Вход по ссылке'}
+          </p>
         </div>
         {error && (
           <div className="inline-banner error-banner" role="alert">
@@ -203,6 +206,14 @@ export function Room() {
             </button>
           </div>
         )}
+        <div className="room-panel-tabs" aria-label="Раздел комнаты">
+          <button aria-pressed={panel === 'queue'} onClick={() => setPanel('queue')}>
+            Очередь
+          </button>
+          <button aria-pressed={panel === 'people'} onClick={() => setPanel('people')}>
+            Участники ({snapshot.participants.length})
+          </button>
+        </div>
         <div className="room-layout">
           <section className="listening-area" aria-label="Общий плеер">
             <div className="music-stage">
@@ -216,10 +227,6 @@ export function Room() {
                   }
                   alt={`Обложка: ${selected?.title ?? 'композиция'}`}
                 />
-                <span className="album-tag">
-                  <Headphones size={14} />
-                  {selected ? 'Сейчас в вашей комнате' : 'Здесь будет ваша музыка'}
-                </span>
               </div>
               <div className="now-playing">
                 {selected ? (
@@ -238,7 +245,7 @@ export function Room() {
                     </h2>
                     <p>
                       {canEdit
-                        ? 'Настроение начинается с одной песни.'
+                        ? 'Откройте подборку или загрузите свой файл.'
                         : 'Ведущий скоро выберет первую песню.'}
                     </p>
                   </>
@@ -248,161 +255,28 @@ export function Room() {
             {canEdit && selected?.source === 'upload' && gateway.mode === 'api' && (
               <EditCover roomId={roomId} trackId={selected.id} onDone={reloadTracks} />
             )}
-            <div className="player">
-              <div className="player-status" aria-live="polite">
-                <span
-                  className={`little-dot ${displayStatus === 'playing' ? 'dot-playing' : ''}`}
-                />
-                {statusText}
-                <span className="player-status-right">
-                  {snapshot.participants.length}/{snapshot.room.capacity} в комнате
-                </span>
-              </div>
-              <div className="seek-wrap">
-                <input
-                  type="range"
-                  aria-label="Общая позиция композиции"
-                  min={0}
-                  max={snapshot.playback.durationMs || 1}
-                  step={100}
-                  value={previewSeek ?? position}
-                  disabled={controlsDisabled || !selected}
-                  onChange={(event) => setPreviewSeek(Number(event.target.value))}
-                  onPointerUp={(event) => {
-                    if (!controlsDisabled)
-                      void command({
-                        type: 'playback.seek',
-                        payload: { positionMs: Number(event.currentTarget.value) },
-                      })
-                    setPreviewSeek(null)
-                  }}
-                  onKeyUp={(event) => {
-                    if (
-                      ['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(
-                        event.key,
-                      )
-                    ) {
-                      void command({
-                        type: 'playback.seek',
-                        payload: { positionMs: Number(event.currentTarget.value) },
-                      })
-                      setPreviewSeek(null)
-                    }
-                  }}
-                  style={
-                    {
-                      '--progress': `${((previewSeek ?? position) / (snapshot.playback.durationMs || 1)) * 100}%`,
-                    } as React.CSSProperties
-                  }
-                />
-                <div className="seek-times">
-                  <span>{formatTime(previewSeek ?? position)}</span>
-                  <span>{formatTime(snapshot.playback.durationMs)}</span>
-                </div>
-              </div>
-              <div className="player-controls">
-                <div className="volume-control">
-                  <button
-                    className="icon-button"
-                    aria-label={audio.muted ? 'Включить звук у меня' : 'Выключить звук у меня'}
-                    onClick={() => toggleMute()}
-                  >
-                    {audio.muted || audio.volume === 0 ? (
-                      <VolumeX size={20} />
-                    ) : (
-                      <Volume2 size={20} />
-                    )}
-                  </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={audio.muted ? 0 : audio.volume}
-                    aria-label="Моя громкость"
-                    onChange={(event) => setVolume(Number(event.target.value))}
-                  />
-                </div>
-                <button
-                  className="play-button"
-                  disabled={controlsDisabled || !selected || audio.state === 'loading'}
-                  aria-label={
-                    displayStatus === 'playing' ? 'Пауза для всех' : 'Воспроизвести для всех'
-                  }
-                  onClick={() => {
-                    void unlock()
-                    void command(
-                      displayStatus === 'playing'
-                        ? { type: 'playback.pause', payload: {} }
-                        : { type: 'playback.play', payload: { allowNotReady: false } },
-                    )
-                  }}
-                >
-                  {busy ? (
-                    <LoaderCircle size={26} className="spin" />
-                  ) : displayStatus === 'playing' ? (
-                    <Pause size={25} fill="currentColor" />
-                  ) : (
-                    <Play size={25} fill="currentColor" />
-                  )}
-                </button>
-                <span className="control-caption">
-                  {canEdit ? 'Общий плеер' : `Управляет ${host?.displayName ?? 'ведущий'}`}
-                </span>
-              </div>
-              {audio.state === 'locked' && selected && (
-                <button
-                  className="button button-secondary unlock-button"
-                  onClick={() => {
-                    void unlock()
-                  }}
-                >
-                  <Headphones size={18} />
-                  Включить звук
-                </button>
-              )}
-              {gateway.mode === 'api' && (
-                <PlaybackNavigation
-                  snapshot={snapshot}
-                  disabled={controlsDisabled}
-                  onAction={(payload) => void playerAction(payload)}
-                />
-              )}
-              {audio.state === 'error' && (
-                <p className="error-message" role="alert">
-                  Не удалось загрузить аудио.{' '}
-                  <button
-                    className="text-link"
-                    onClick={() => {
-                      retryAudio()
-                    }}
-                  >
-                    Попробовать снова
-                  </button>
-                </p>
-              )}
-              {allowNotReady && (
-                <div className="readiness-decision">
-                  <p>Друг ещё не готов к воспроизведению.</p>
-                  <div className="button-row">
-                    <button
-                      className="button button-secondary"
-                      onClick={() => setAllowNotReady(false)}
-                    >
-                      Подождать
-                    </button>
-                    <button
-                      className="button button-primary"
-                      onClick={() => {
-                        void command({ type: 'playback.play', payload: { allowNotReady: true } })
-                      }}
-                    >
-                      Начать без ожидания
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <RoomPlayer
+              snapshot={snapshot}
+              audio={audio}
+              selected={selected}
+              previewSeek={previewSeek}
+              setPreviewSeek={setPreviewSeek}
+              position={position}
+              controlsDisabled={controlsDisabled}
+              command={command}
+              displayStatus={displayStatus}
+              busy={busy}
+              unlock={unlock}
+              canEdit={canEdit}
+              host={host}
+              playerAction={playerAction}
+              statusText={statusText}
+              toggleMute={toggleMute}
+              setVolume={setVolume}
+              retryAudio={retryAudio}
+              allowNotReady={allowNotReady}
+              setAllowNotReady={setAllowNotReady}
+            />
             {canEdit && (
               <div className="source-actions">
                 <button
@@ -423,7 +297,7 @@ export function Room() {
                 </button>
               </div>
             )}
-            <p className="player-footnote">Одна композиция для всех. Громкость — только ваша.</p>
+
             {gateway.mode === 'api' && (
               <>
                 <RoomReactions
@@ -431,6 +305,13 @@ export function Room() {
                   participants={snapshot.participants}
                   disabled={connection !== 'connected'}
                   onReact={react}
+                />
+                <TrackSuggestions
+                  snapshot={snapshot}
+                  tracks={tracks}
+                  isHost={isHost}
+                  disabled={connection !== 'connected'}
+                  onSnapshot={received}
                 />
                 <RoomPlaylist
                   snapshot={snapshot}

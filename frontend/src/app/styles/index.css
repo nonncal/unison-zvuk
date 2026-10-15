@@ -1,19 +1,19 @@
 :root {
-  font-family: 'Golos Text', sans-serif;
-  color: #182747;
-  background: #f2f6fb;
+  font-family: 'PT Sans', sans-serif;
+  color: #202735;
+  background: #f3f4f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color-scheme: light;
-  --canvas: #f2f6fb;
+  --canvas: #f3f4f6;
   --surface: #fff;
-  --ink: #182747;
-  --muted: #536580;
-  --primary: #274bc8;
-  --companion: #784a83;
-  --border: #d5deec;
+  --ink: #202735;
+  --muted: #596474;
+  --primary: #3049a3;
+  --companion: #756480;
+  --border: #d9dde3;
   --success: #176747;
   --danger: #ad283b;
 }
@@ -25,7 +25,9 @@ body {
   min-width: 320px;
 }
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 button,
@@ -137,7 +139,7 @@ svg {
   color: var(--primary);
   background: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   padding: 8px 0;
   line-height: 24px;
   min-height: 44px;
@@ -166,7 +168,7 @@ svg {
   padding: 13px 22px;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 22px;
   transition:
     background 0.16s,
@@ -251,7 +253,7 @@ svg {
   font-size: 64px;
   line-height: 1.08;
   letter-spacing: -2.8px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 22px 0 24px;
 }
 .hero-description {
@@ -327,7 +329,7 @@ svg {
   position: absolute;
   left: 9%;
   top: 7%;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 34px;
   line-height: 1;
   color: #fff;
@@ -412,7 +414,7 @@ svg {
 }
 .scene-track > span {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.5px;
 }
 .scene-track small {
@@ -460,7 +462,7 @@ svg {
   margin-left: 12px;
 }
 .scene-listeners strong {
-  font-weight: 500;
+  font-weight: 400;
   color: var(--ink);
 }
 .mini-avatar {
@@ -499,7 +501,7 @@ svg {
 }
 .section-intro h2 {
   font-size: 28px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.8px;
   margin-top: 10px;
 }
@@ -518,7 +520,7 @@ svg {
 }
 .how-steps h3 {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   margin-bottom: 12px;
 }
 .how-steps p {
@@ -553,12 +555,12 @@ svg {
   padding: 28px;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 16px 64px #18274726;
+  box-shadow: 0 16px 64px #20273526;
   max-height: calc(100svh - 48px);
   overflow: auto;
 }
 .dialog::backdrop {
-  background: #18274766;
+  background: #20273566;
   backdrop-filter: blur(3px);
 }
 .dialog-wide {
@@ -573,7 +575,7 @@ svg {
 }
 .dialog-heading h2 {
   font-size: 23px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.6px;
 }
 .dialog-heading .icon-button {
@@ -590,7 +592,7 @@ svg {
   flex-direction: column;
   gap: 9px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0 0 20px;
 }
 .field input {
@@ -643,7 +645,7 @@ svg {
   font-size: 38px;
   line-height: 48px;
   letter-spacing: -1.5px;
-  font-weight: 500;
+  font-weight: 400;
   margin: 15px 0;
 }
 .entry-description {
@@ -715,7 +717,7 @@ svg {
 .room-intro h1 {
   font-size: 30px;
   letter-spacing: -1px;
-  font-weight: 500;
+  font-weight: 400;
   margin-top: 10px;
   line-height: 40px;
 }
@@ -745,7 +747,7 @@ svg {
   gap: 7px;
   font-size: 10px;
   color: #fff;
-  background: #182747b3;
+  background: #202735b3;
   padding: 9px 12px;
   border-radius: 4px;
   line-height: 15px;
@@ -756,7 +758,7 @@ svg {
 }
 .now-playing h2 {
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 39px;
   letter-spacing: -1px;
   margin: 13px 0;
@@ -766,10 +768,6 @@ svg {
   font-size: 13px;
   line-height: 23px;
   color: var(--muted);
-}
-.player {
-  padding: 27px 0 0;
-  border-top: 1px solid var(--border);
 }
 .player-status {
   display: flex;
@@ -784,99 +782,12 @@ svg {
   margin-left: auto;
   font-size: 10px;
 }
-.seek-wrap input[type='range'] {
-  display: block;
-  width: 100%;
-  margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  height: 20px;
-  background: transparent;
-  cursor: pointer;
-}
-.seek-wrap input[type='range']::-webkit-slider-runnable-track {
-  height: 3px;
-  background: linear-gradient(to right, var(--primary) var(--progress), #cfd9e8 var(--progress));
-  border-radius: 4px;
-}
-.seek-wrap input[type='range']::-moz-range-track {
-  height: 3px;
-  background: #cfd9e8;
-  border-radius: 4px;
-}
-.seek-wrap input[type='range']::-moz-range-progress {
-  height: 3px;
-  background: var(--primary);
-}
-.seek-wrap input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  margin-top: -4.5px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 0;
-}
-.seek-wrap input[type='range']::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 0;
-}
-.seek-wrap input:disabled {
-  cursor: default;
-  opacity: 0.65;
-}
-.seek-times {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 7px;
-  font-size: 10px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 .player-controls {
   display: grid;
   grid-template-columns: 1fr 68px 1fr;
   align-items: center;
   gap: 20px;
   margin: 20px 0 8px;
-}
-.play-button {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary);
-  color: #fff;
-  border-radius: 50%;
-  justify-self: center;
-}
-.play-button:not(:disabled):hover {
-  background: #1b3bb0;
-}
-.play-button svg {
-  stroke-width: 1.5;
-}
-.volume-control {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.volume-control input[type='range'] {
-  width: 75px;
-  height: 44px;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-.control-caption {
-  text-align: right;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 18px;
-  overflow-wrap: anywhere;
 }
 .source-actions {
   display: flex;
@@ -912,7 +823,7 @@ svg {
 }
 .panel-heading h2 {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.3px;
 }
 .panel-heading > span {
@@ -942,7 +853,7 @@ svg {
   align-items: center;
   justify-content: center;
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 400;
 }
 .avatar-plum {
   background: #e8dcea;
@@ -975,7 +886,7 @@ svg {
 }
 .participant-copy strong {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1016,7 +927,7 @@ svg {
 .together-note h3 {
   font-size: 13px;
   line-height: 22px;
-  font-weight: 500;
+  font-weight: 400;
   margin: 14px 0 8px;
 }
 .together-note p {
@@ -1163,7 +1074,7 @@ svg {
 }
 .track-description strong {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1219,7 +1130,7 @@ svg {
 }
 .upload-zone h3 {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 24px;
 }
 .upload-zone p {
@@ -1247,7 +1158,7 @@ svg {
 }
 .upload-file strong {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -1444,9 +1355,6 @@ svg {
   }
   .site-footer > span:last-child {
     display: none;
-  }
-  .volume-control input[type='range'] {
-    width: 100px;
   }
 }
 @media (max-width: 600px) {
@@ -1706,9 +1614,6 @@ svg {
   .now-playing > p:last-child {
     font-size: 12px;
   }
-  .player {
-    padding-top: 23px;
-  }
   .player-status {
     font-size: 10px;
     margin-bottom: 14px;
@@ -1720,23 +1625,6 @@ svg {
     gap: 12px;
     grid-template-columns: 1fr 60px 1fr;
     margin-top: 16px;
-  }
-  .play-button {
-    width: 56px;
-    height: 56px;
-  }
-  .volume-control {
-    gap: 0;
-  }
-  .volume-control .icon-button {
-    width: 36px;
-  }
-  .volume-control input[type='range'] {
-    width: 50px;
-  }
-  .control-caption {
-    font-size: 9px;
-    line-height: 17px;
   }
   .source-actions {
     gap: 14px;
@@ -1861,13 +1749,6 @@ svg {
 .cover {
   position: relative;
   overflow: hidden;
-}
-.playback-navigation {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 0;
-  flex-wrap: wrap;
 }
 .icon-button[aria-pressed='true'] {
   color: var(--accent, #426a9c);
@@ -2103,9 +1984,6 @@ svg {
   .room-switch-list button {
     flex-direction: column;
     align-items: flex-start;
-  }
-  .playback-navigation {
-    gap: 18px;
   }
   .queue-track strong {
     font-size: 13px;

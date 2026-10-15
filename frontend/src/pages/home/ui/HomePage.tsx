@@ -1,3 +1,4 @@
+import './home-page.css'
 import { CreateRoomDialog } from '@/features/create-room'
 import { useState } from 'react'
 import { ArrowUpRight, Headphones, Link2, Music2, Plus } from 'lucide-react'
@@ -11,7 +12,7 @@ export function Home() {
     <div className="home-page">
       <header className="site-header">
         <Brand />
-        <span className="header-note">Музыка становится ближе</span>
+        <span className="header-note">Музыкальные комнаты</span>
         <a className="text-link" href="#how">
           Как это работает <ArrowUpRight size={16} />
         </a>
@@ -20,18 +21,15 @@ export function Home() {
       <main>
         <section className="home-hero">
           <div className="hero-copy">
-            <div className="soft-label">
-              <span className="little-dot" /> Когда вы на одной волне
-            </div>
             <h1>
-              Одна песня.
+              Слушай.
               <br />
-              Один момент.
+              Делись. Вместе.
             </h1>
             <p className="hero-description">
-              Между вами могут быть города.
+              Соберите друзей в одной музыкальной комнате.
               <br />
-              Пусть музыка звучит вместе.
+              Выбирайте треки и слушайте одновременно.
             </p>
             <button className="button button-primary hero-cta" onClick={() => setCreate(true)}>
               <Plus size={20} />
@@ -41,7 +39,7 @@ export function Home() {
           </div>
           <div className="hero-scene">
             <div className="scene-note">
-              <Headphones size={16} /> Сейчас звучит для двоих
+              <Headphones size={16} /> Ваша следующая встреча
             </div>
             <Cover />
             <div className="scene-track">
@@ -59,31 +57,30 @@ export function Home() {
               <span>
                 Один трек.
                 <br />
-                <strong>Ваш общий момент.</strong>
+                <strong>Два слушателя.</strong>
               </span>
             </div>
-            <span className="scene-caption">Расстояние не имеет значения</span>
+            <span className="scene-caption">Общая очередь, пауза и перемотка</span>
           </div>
         </section>
         <section id="how" className="how-section">
           <div className="section-intro">
-            <span>Просто быть рядом</span>
-            <h2>От ссылки до первой ноты</h2>
+            <h2>Три шага — и вы слушаете вместе</h2>
           </div>
           <div className="how-steps">
             <article>
               <span className="how-icon">
                 <Link2 size={23} />
               </span>
-              <h3>Пригласи своего человека</h3>
-              <p>Создай комнату и отправь другу ссылку. Всё начинается с одного приглашения.</p>
+              <h3>Пригласи друзей</h3>
+              <p>Создай комнату на 2–10 человек. Отправь ссылку или включи вход с одобрением.</p>
             </article>
             <article>
               <span className="how-icon">
                 <Music2 size={23} />
               </span>
               <h3>Выбери, что звучит</h3>
-              <p>Открой подборку или загрузи свою композицию. Настроение выбираете вы.</p>
+              <p>Добавь музыку из подборки или загрузи файл. Выдай друзьям права менять очередь.</p>
             </article>
             <article>
               <span className="how-icon">
@@ -98,7 +95,7 @@ export function Home() {
       <footer className="site-footer">
         <Brand />
         <span>Звучать вместе. Даже на расстоянии.</span>
-        <span>Создано для ваших моментов</span>
+        <span>Unison / Слушаем вместе</span>
       </footer>
       {create && (
         <CreateRoomDialog onClose={() => setCreate(false)} onUnlock={() => audioEngine.unlock()} />

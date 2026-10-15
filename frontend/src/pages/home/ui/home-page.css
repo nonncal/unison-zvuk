@@ -1,0 +1,84 @@
+.home-hero {
+  gap: 64px;
+  padding-top: 64px;
+  padding-bottom: 64px;
+}
+.hero-copy h1 {
+  font-size: 72px;
+  letter-spacing: -2px;
+  font-weight: 700;
+  line-height: 1.02;
+}
+.hero-description {
+  font-size: 20px;
+  line-height: 1.5;
+}
+.hero-scene {
+  padding: 24px;
+  max-width: 430px;
+  justify-self: center;
+  width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+  transform: rotate(2deg);
+}
+.hero-scene .cover {
+  border-radius: 6px;
+}
+.scene-caption {
+  position: static;
+  writing-mode: horizontal-tb;
+  transform: none;
+  display: block;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.scene-note {
+  font-size: 14px;
+}
+.how-section {
+  border-top: 1px solid var(--border);
+}
+.how-steps h3 {
+  font-size: 20px;
+}
+.how-steps p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+@media (max-width: 1000px) {
+  .hero-copy h1 {
+    font-size: 54px;
+  }
+  .home-hero {
+    gap: 32px;
+    padding: 40px 28px;
+  }
+  .hero-description {
+    font-size: 18px;
+  }
+}
+@media (max-width: 600px) {
+  .hero-copy h1 {
+    font-size: 52px;
+    letter-spacing: -1px;
+  }
+  .home-hero {
+    gap: 36px;
+    padding: 28px 20px 40px;
+  }
+  .hero-description {
+    font-size: 18px;
+  }
+  .hero-scene {
+    transform: none;
+    padding: 20px;
+  }
+  .how-steps h3 {
+    font-size: 20px;
+  }
+  .how-steps p {
+    font-size: 16px;
+  }
+}

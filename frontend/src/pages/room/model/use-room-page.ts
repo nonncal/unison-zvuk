@@ -196,8 +196,8 @@ export function useRoomPage() {
             : displayStatus === 'ended'
               ? 'Композиция закончилась'
               : selected
-                ? 'Готовы к вашему моменту'
-                : 'Начните с любимой композиции'
+                ? 'На паузе'
+                : 'Выберите трек'
 
   return {
     roomId,

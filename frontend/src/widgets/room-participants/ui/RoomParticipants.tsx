@@ -20,7 +20,7 @@ export function RoomParticipants({
   return (
     <aside className="together-panel">
       <div className="panel-heading">
-        <h2>На одной волне</h2>
+        <h2>Участники</h2>
         <span>
           {snapshot.participants.length} из {snapshot.room.capacity}
         </span>
@@ -37,8 +37,17 @@ export function RoomParticipants({
                 {p.displayName}{' '}
                 {p.id === participantId && <span className="you-label">это вы</span>}
               </strong>
-              <span>
-                {p.role === 'host' ? 'Ведущий комнаты' : p.canEdit ? 'Редактор' : 'Слушатель'}
+              <span>{p.role === 'host' ? 'Ведущий' : p.canEdit ? 'Редактор' : 'Слушатель'}</span>
+              <span className="readiness-text">
+                {p.connectionState !== 'online'
+                  ? 'Нет связи'
+                  : p.readiness === 'ready'
+                    ? 'Готов к старту'
+                    : p.readiness === 'autoplayBlocked'
+                      ? 'Нужно включить звук'
+                      : p.readiness === 'error'
+                        ? 'Ошибка аудио'
+                        : 'Загружает трек'}
               </span>
             </div>
             {isHost && p.id !== snapshot.room.hostParticipantId && renderActions?.(p)}
@@ -72,8 +81,8 @@ export function RoomParticipants({
               <Plus size={22} />
             </div>
             <div className="participant-copy">
-              <strong>Для вашего человека</strong>
-              <span>Место рядом пока свободно</span>
+              <strong>Свободное место</strong>
+              <span>Пригласите ещё одного слушателя</span>
             </div>
           </div>
         )}
@@ -89,16 +98,16 @@ export function RoomParticipants({
         </button>
       )}
       {extra}
-      <div className="together-note">
-        <span className="note-icon">
-          <Headphones size={21} />
+      <div className="readiness-summary" role="status">
+        <Headphones size={18} />
+        <span>
+          {
+            snapshot.participants.filter(
+              (p) => p.connectionState === 'online' && p.readiness === 'ready',
+            ).length
+          }{' '}
+          из {snapshot.participants.length} готовы к старту
         </span>
-        <h3>Расстояние — это условность.</h3>
-        <p>
-          Включите одну песню.
-          <br />
-          Побудьте в одном моменте.
-        </p>
       </div>
       <div className="room-details">
         <span>

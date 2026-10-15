@@ -25,7 +25,9 @@ export function Library({
   )
   return (
     <div>
-      <p className="dialog-description">Что станет вашим общим моментом?</p>
+      <p className="dialog-description">
+        Выберите трек для воспроизведения или добавьте его в очередь.
+      </p>
       <label className="search-field">
         <Search size={19} />
         <input
