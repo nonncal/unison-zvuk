@@ -2,9 +2,8 @@
   margin-top: 28px;
 }
 .suggestions-panel h2 {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   margin-bottom: 8px;
 }
 .suggestions-panel p {

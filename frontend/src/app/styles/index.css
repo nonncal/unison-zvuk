@@ -5,36 +5,37 @@
  * Page-level layout lives next to each page/widget; this file holds tokens,
  * primitives and the pieces several screens share.
  */
-/* Light and dark share one set of roles. */
+/* Light and dark share one set of roles: cobalt is the host, signal orange the second listener. */
 :root {
-  --ground: #f6f7ff;
-  --raise: #e9ecfb;
-  --raise-hover: #dce0f5;
-  --float: #ffffff;
-  --line: #cfd4ee;
-  --line-strong: #6a72a8;
-  --shade: rgb(20 23 46 / 0.2);
-  --scrim: rgb(20 23 46 / 0.5);
-  --ink: #14172e;
-  --muted: #4a5078;
+  --ground: #eef0f4;
+  --raise: #e2e5ec;
+  --raise-hover: #d5d9e3;
+  --float: #fbfbfd;
+  --line: #d5d9e3;
+  --line-strong: #7a8499;
+  --shade: rgb(18 21 29 / 0.22);
+  --scrim: rgb(18 21 29 / 0.5);
+  --ink: #12151d;
+  --muted: #566074;
   --on-accent: #ffffff;
-  --you: #4b5fd6;
-  --you-hover: #3d4fc0;
-  --friend: #b86a00;
-  --tone-0: #4b5fd6;
-  --tone-1: #b86a00;
-  --tone-2: #0f8a72;
-  --tone-3: #c23a76;
-  --tone-4: #1f7fc2;
-  --tone-5: #7a4fd1;
-  --ok: #1c7a47;
+  --you: #2547d6;
+  --you-hover: #1c3bbb;
+  --friend: #d4451a;
+  --tone-0: #2547d6;
+  --tone-1: #d4451a;
+  --tone-2: #0b7f73;
+  --tone-3: #9a6400;
+  --tone-4: #b32d78;
+  --tone-5: #3f7d1f;
+  --ok: #16794a;
   --bad: #b3261e;
-  --bad-fill: #c9364a;
-  --bad-hover: #a82c3e;
+  --bad-fill: #c9362c;
+  --bad-hover: #a82b23;
+  --orbit-blend: multiply;
   color-scheme: light;
   /* Type */
-  --font-body: 'Onest Variable', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Unbounded Variable', 'Onest Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Golos Text Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Cormorant Garamond Variable', 'Iowan Old Style', Georgia, serif;
   /* Shape: controls are pills, content is softly squared, sheets are largest */
   --r-cover: 14px;
   --r-field: 12px;
@@ -53,58 +54,60 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --ground: #131629;
-    --raise: #1b1f3a;
-    --raise-hover: #262b52;
-    --float: #232850;
-    --line: #343a68;
-    --line-strong: #7078b4;
-    --shade: rgb(5 6 18 / 0.55);
-    --scrim: rgb(8 10 24 / 0.72);
-    --ink: #eef0fb;
-    --muted: #a9afd3;
-    --on-accent: #10132a;
-    --you: #8da0ff;
-    --you-hover: #a8b6ff;
-    --friend: #ffc462;
-    --tone-0: #8da0ff;
-    --tone-1: #ffc462;
-    --tone-2: #6fd8c0;
-    --tone-3: #ff9cc2;
-    --tone-4: #7cc8ff;
-    --tone-5: #c5a6ff;
-    --ok: #72dfae;
-    --bad: #ff9aa6;
-    --bad-fill: #ff7d8d;
-    --bad-hover: #ff97a4;
+    --ground: #0e1016;
+    --raise: #171a22;
+    --raise-hover: #222632;
+    --float: #1d212c;
+    --line: #222632;
+    --line-strong: #5d6678;
+    --shade: rgb(0 0 0 / 0.55);
+    --scrim: rgb(5 7 12 / 0.72);
+    --ink: #eceff5;
+    --muted: #99a2b5;
+    --on-accent: #0b1030;
+    --you: #6d8bff;
+    --you-hover: #8aa2ff;
+    --friend: #ff7448;
+    --tone-0: #6d8bff;
+    --tone-1: #ff7448;
+    --tone-2: #4fd1c0;
+    --tone-3: #ffcf5c;
+    --tone-4: #ff8fc0;
+    --tone-5: #9ddf7a;
+    --ok: #5fd39a;
+    --bad: #ff9a8e;
+    --bad-fill: #ff7b6c;
+    --bad-hover: #ff9a8e;
+    --orbit-blend: screen;
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --ground: #131629;
-  --raise: #1b1f3a;
-  --raise-hover: #262b52;
-  --float: #232850;
-  --line: #343a68;
-  --line-strong: #7078b4;
-  --shade: rgb(5 6 18 / 0.55);
-  --scrim: rgb(8 10 24 / 0.72);
-  --ink: #eef0fb;
-  --muted: #a9afd3;
-  --on-accent: #10132a;
-  --you: #8da0ff;
-  --you-hover: #a8b6ff;
-  --friend: #ffc462;
-  --tone-0: #8da0ff;
-  --tone-1: #ffc462;
-  --tone-2: #6fd8c0;
-  --tone-3: #ff9cc2;
-  --tone-4: #7cc8ff;
-  --tone-5: #c5a6ff;
-  --ok: #72dfae;
-  --bad: #ff9aa6;
-  --bad-fill: #ff7d8d;
-  --bad-hover: #ff97a4;
+  --ground: #0e1016;
+  --raise: #171a22;
+  --raise-hover: #222632;
+  --float: #1d212c;
+  --line: #222632;
+  --line-strong: #5d6678;
+  --shade: rgb(0 0 0 / 0.55);
+  --scrim: rgb(5 7 12 / 0.72);
+  --ink: #eceff5;
+  --muted: #99a2b5;
+  --on-accent: #0b1030;
+  --you: #6d8bff;
+  --you-hover: #8aa2ff;
+  --friend: #ff7448;
+  --tone-0: #6d8bff;
+  --tone-1: #ff7448;
+  --tone-2: #4fd1c0;
+  --tone-3: #ffcf5c;
+  --tone-4: #ff8fc0;
+  --tone-5: #9ddf7a;
+  --ok: #5fd39a;
+  --bad: #ff9a8e;
+  --bad-fill: #ff7b6c;
+  --bad-hover: #ff9a8e;
+  --orbit-blend: screen;
   color-scheme: dark;
 }
 * {
@@ -230,9 +233,9 @@ svg {
   align-items: center;
   gap: 10px;
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1;
   min-height: 44px;
 }
@@ -290,8 +293,7 @@ svg {
   background: var(--you-hover);
 }
 .button-secondary {
-  background: transparent;
-  border-color: var(--line-strong);
+  background: var(--raise);
   color: var(--ink);
 }
 .button-secondary:hover:not(:disabled) {
@@ -417,14 +419,13 @@ svg {
   margin-bottom: 16px;
   border-radius: var(--r-field);
   background: var(--raise);
-  border: 1px solid var(--line);
   font-size: 15px;
 }
 .inline-banner .text-link {
   margin-left: auto;
 }
 .error-banner {
-  border-color: var(--bad);
+  box-shadow: inset 4px 0 0 var(--bad);
   color: var(--ink);
 }
 .error-banner .icon-button {
@@ -437,9 +438,9 @@ svg {
   max-height: calc(100dvh - 48px);
   margin: auto;
   padding: 24px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--r-sheet);
-  background: var(--raise);
+  background: var(--float);
   color: var(--ink);
   box-shadow: 0 24px 60px var(--shade);
   overflow: auto;
@@ -459,9 +460,9 @@ svg {
 }
 .dialog-heading h2 {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.25;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.01em;
 }
 .dialog-description {
@@ -521,7 +522,7 @@ svg {
 .orbit-b {
   right: 9%;
   background: var(--b);
-  mix-blend-mode: screen;
+  mix-blend-mode: var(--orbit-blend, multiply);
   opacity: 0.92;
 }
 .orbit-c {
@@ -641,9 +642,9 @@ svg {
 }
 .entry-main h1 {
   font-family: var(--font-display);
-  font-size: clamp(26px, 6vw, 36px);
-  font-weight: 600;
-  line-height: 1.15;
+  font-size: clamp(36px, 8vw, 56px);
+  font-weight: 700;
+  line-height: 1;
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
@@ -703,10 +704,6 @@ svg {
   align-items: center;
   gap: 12px;
   padding: 8px 4px;
-  border-top: 1px solid var(--line);
-}
-.track-row:first-child {
-  border-top: 0;
 }
 .track-row.selected .track-description strong {
   color: var(--friend);
@@ -809,8 +806,9 @@ svg {
 /* Waiting room, member actions */
 .waiting-panel {
   margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  padding: 16px;
+  border-radius: var(--r-field);
+  background: var(--raise);
 }
 .waiting-guest {
   display: flex;
@@ -843,10 +841,8 @@ svg {
 }
 .panel-heading h2,
 .panel-heading h3 {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 700;
 }
 .panel-heading span {
   color: var(--muted);
@@ -865,7 +861,6 @@ svg {
   padding: 32px;
   color: var(--muted);
   font-size: 14px;
-  border-top: 1px solid var(--line);
 }
 
 @media (max-width: 600px) {

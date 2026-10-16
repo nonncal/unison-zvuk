@@ -20,7 +20,7 @@ function paint() {
   else root.dataset.theme = choice
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', dark ? '#14191c' : '#eef1ef')
+    ?.setAttribute('content', dark ? '#0e1016' : '#eef0f4')
 }
 export function setTheme(next: ThemeChoice) {
   choice = next

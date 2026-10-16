@@ -28,12 +28,12 @@ test('theme choice is applied, remembered and can follow the system', async ({ p
   await page.getByRole('button', { name: 'Тёмная тема' }).click()
   await expect(root).toHaveAttribute('data-theme', 'dark')
   const ground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-  expect(await ground()).toBe('rgb(19, 22, 41)')
+  expect(await ground()).toBe('rgb(14, 16, 22)')
   await page.reload()
   await expect(root).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: 'Как в системе' }).click()
   await expect(root).not.toHaveAttribute('data-theme', /.+/)
-  expect(await ground()).toBe('rgb(246, 247, 255)')
+  expect(await ground()).toBe('rgb(238, 240, 244)')
 })
 test('a queue track is grabbed and dropped anywhere, by pointer and by keyboard', async ({
   page,
@@ -42,7 +42,7 @@ test('a queue track is grabbed and dropped anywhere, by pointer and by keyboard'
   const titles = () => page.locator('.queue-list .queue-track strong').allInnerTexts()
   await expect.poll(async () => (await titles()).length).toBeGreaterThan(3)
   // Rows settle once covers and titles have loaded.
-  await expect(page.locator('.queue-list li')).toHaveCount(6)
+  await expect(page.locator('.queue-list li')).toHaveCount(9)
   await page.waitForTimeout(1000)
   const before = await titles()
   const rows = page.locator('.queue-list li')

@@ -26,7 +26,9 @@ export function Home() {
         <section className="home-hero">
           <div className="hero-copy">
             <ResumeRooms />
-            <h1>Слушайте музыку вместе, даже на расстоянии</h1>
+            <h1>
+              Слушайте вместе<span>даже на расстоянии</span>
+            </h1>
             <p className="hero-description">
               Создайте комнату и отправьте ссылку. Трек, пауза и перемотка общие, а громкость у
               каждого своя.

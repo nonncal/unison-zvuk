@@ -1,5 +1,6 @@
-import '@fontsource-variable/onest/wght.css'
-import '@fontsource-variable/unbounded/wght.css'
+import '@fontsource-variable/golos-text/wght.css'
+import '@fontsource-variable/cormorant-garamond/wght.css'
+import '@fontsource-variable/cormorant-garamond/wght-italic.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
