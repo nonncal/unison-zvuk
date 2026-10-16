@@ -41,13 +41,15 @@ export function RoomParticipants({
               <span className="readiness-text">
                 {p.connectionState !== 'online'
                   ? 'Нет связи'
-                  : p.readiness === 'ready'
-                    ? 'Готов к старту'
-                    : p.readiness === 'autoplayBlocked'
-                      ? 'Нужно включить звук'
-                      : p.readiness === 'error'
-                        ? 'Ошибка аудио'
-                        : 'Загружает трек'}
+                  : !snapshot.playback.trackId
+                    ? 'Ждёт выбора песни'
+                    : p.readiness === 'ready'
+                      ? 'Готов к старту'
+                      : p.readiness === 'autoplayBlocked'
+                        ? 'Нужно включить звук'
+                        : p.readiness === 'error'
+                          ? 'Ошибка аудио'
+                          : 'Загружает трек'}
               </span>
             </div>
             {isHost && p.id !== snapshot.room.hostParticipantId && renderActions?.(p)}
@@ -56,15 +58,19 @@ export function RoomParticipants({
               title={
                 p.connectionState === 'offline'
                   ? 'Нет связи'
-                  : p.readiness === 'ready'
-                    ? 'Готов к прослушиванию'
-                    : p.readiness === 'autoplayBlocked'
-                      ? 'Звук ещё не включён'
-                      : 'Загружает композицию'
+                  : !snapshot.playback.trackId
+                    ? 'Ждёт выбора песни'
+                    : p.readiness === 'ready'
+                      ? 'Готов к прослушиванию'
+                      : p.readiness === 'autoplayBlocked'
+                        ? 'Звук ещё не включён'
+                        : 'Загружает композицию'
               }
             >
               {p.connectionState === 'offline' ? (
                 <Radio size={17} />
+              ) : !snapshot.playback.trackId ? (
+                <Headphones size={17} />
               ) : p.readiness === 'ready' ? (
                 <Headphones size={17} />
               ) : p.readiness === 'loading' || p.readiness === 'buffering' ? (
@@ -98,17 +104,19 @@ export function RoomParticipants({
         </button>
       )}
       {extra}
-      <div className="readiness-summary" role="status">
-        <Headphones size={18} />
-        <span>
-          {
-            snapshot.participants.filter(
-              (p) => p.connectionState === 'online' && p.readiness === 'ready',
-            ).length
-          }{' '}
-          из {snapshot.participants.length} готовы к старту
-        </span>
-      </div>
+      {snapshot.playback.trackId && (
+        <div className="readiness-summary" role="status">
+          <Headphones size={18} />
+          <span>
+            {
+              snapshot.participants.filter(
+                (p) => p.connectionState === 'online' && p.readiness === 'ready',
+              ).length
+            }{' '}
+            из {snapshot.participants.length} готовы к старту
+          </span>
+        </div>
+      )}
       <div className="room-details">
         <span>
           <span className="little-dot" />
