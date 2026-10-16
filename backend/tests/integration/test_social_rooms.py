@@ -353,9 +353,9 @@ async def test_real_cover_validation_and_access(
 
 
 async def test_suggestions_need_membership_and_host_approval(
-    social_clients,  # noqa: F811
-    database,
-):
+    social_clients: list[AsyncClient],  # noqa: F811
+    database: AsyncEngine,
+) -> None:
     host, guest, other, _ = social_clients
     room = await create(host, capacity=10)
     await join(guest, room)
