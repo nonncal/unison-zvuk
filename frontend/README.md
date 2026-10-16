@@ -4,7 +4,7 @@ React 19 + TypeScript strict + Redux Toolkit + React Redux + RTK Query + React R
 
 ## Запуск с готовым бэкендом
 
-Нужны Node.js 24, npm и сервисы из [корневого README](../README.md#локальный-запуск).
+Нужны Node.js 24, npm и бэкенд из [backend/README.md](../backend/README.md) (или весь стек из [корневого README](../README.md#быстрый-старт)).
 
 ```bash
 cd frontend
@@ -31,9 +31,9 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 | `src/app` | Redux store, Provider, React Router, глобальные стили |
 | `src/pages` | `home`, `join`, `room`: экраны и их композиция |
 | `src/widgets` | Самостоятельная панель участников |
-| `src/features` | `create-room`, `listen-together`, `select-track`, `upload-track`, `room-playlist`, `send-reaction`, `manage-room`, `switch-room`, `edit-cover` |
+| `src/features` | `create-room`, `listen-together`, `select-track`, `upload-track`, `room-playlist`, `send-reaction`, `manage-room`, `switch-room`, `edit-cover`, `song-lyrics`, `resume-room` |
 | `src/entities` | `room`: состояние и транспорт; `track`: модель, RTK Query и преобразование API |
-| `src/shared` | Генерируемые контракты, HTTP, конфигурация, UI, часы, медиа и ошибки |
+| `src/shared` | Генерируемые контракты, HTTP, конфигурация, UI (диалоги, уведомления, переключатель темы), часы, медиа, ошибки |
 
 Импорты идут вниз по слоям через `index.ts`. Соседние слайсы изолированы; связь room → track явно объявлена через `entities/track/@x/room.ts`. Нижние слои не импортируют app/store: они используют типизированные селекторы и Redux hooks. Audio, WebSocket и таймеры находятся за пределами сериализуемого Redux state и освобождаются при уходе со страницы.
 
@@ -75,7 +75,7 @@ npm run test:e2e
 npm run test:e2e:api
 ```
 
-`test:e2e` поднимает деморежим на `127.0.0.1:5174` и проверяет 12 сценариев, включая ширины 360/390/768/1024/1440 px, клавиатуру и фокус. `test:e2e:api` использует работающий FastAPI и UI на `127.0.0.1:5173`, два независимых browser context и настоящие медиа. Для backend с `APP_ORIGIN=http://localhost:5173`:
+`test:e2e` поднимает деморежим на `127.0.0.1:5174` и проверяет сценарии, включая ширины 360/390/768/1024/1440 px, клавиатуру и фокус. `test:e2e:api` использует работающий FastAPI и UI на `127.0.0.1:5173`, два независимых browser context и настоящие медиа. Для backend с `APP_ORIGIN=http://localhost:5173`:
 
 ```bash
 UNISON_E2E_ORIGIN=http://localhost:5173 npm run test:e2e:api
@@ -89,7 +89,7 @@ UNISON_E2E_ORIGIN=http://localhost:5173 npm run test:e2e:api
 VITE_APP_MODE=demo npm run dev -- --host 127.0.0.1
 ```
 
-Приглашение работает между вкладками **одного** браузерного профиля. Комнаты хранятся в localStorage, файлы — в IndexedDB; BroadcastChannel и Web Locks согласуют вкладки. Здесь нет серверной авторизации, FFmpeg и серверной очистки. Деморежим использует те же шесть полных записей CC0 / public domain, что и серверный каталог. Аудио и метаданные синхронизируются из `backend/catalog/` командой `npm run audio:generate`; `npm run audio:check` проверяет совпадение копий. Источники и сведения о правах находятся в [описании каталога](../backend/catalog/README.md).
+Приглашение работает между вкладками **одного** браузерного профиля. Комнаты хранятся в localStorage, файлы — в IndexedDB; BroadcastChannel и Web Locks согласуют вкладки. Здесь нет серверной авторизации, FFmpeg и серверной очистки. Деморежим использует шесть классических записей CC0 / public domain из серверного каталога (песен с текстом в нём нет). Аудио и метаданные синхронизируются из `backend/catalog/` командой `npm run audio:generate`; `npm run audio:check` проверяет совпадение копий. Источники и права описаны в [backend/README.md](../backend/README.md#каталог-музыки).
 
 [Возможности и ограничения](../docs/POST-MVP.md). Проверки Chromium на одном компьютере не заменяют Safari/Android и измерение слышимой синхронизации на независимых устройствах.
 
@@ -98,3 +98,13 @@ VITE_APP_MODE=demo npm run dev -- --host 127.0.0.1
 [Плеер, очередь, права, зал ожидания и смена комнаты](../docs/POST-MVP.md) работают через Python API. React Router переключает существующие `/room/:roomId`; авторизация восстанавливается серверной cookie через `/resume`. Нажатие стрелки рядом с названием открывает список комнат. RTK Query обновляет подборку при `track.updated`, включая название и версию обложки. Очередь и права приходят в общем snapshot; реакции — отдельные эфемерные WS-события.
 
 `test:e2e:api` дополнительно включает `social.spec.ts`: допуск гостя, отзыв прав, repeat/shuffle, реальные обложки, реакции и room switcher. `UNISON_E2E_EXTERNAL=1` использует уже поднятый UI. Новые серверные функции не эмулируются в demo.
+
+## Тема, уведомления, очередь, текст песен
+
+- Тема: светлая, тёмная или как в системе; выбор хранится в `localStorage`, `public/theme-init.js` применяет его до первой отрисовки.
+- Уведомления (`shared/lib/toast`, `shared/ui/Toaster`): вход и выход участников, заявки в зал ожидания с кнопками «Впустить» и «Отклонить».
+- Очередь: перенос мышью за любое место и за ручку на телефоне, с клавиатуры пробел берёт, стрелки двигают, пробел кладёт.
+- Текст песни (`features/song-lyrics`): подсветка текущей строки по общей позиции плеера, загрузка `.lrc` и `.txt`. Подробности в [docs/KARAOKE.md](../docs/KARAOKE.md).
+- PWA: `public/manifest.webmanifest` и `public/sw.js` (только оболочка и офлайн-страница, никогда API, WebSocket и аудио).
+
+`tests/fixtures/`: `demo-*.wav` и `startup-tone.mp3` для проверок воспроизведения, `embedded-cover.*` с обложкой в тегах, `tone-with-lyrics.mp3` с текстом в теге `USLT` (проверяет, что воркер читает текст из загруженного файла).

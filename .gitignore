@@ -14,3 +14,13 @@ htmlcov/
 .DS_Store
 *.log
 
+
+# Local tooling and AI assistants
+.agents/
+.claude/
+.cursor/
+.taste-skill/
+skills-lock.json
+CLAUDE.md
+AGENTS.md
+.mypy_cache/
