@@ -28,12 +28,12 @@ test('theme choice is applied, remembered and can follow the system', async ({ p
   await page.getByRole('button', { name: 'Тёмная тема' }).click()
   await expect(root).toHaveAttribute('data-theme', 'dark')
   const ground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-  expect(await ground()).toBe('rgb(18, 23, 26)')
+  expect(await ground()).toBe('rgb(19, 22, 41)')
   await page.reload()
   await expect(root).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: 'Как в системе' }).click()
   await expect(root).not.toHaveAttribute('data-theme', /.+/)
-  expect(await ground()).toBe('rgb(238, 241, 239)')
+  expect(await ground()).toBe('rgb(246, 247, 255)')
 })
 test('a queue track is grabbed and dropped anywhere, by pointer and by keyboard', async ({
   page,
