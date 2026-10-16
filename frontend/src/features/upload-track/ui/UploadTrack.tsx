@@ -40,7 +40,9 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
   const busy = stage === 'sending' || stage === 'processing'
   return (
     <div>
-      <p className="dialog-description">Иногда нужная песня уже есть у вас.</p>
+      <p className="dialog-description">
+        Файл увидят только участники этой комнаты. Обложка из тегов файла подставится автоматически.
+      </p>
       <input
         ref={input}
         className="visually-hidden"

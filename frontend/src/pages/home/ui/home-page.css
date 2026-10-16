@@ -1,84 +1,201 @@
 .home-hero {
-  gap: 64px;
-  padding-top: 64px;
-  padding-bottom: 64px;
+  max-width: 1320px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: 72px;
+  padding: 56px 32px 88px;
 }
 .hero-copy h1 {
-  font-size: 72px;
-  letter-spacing: -2px;
-  font-weight: 700;
-  line-height: 1.02;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.4vw, 56px);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  max-width: 14em;
+  overflow-wrap: anywhere;
 }
 .hero-description {
-  font-size: 20px;
-  line-height: 1.5;
+  margin-top: 24px;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 34em;
 }
-.hero-scene {
-  padding: 24px;
-  max-width: 430px;
-  justify-self: center;
-  width: 100%;
-  background: var(--surface);
-  border-radius: 12px;
-  transform: rotate(2deg);
+.hero-cta {
+  margin-top: 36px;
+  min-height: 56px;
+  padding: 14px 30px;
+  font-size: 17px;
 }
-.hero-scene .cover {
-  border-radius: 6px;
-}
-.scene-caption {
-  position: static;
-  writing-mode: horizontal-tb;
-  transform: none;
-  display: block;
-  margin-top: 20px;
-  font-size: 13px;
+.cta-caption {
+  margin-top: 16px;
+  font-size: 14px;
   color: var(--muted);
 }
-.scene-note {
-  font-size: 14px;
+
+/* The one expressive moment: two listeners start apart and arrive at the same second. */
+.hero-scene {
+  max-width: 440px;
+  width: 100%;
+  justify-self: center;
 }
+.hero-scene .cover {
+  box-shadow: 0 0 0 1px var(--line);
+}
+.scene-track {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+.scene-track span {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.scene-track small {
+  color: var(--muted);
+  font-size: 15px;
+}
+.scene-timeline {
+  position: relative;
+  height: 28px;
+  margin-top: 20px;
+}
+.scene-timeline > div {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.scene-cursor {
+  position: absolute;
+  top: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--ground);
+  animation-duration: 2.6s;
+  animation-delay: 0.5s;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.1, 1);
+  animation-fill-mode: both;
+}
+.cursor-blue {
+  background: var(--you);
+  left: 52%;
+  animation-name: converge-you;
+}
+.cursor-plum {
+  background: var(--friend);
+  left: calc(52% + 12px);
+  animation-name: converge-friend;
+}
+@keyframes converge-you {
+  from {
+    left: 14%;
+  }
+}
+@keyframes converge-friend {
+  from {
+    left: 86%;
+  }
+}
+.scene-listeners {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--you);
+  color: var(--on-accent);
+}
+.mini-avatar.plum {
+  background: var(--friend);
+  margin-left: -16px;
+  border: 3px solid var(--ground);
+  width: 34px;
+  height: 34px;
+}
+
 .how-section {
-  border-top: 1px solid var(--border);
+  max-width: 1320px;
+  margin: auto;
+  padding: 24px 32px 96px;
+}
+.section-intro h2 {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.how-steps {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  counter-reset: step;
+}
+.how-steps li {
+  counter-increment: step;
+  border-top: 1.5px solid var(--line-strong);
+  padding-top: 16px;
+}
+.how-steps li::before {
+  content: counter(step);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--friend);
+  margin-bottom: 8px;
 }
 .how-steps h3 {
-  font-size: 20px;
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 8px;
 }
 .how-steps p {
-  font-size: 16px;
-  line-height: 1.5;
+  color: var(--muted);
+  max-width: 28em;
 }
-@media (max-width: 1000px) {
-  .hero-copy h1 {
-    font-size: 54px;
-  }
+
+@media (max-width: 900px) {
   .home-hero {
-    gap: 32px;
-    padding: 40px 28px;
-  }
-  .hero-description {
-    font-size: 18px;
-  }
-}
-@media (max-width: 600px) {
-  .hero-copy h1 {
-    font-size: 52px;
-    letter-spacing: -1px;
-  }
-  .home-hero {
-    gap: 36px;
-    padding: 28px 20px 40px;
-  }
-  .hero-description {
-    font-size: 18px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    padding: 24px 16px 56px;
   }
   .hero-scene {
-    transform: none;
-    padding: 20px;
+    justify-self: start;
+    max-width: 360px;
   }
-  .how-steps h3 {
-    font-size: 20px;
+  .how-section {
+    padding: 8px 16px 64px;
   }
-  .how-steps p {
-    font-size: 16px;
+  .how-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-cursor {
+    animation: none;
   }
 }

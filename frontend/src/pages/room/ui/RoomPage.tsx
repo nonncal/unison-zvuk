@@ -14,7 +14,6 @@ import { apiOrigin } from '@/shared/config'
 import { roomActions, selectRoomState } from '@/entities/room'
 import { Link } from 'react-router-dom'
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   Copy,
@@ -125,9 +124,7 @@ export function Room() {
           </div>
           <h1>Комната закрыта.</h1>
           <p className="entry-description">
-            Музыка остановилась. Следующая встреча
-            <br />
-            может начаться с новой комнаты.
+            Ведущий закрыл её, музыка остановлена. Чтобы послушать ещё, создайте новую комнату.
           </p>
           <Link className="button button-primary" to="/">
             Создать новую комнату
@@ -152,6 +149,7 @@ export function Room() {
           {isHost && (
             <button
               className="button button-secondary invite-button"
+              aria-label="Пригласить друга"
               onClick={() => {
                 void openInvite()
               }}
@@ -174,13 +172,7 @@ export function Room() {
       </header>
       <ModeNotice />
       <main className="room-main">
-        <div className="room-intro">
-          <h1>{snapshot.room.title}</h1>
-          <p>
-            {snapshot.participants.filter((p) => p.connectionState === 'online').length} в сети •{' '}
-            {snapshot.room.moderated ? 'Вход с одобрением' : 'Вход по ссылке'}
-          </p>
-        </div>
+        <h1 className="visually-hidden">{snapshot.room.title}</h1>
         {error && (
           <div className="inline-banner error-banner" role="alert">
             <span>{error}</span>
@@ -231,22 +223,16 @@ export function Room() {
               <div className="now-playing">
                 {selected ? (
                   <>
-                    <p className="soft-label">Сейчас звучит</p>
                     <h2>{selected.title}</h2>
-                    <p>{selected.artist}</p>
+                    <p>{selected.artist || 'Исполнитель не указан'}</p>
                   </>
                 ) : (
                   <>
-                    <p className="soft-label">Первый трек — за вами</p>
-                    <h2>
-                      Выберите вашу
-                      <br />
-                      композицию.
-                    </h2>
+                    <h2>Выберите первую песню</h2>
                     <p>
                       {canEdit
-                        ? 'Откройте подборку или загрузите свой файл.'
-                        : 'Ведущий скоро выберет первую песню.'}
+                        ? 'Откройте подборку или загрузите свой файл — музыка зазвучит у всех сразу.'
+                        : `${host?.displayName ?? 'Ведущий'} ещё не выбрал песню. Когда он это сделает, она появится здесь.`}
                     </p>
                   </>
                 )}
@@ -280,7 +266,7 @@ export function Room() {
             {canEdit && (
               <div className="source-actions">
                 <button
-                  className="button button-secondary"
+                  className={`button ${selected ? 'button-secondary' : 'button-primary'}`}
                   disabled={controlsDisabled}
                   onClick={() => setDialog('library')}
                 >
@@ -288,7 +274,7 @@ export function Room() {
                   Открыть подборку
                 </button>
                 <button
-                  className="text-link"
+                  className="button button-secondary"
                   disabled={controlsDisabled}
                   onClick={() => setDialog('upload')}
                 >
@@ -299,20 +285,17 @@ export function Room() {
             )}
 
             {gateway.mode === 'api' && (
-              <>
-                <RoomReactions
-                  reactions={reactions}
-                  participants={snapshot.participants}
-                  disabled={connection !== 'connected'}
-                  onReact={react}
-                />
-                <TrackSuggestions
-                  snapshot={snapshot}
-                  tracks={tracks}
-                  isHost={isHost}
-                  disabled={connection !== 'connected'}
-                  onSnapshot={received}
-                />
+              <RoomReactions
+                reactions={reactions}
+                participants={snapshot.participants}
+                disabled={connection !== 'connected'}
+                onReact={react}
+              />
+            )}
+          </section>
+          <div className="room-side">
+            {gateway.mode === 'api' && (
+              <div className="side-queue">
                 <RoomPlaylist
                   snapshot={snapshot}
                   tracks={tracks}
@@ -323,54 +306,54 @@ export function Room() {
                     void command({ type: 'playback.select', payload: { trackId: track.id } })
                   }
                 />
-              </>
+                <TrackSuggestions
+                  snapshot={snapshot}
+                  tracks={tracks}
+                  isHost={isHost}
+                  disabled={connection !== 'connected'}
+                  onSnapshot={received}
+                />
+              </div>
             )}
-          </section>
-          <RoomParticipants
-            snapshot={snapshot}
-            participantId={participantId}
-            isHost={isHost}
-            onInvite={() => void openInvite()}
-            onClose={() => setDialog('close')}
-            renderActions={
-              gateway.mode === 'api'
-                ? (p) => (
-                    <ParticipantActions
-                      roomId={roomId}
-                      id={p.id}
-                      name={p.displayName}
-                      canEdit={p.canEdit ?? false}
-                      onSnapshot={received}
-                    />
-                  )
-                : undefined
-            }
-            extra={
-              isHost && gateway.mode === 'api' ? (
-                <>
-                  <button className="text-link" onClick={() => setDialog('settings')}>
-                    Настройки комнаты
-                  </button>
-                  {snapshot.room.moderated && <WaitingRoom roomId={roomId} />}
-                </>
-              ) : null
-            }
-          />
+            <RoomParticipants
+              snapshot={snapshot}
+              participantId={participantId}
+              isHost={isHost}
+              onInvite={() => void openInvite()}
+              onClose={() => setDialog('close')}
+              renderActions={
+                gateway.mode === 'api'
+                  ? (p) => (
+                      <ParticipantActions
+                        roomId={roomId}
+                        id={p.id}
+                        name={p.displayName}
+                        canEdit={p.canEdit ?? false}
+                        onSnapshot={received}
+                      />
+                    )
+                  : undefined
+              }
+              extra={
+                isHost && gateway.mode === 'api' ? (
+                  <>
+                    <button className="text-link" onClick={() => setDialog('settings')}>
+                      Настройки комнаты
+                    </button>
+                    {snapshot.room.moderated && <WaitingRoom roomId={roomId} />}
+                  </>
+                ) : null
+              }
+            />
+          </div>
         </div>
-        <Link to="/" className="back-link">
-          <ArrowLeft size={15} />
-          Главная
-        </Link>
+
         {isHost && (
           <button className="text-link mobile-close-room" onClick={() => setDialog('close')}>
             Закрыть комнату для всех
           </button>
         )}
       </main>
-      <footer className="room-footer">
-        <span>unison. Звучать вместе.</span>
-        <span>Пусть этот момент будет вашим.</span>
-      </footer>
       {dialog === 'rooms' && (
         <RoomSwitcher
           currentId={roomId}
@@ -385,7 +368,7 @@ export function Room() {
         <RoomSettings snapshot={snapshot} onClose={() => setDialog(null)} onSnapshot={received} />
       )}
       {dialog === 'library' && (
-        <Dialog title="Ваша подборка" wide onClose={() => setDialog(null)}>
+        <Dialog title="Подборка" wide onClose={() => setDialog(null)}>
           <Library
             tracks={tracks}
             roomId={roomId}
@@ -409,7 +392,7 @@ export function Room() {
         </Dialog>
       )}
       {dialog === 'upload' && (
-        <Dialog title="Своя композиция" onClose={() => setDialog(null)}>
+        <Dialog title="Загрузить свою песню" onClose={() => setDialog(null)}>
           <Upload roomId={roomId} onDone={reloadTracks} />
         </Dialog>
       )}
@@ -429,9 +412,9 @@ export function Room() {
         </Dialog>
       )}
       {dialog === 'invite' && (
-        <Dialog title="Пусть друг будет рядом" onClose={() => setDialog(null)}>
+        <Dialog title="Пригласить в комнату" onClose={() => setDialog(null)}>
           <p className="dialog-description">
-            Отправьте ссылку человеку, с которым хотите разделить этот момент.
+            Отправьте ссылку — человек откроет её в браузере и войдёт в комнату.
           </p>
           <label className="field">
             Ссылка на комнату
@@ -465,14 +448,16 @@ export function Room() {
           <p className="field-hint">
             {gateway.mode === 'demo'
               ? 'Откройте ссылку в новом окне того же браузера. Между устройствами демокомнаты не работают.'
-              : `В комнате до ${snapshot.room.capacity} участников. Регистрация не нужна.`}
+              : snapshot.room.moderated
+                ? `Мест: ${snapshot.room.capacity}. Каждого гостя нужно будет впустить вручную.`
+                : `Мест: ${snapshot.room.capacity}. Регистрация гостям не нужна.`}
           </p>
         </Dialog>
       )}
       {dialog === 'close' && (
-        <Dialog title="Завершить ваш момент?" onClose={() => setDialog(null)}>
+        <Dialog title="Закрыть комнату для всех?" onClose={() => setDialog(null)}>
           <p className="dialog-description">
-            Музыка остановится у обоих. Эта ссылка больше не позволит войти в комнату.
+            Музыка остановится у всех, а ссылка-приглашение перестанет работать.
           </p>
           <div className="button-row">
             <button className="button button-secondary" onClick={() => setDialog(null)}>

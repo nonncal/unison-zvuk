@@ -34,12 +34,14 @@ export function CreateRoomDialog({
   }
   return (
     <Dialog
-      title="Ваша новая комната"
+      title="Новая комната"
       onClose={() => {
         if (!busy) onClose()
       }}
     >
-      <p className="dialog-description">Сначала — ваше имя. Потом — любимая музыка.</p>
+      <p className="dialog-description">
+        Укажите своё имя и название. Ссылку для друзей вы получите сразу после создания.
+      </p>
       <form onSubmit={submit}>
         <label className="field">
           Как вас зовут

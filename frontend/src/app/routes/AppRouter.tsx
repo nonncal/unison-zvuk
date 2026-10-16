@@ -14,7 +14,7 @@ export default function App() {
         <Suspense
           fallback={
             <p className="entry-main" role="status">
-              Открываем ваш момент…
+              Загружаем Unison…
             </p>
           }
         >
@@ -32,9 +32,8 @@ export default function App() {
                   <main className="entry-main">
                     <h1>Здесь пока тихо.</h1>
                     <p className="entry-description">
-                      Эта страница не существует.
-                      <br />
-                      Начните свой момент с главной.
+                      Такой страницы нет. Проверьте адрес или вернитесь на главную и создайте
+                      комнату.
                     </p>
                     <Link to="/" className="button button-primary">
                       На главную

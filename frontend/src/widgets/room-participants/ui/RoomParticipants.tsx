@@ -28,7 +28,7 @@ export function RoomParticipants({
       <div className="participants">
         {snapshot.participants.map((p, index) => (
           <div className="participant" key={p.id}>
-            <div className={`avatar ${index ? 'avatar-plum' : ''}`}>
+            <div className={`avatar tone-${index % 6}`}>
               {p.displayName.slice(0, 1).toLocaleUpperCase()}
               <span className={`avatar-dot ${p.connectionState === 'offline' ? 'offline' : ''}`} />
             </div>

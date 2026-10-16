@@ -101,18 +101,17 @@ export function Join() {
     <div className="entry-page">
       <header className="site-header">
         <Brand />
-        <span className="header-note">Вместе — с первой ноты</span>
       </header>
       <ModeNotice />
       <main className="entry-main">
         <div className="entry-icon">
           <Headphones size={32} />
         </div>
-        <p className="soft-label">Вас пригласили слушать вместе</p>
-        <h1>{preview?.title ?? 'Ваш общий момент'}</h1>
+        <p className="soft-label">Вас приглашают в комнату</p>
+        <h1>{preview?.title ?? 'Комната для совместного прослушивания'}</h1>
         <p className="entry-description">
-          Один трек. Один плеер.
-          <br />И человек на другой стороне.
+          Введите имя и войдите. Музыку в комнате слушают все одновременно, громкость — у каждого
+          своя.
         </p>
         {pending ? (
           <div className="entry-form">
@@ -148,9 +147,7 @@ export function Join() {
                   : 'Войти и включить звук'}
             </button>
             <p className="field-hint">
-              Микрофон и камера не нужны.
-              <br />
-              Звук включается только с вашего разрешения.
+              Микрофон и камера не нужны. Браузер включит звук только после вашего нажатия.
             </p>
           </form>
         ) : null}

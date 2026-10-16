@@ -55,6 +55,34 @@ export function RoomPlayer({
   allowNotReady,
   setAllowNotReady,
 }: Props) {
+  const duration = snapshot.playback.durationMs || 1,
+    shown = previewSeek ?? position,
+    fraction = Math.min(1, Math.max(0, shown / duration)),
+    playLabel = displayStatus === 'playing' ? 'Пауза для всех' : 'Воспроизвести для всех',
+    togglePlay = () => {
+      void unlock()
+      void command(
+        displayStatus === 'playing'
+          ? { type: 'playback.pause', payload: {} }
+          : { type: 'playback.play', payload: { allowNotReady: false } },
+      )
+    },
+    playButton = (
+      <button
+        className="play-button"
+        disabled={controlsDisabled || !selected || audio.state === 'loading'}
+        aria-label={playLabel}
+        onClick={togglePlay}
+      >
+        {busy || audio.state === 'loading' || audio.state === 'buffering' ? (
+          <LoaderCircle size={28} className="spin" />
+        ) : displayStatus === 'playing' ? (
+          <Pause size={28} fill="currentColor" />
+        ) : (
+          <Play size={28} fill="currentColor" />
+        )}
+      </button>
+    )
   return (
     <div className="player">
       <div className="player-status" aria-live="polite">
@@ -64,15 +92,28 @@ export function RoomPlayer({
           {snapshot.participants.length}/{snapshot.room.capacity} в комнате
         </span>
       </div>
-      <div className="seek-wrap">
+      <div className="seek-wrap" style={{ '--p': fraction } as CSSProperties}>
+        {selected && (
+          <div className="sync-marks" aria-hidden="true">
+            {snapshot.participants.map((p, index) =>
+              p.connectionState === 'online' ? (
+                <span
+                  key={p.id}
+                  className={`sync-mark tone-${index % 6} ${p.readiness === 'ready' ? '' : 'pending'}`}
+                  title={`${p.displayName}: ${p.readiness === 'ready' ? 'готов' : 'ещё загружает'}`}
+                />
+              ) : null,
+            )}
+          </div>
+        )}
         <input
           type="range"
           aria-label="Общая позиция композиции"
           min={0}
           max={snapshot.playback.durationMs || 1}
           step={1000}
-          aria-valuetext={`${formatTime(previewSeek ?? position)} из ${formatTime(snapshot.playback.durationMs)}`}
-          value={previewSeek ?? position}
+          aria-valuetext={`${formatTime(shown)} из ${formatTime(snapshot.playback.durationMs)}`}
+          value={shown}
           disabled={controlsDisabled || !selected}
           onChange={(event) => setPreviewSeek(Number(event.target.value))}
           onPointerUp={(event) => {
@@ -96,18 +137,31 @@ export function RoomPlayer({
               setPreviewSeek(null)
             }
           }}
-          style={
-            {
-              '--progress': `${((previewSeek ?? position) / (snapshot.playback.durationMs || 1)) * 100}%`,
-            } as CSSProperties
-          }
         />
         <div className="seek-times">
-          <span>{formatTime(previewSeek ?? position)}</span>
+          <span>{formatTime(shown)}</span>
           <span>{formatTime(snapshot.playback.durationMs)}</span>
         </div>
       </div>
       <div className="player-controls">
+        {gateway.mode === 'api' ? (
+          <PlaybackNavigation
+            snapshot={snapshot}
+            disabled={controlsDisabled}
+            onAction={(payload) => void playerAction(payload)}
+          >
+            {playButton}
+          </PlaybackNavigation>
+        ) : (
+          <div className="playback-navigation">{playButton}</div>
+        )}
+      </div>
+      <div className="player-foot">
+        <p className="control-caption">
+          {canEdit
+            ? 'Трек, пауза и перемотка — общие для всех.'
+            : `Трек, паузу и перемотку выбирает ${host?.displayName ?? 'ведущий'}.`}
+        </p>
         <div className="volume-control">
           <button
             className="icon-button"
@@ -123,78 +177,29 @@ export function RoomPlayer({
             step={0.01}
             value={audio.muted ? 0 : audio.volume}
             aria-label="Моя громкость"
+            style={{ '--p': audio.muted ? 0 : audio.volume } as CSSProperties}
             onChange={(event) => setVolume(Number(event.target.value))}
           />
+          <span className="volume-caption">Только у вас</span>
         </div>
-        {gateway.mode === 'api' ? (
-          <PlaybackNavigation
-            snapshot={snapshot}
-            disabled={controlsDisabled}
-            onAction={(payload) => void playerAction(payload)}
-          >
-            <button
-              className="play-button"
-              disabled={controlsDisabled || !selected || audio.state === 'loading'}
-              aria-label={displayStatus === 'playing' ? 'Пауза для всех' : 'Воспроизвести для всех'}
-              onClick={() => {
-                void unlock()
-                void command(
-                  displayStatus === 'playing'
-                    ? { type: 'playback.pause', payload: {} }
-                    : { type: 'playback.play', payload: { allowNotReady: false } },
-                )
-              }}
-            >
-              {busy ? (
-                <LoaderCircle size={26} className="spin" />
-              ) : displayStatus === 'playing' ? (
-                <Pause size={25} fill="currentColor" />
-              ) : (
-                <Play size={25} fill="currentColor" />
-              )}
-            </button>
-          </PlaybackNavigation>
-        ) : (
-          <button
-            className="play-button"
-            disabled={controlsDisabled || !selected || audio.state === 'loading'}
-            aria-label={displayStatus === 'playing' ? 'Пауза для всех' : 'Воспроизвести для всех'}
-            onClick={() => {
-              void unlock()
-              void command(
-                displayStatus === 'playing'
-                  ? { type: 'playback.pause', payload: {} }
-                  : { type: 'playback.play', payload: { allowNotReady: false } },
-              )
-            }}
-          >
-            {busy ? (
-              <LoaderCircle size={26} className="spin" />
-            ) : displayStatus === 'playing' ? (
-              <Pause size={25} fill="currentColor" />
-            ) : (
-              <Play size={25} fill="currentColor" />
-            )}
-          </button>
-        )}
-        <span className="control-caption">
-          {canEdit ? 'Общий плеер' : `Управляет ${host?.displayName ?? 'ведущий'}`}
-        </span>
       </div>
       {audio.state === 'locked' && selected && (
-        <button
-          className="button button-secondary unlock-button"
-          onClick={() => {
-            void unlock()
-          }}
-        >
-          <Headphones size={18} />
-          Включить звук
-        </button>
+        <div className="player-notice">
+          <p>Браузер не включает звук сам. Нажмите, чтобы слышать комнату.</p>
+          <button
+            className="button button-primary unlock-button"
+            onClick={() => {
+              void unlock()
+            }}
+          >
+            <Headphones size={18} />
+            Включить звук
+          </button>
+        </div>
       )}
       {audio.state === 'error' && (
         <p className="error-message" role="alert">
-          Не удалось загрузить аудио.{' '}
+          Не удалось загрузить аудио. Проверьте сеть.{' '}
           <button
             className="text-link"
             onClick={() => {
@@ -205,8 +210,15 @@ export function RoomPlayer({
           </button>
         </p>
       )}
+      {displayStatus === 'ended' && (
+        <p className="player-hint" role="status">
+          {canEdit
+            ? 'Очередь закончилась. Добавьте песню или включите повтор.'
+            : 'Очередь закончилась. Ведущий может добавить песню или включить повтор.'}
+        </p>
+      )}
       {allowNotReady && (
-        <div className="readiness-decision">
+        <div className="player-notice">
           <p>
             Не готовы:{' '}
             {snapshot.participants

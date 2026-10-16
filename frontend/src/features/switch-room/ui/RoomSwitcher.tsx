@@ -35,9 +35,7 @@ export function RoomSwitcher({
   }, [])
   return (
     <Dialog title="Ваши комнаты" onClose={onClose}>
-      <p className="dialog-description">
-        Продолжите встречу или создайте новую. В каждой комнате звучит своя музыка.
-      </p>
+      <p className="dialog-description">В каждой комнате своя очередь и свои участники.</p>
       {loading && <p role="status">Загружаем комнаты…</p>}
       {error && (
         <p role="alert" className="error-message">
