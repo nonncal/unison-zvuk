@@ -43,8 +43,8 @@ export function Home() {
             </div>
             <Cover />
             <div className="scene-track">
-              <span>После дождя</span>
-              <small>Тихий берег</small>
+              <span>К Элизе</span>
+              <small>Людвиг ван Бетховен</small>
             </div>
             <div className="scene-timeline">
               <div />

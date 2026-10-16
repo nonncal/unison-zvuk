@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "audio:generate": "node scripts/generate-demo-audio.mjs",
+    "audio:check": "node scripts/generate-demo-audio.mjs --check",
     "format": "prettier --write src tests scripts *.ts *.json index.html",
     "format:check": "prettier --check src tests scripts *.ts *.json index.html",
     "architecture:check": "node scripts/check-architecture.mjs",
