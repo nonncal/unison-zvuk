@@ -4,25 +4,25 @@
 
 ## Владение кодом
 
-| Место | Что здесь меняем |
-| --- | --- |
-| `app/routes/AppRouter.tsx` | URL, React Router, lazy boundaries и fallback |
-| `app/store` | Сборка reducer/middleware; здесь нет логики сущностей |
-| `app/styles` | Общие токены и адаптивные правила интерфейса |
-| `pages/home`, `pages/join` | Композиция входных экранов, одноразовая логика приглашения |
-| `pages/room/model` | Состояние диалогов, общие действия страницы и навигация |
-| `pages/room/ui` | Композиция плеера, диалогов и панели участников |
-| `widgets/room-participants` | Присутствие и роли; действия принимаются через callbacks |
-| `features/create-room` | Форма создания, валидация, ошибка и переход в комнату |
-| `features/listen-together` | Аудиодвижок, локальный звук, React lifecycle соединения и синхронизация |
-| `features/select-track`, `features/upload-track` | Выбор композиции, отправка, отмена и прогресс |
-| `features/room-playlist`, `features/send-reaction` | Очередь, переходы, повтор, перемешивание и реакции |
-| `features/manage-room`, `features/switch-room`, `features/edit-cover` | Настройки, допуск, права участников, смена комнат и обложки |
-| `entities/room` | Типы комнаты/участников/playback, Redux slice, gateway, WS, timeline |
-| `entities/track` | Тип трека, преобразование wire-модели, RTK Query-подборка |
-| `shared/api` | CSRF/cookie HTTP-клиент, RTK Query baseApi, строгие протоколы и генерация |
-| `shared/lib` | Независимые часы, формат времени, браузерное медиа-хранилище и ошибки |
-| `shared/config`, `shared/ui` | Режим приложения, API origin, независимые UI-компоненты |
+| Место                                                                 | Что здесь меняем                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `app/routes/AppRouter.tsx`                                            | URL, React Router, lazy boundaries и fallback                             |
+| `app/store`                                                           | Сборка reducer/middleware; здесь нет логики сущностей                     |
+| `app/styles`                                                          | Общие токены и адаптивные правила интерфейса                              |
+| `pages/home`, `pages/join`                                            | Композиция входных экранов, одноразовая логика приглашения                |
+| `pages/room/model`                                                    | Состояние диалогов, общие действия страницы и навигация                   |
+| `pages/room/ui`                                                       | Композиция плеера, диалогов и панели участников                           |
+| `widgets/room-participants`                                           | Присутствие и роли; действия принимаются через callbacks                  |
+| `features/create-room`                                                | Форма создания, валидация, ошибка и переход в комнату                     |
+| `features/listen-together`                                            | Аудиодвижок, локальный звук, React lifecycle соединения и синхронизация   |
+| `features/select-track`, `features/upload-track`                      | Выбор композиции, отправка, отмена и прогресс                             |
+| `features/room-playlist`, `features/send-reaction`                    | Очередь, переходы, повтор, перемешивание и реакции                        |
+| `features/manage-room`, `features/switch-room`, `features/edit-cover` | Настройки, допуск, права участников, смена комнат и обложки               |
+| `entities/room`                                                       | Типы комнаты/участников/playback, Redux slice, gateway, WS, timeline      |
+| `entities/track`                                                      | Тип трека, преобразование wire-модели, RTK Query-подборка                 |
+| `shared/api`                                                          | CSRF/cookie HTTP-клиент, RTK Query baseApi, строгие протоколы и генерация |
+| `shared/lib`                                                          | Независимые часы, формат времени, браузерное медиа-хранилище и ошибки     |
+| `shared/config`, `shared/ui`                                          | Режим приложения, API origin, независимые UI-компоненты                   |
 
 Shared содержит транспортные типы, автоматически полученные от backend. Предметные клиентские модели находятся в entities. `Gateway` комнаты агрегирует комнатные операции с принадлежащими комнате треками; зависимость room → track видна в `entities/track/@x/room.ts`. Track не импортирует Room.
 
@@ -50,3 +50,7 @@ React Router хранит маршруты `/`, `/join/:roomId`, `/room/:roomId`
 Изменение URL — app/routes. Новое повторяемое действие пользователя — features. Представление конкретного экрана — pages. Общая сущность — entities. Переиспользуемая панель — widgets, когда она имеет самостоятельную ответственность. Не создаём слой или слайс только ради количества папок.
 
 [Команды запуска и тестов](../frontend/README.md) · [Пользовательские сценарии](04-FRONTEND-FLOW.md) · [Conventional Commits](../CONTRIBUTING.md).
+
+### Обновлённый плеер
+
+`widgets/room-player` объединяет управление воспроизведением, прогресс и локальную громкость; страница передаёт состояние и команды. `features/suggest-track` отвечает за предложения песен и решения ведущего. Стили плеера и новых сценариев находятся рядом с компонентами. Глобальные стили сохраняют общие элементы приложения. Шрифт PT Sans поставляется локально.
