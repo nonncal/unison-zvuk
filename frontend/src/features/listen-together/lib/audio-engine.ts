@@ -36,28 +36,43 @@ export class AudioEngine {
   private suspended = false
   private lastReadinessAt = 0
   private readinessTimer = 0
+  private alignOnReady = false
+  private seekLatencyMs = 0
+  private alignment: { at: number; positionMs: number } | null = null
   private lastReadiness = ''
   constructor() {
     this.audio.preload = 'auto'
     this.audio.preservesPitch = true
-    this.audio.addEventListener('loadedmetadata', () => this.sync(true))
+    this.audio.addEventListener('loadedmetadata', () => this.sync())
     this.audio.addEventListener('canplay', () => {
       this.buffering = false
       if (this.activeVersion) {
         this.readiness(this.allowed ? 'ready' : 'autoplayBlocked')
-        this.sync()
+        // A seek can itself emit canplay. Only align for a source change or
+        // a real underrun, otherwise seek latency starts another seek.
+        if (this.alignOnReady) this.sync()
       }
     })
     const reportBuffer = () => {
-      if (this.activeVersion && this.audio.readyState >= 2) {
+      if (
+        this.activeVersion &&
+        this.audio.readyState >= 3 &&
+        !this.buffering &&
+        !this.audio.seeking
+      ) {
         this.readiness(this.allowed ? 'ready' : 'autoplayBlocked')
       }
     }
     this.audio.addEventListener('progress', reportBuffer)
     this.audio.addEventListener('canplaythrough', reportBuffer)
     this.audio.addEventListener('waiting', () => {
+      // waiting during our own seek is not a new buffer underrun.
+      if (!this.activeVersion || this.audio.seeking) return
       this.buffering = true
+      this.alignOnReady = true
+      this.alignment = null
       this.correctionStart = 0
+      if (this.audio.playbackRate !== 1) this.audio.playbackRate = 1
       this.observer?.state('buffering')
       this.readiness('buffering')
     })
@@ -118,7 +133,9 @@ export class AudioEngine {
     this.now = now
     this.observer.state(this.allowed ? 'ready' : 'locked')
     clearInterval(this.timer)
-    this.timer = window.setInterval(() => this.sync(), 250)
+    // Scheduled commands use their own deadline; sample decoder drift once
+    // per second so transient media-clock readings do not trigger seeks.
+    this.timer = window.setInterval(() => this.sync(), 1000)
     return () => {
       clearInterval(this.timer)
       clearTimeout(this.retryTimer)
@@ -134,6 +151,10 @@ export class AudioEngine {
       this.generation++
       this.activeVersion = null
       this.playback = null
+      this.buffering = false
+      this.alignOnReady = false
+      this.alignment = null
+      this.seekLatencyMs = 0
       this.releaseUrl()
     }
   }
@@ -207,6 +228,10 @@ export class AudioEngine {
       this.audio.pause()
       this.generation++
       this.activeVersion = null
+      this.buffering = false
+      this.alignOnReady = false
+      this.alignment = null
+      this.seekLatencyMs = 0
       this.observer?.state(this.allowed ? 'ready' : 'locked')
       this.observer?.position(0)
       return
@@ -217,6 +242,10 @@ export class AudioEngine {
       this.sourcePending = true
       this.buffering = false
       this.activeVersion = version
+      this.alignOnReady = true
+      this.alignment = null
+      this.seekLatencyMs = 0
+      this.correctionStart = 0
       this.audio.pause()
       this.audio.playbackRate = 1
       this.observer?.state('loading')
@@ -256,7 +285,7 @@ export class AudioEngine {
     this.lastReadiness = ''
     if (this.activeVersion) {
       this.readiness(
-        !this.allowed ? 'autoplayBlocked' : this.audio.readyState >= 2 ? 'ready' : 'loading',
+        !this.allowed ? 'autoplayBlocked' : this.audio.readyState >= 3 ? 'ready' : 'loading',
       )
     }
     this.sync(true)
@@ -271,6 +300,7 @@ export class AudioEngine {
     this.suspended = true
     this.audio.pause()
     this.audio.playbackRate = 1
+    this.alignment = null
     this.observer?.state('paused')
   }
   private readiness(state: Parameters<Observer['ready']>[0]) {
@@ -297,31 +327,25 @@ export class AudioEngine {
     this.observer.ready(state, ahead)
   }
   private sync(force = false) {
-    if (this.buffering && this.audio.readyState >= 3) this.buffering = false
-    if (
-      this.suspended ||
-      this.sourcePending ||
-      this.buffering ||
-      !this.playback?.trackId ||
-      !this.activeVersion ||
-      this.audio.readyState < 2
-    )
+    if (force) this.alignOnReady = true
+    if (this.suspended || this.sourcePending || !this.playback?.trackId || !this.activeVersion)
       return
-    // A newly selected track gets a shared preload window before the server anchor.
+    const now = this.now()
+    // Preserve the shared preload window for a newly selected track.
     if (
       this.playback.status === 'playing' &&
       !this.playback.pendingTransition &&
-      this.playback.anchorServerTimeMs > this.now()
+      this.playback.anchorServerTimeMs > now
     ) {
       this.audio.pause()
       clearTimeout(this.schedule)
       this.schedule = window.setTimeout(
         () => this.sync(true),
-        this.playback.anchorServerTimeMs - this.now(),
+        this.playback.anchorServerTimeMs - now,
       )
       return
     }
-    const target = timelineAt(this.playback, this.now()),
+    const target = timelineAt(this.playback, now),
       drift = target.positionMs - this.audio.currentTime * 1000
     if (!this.allowed) {
       this.observer?.state('locked')
@@ -330,30 +354,54 @@ export class AudioEngine {
     }
     if (target.status !== 'playing') {
       this.audio.pause()
-      this.audio.playbackRate = 1
+      if (this.audio.playbackRate !== 1) this.audio.playbackRate = 1
       this.correctionStart = 0
-      if (Math.abs(drift) > 80 && !this.audio.seeking)
-        this.audio.currentTime = target.positionMs / 1000
+      this.alignment = null
+      if (this.audio.readyState >= 3 && !this.buffering && !this.audio.seeking) {
+        this.alignOnReady = false
+        if (Math.abs(drift) > 80) this.audio.currentTime = target.positionMs / 1000
+        this.readiness('ready')
+      }
       this.observer?.state('paused')
-      this.readiness('ready')
       this.observer?.position(target.positionMs)
       return
     }
-    if (!this.audio.seeking) {
-      const action = correction(drift)
-      if (
-        force ||
-        action.seek ||
-        (this.correctionStart && this.now() - this.correctionStart > 12000)
-      ) {
-        if (Math.abs(drift) > 40) this.audio.currentTime = target.positionMs / 1000
-        this.audio.playbackRate = 1
-        this.correctionStart = 0
-      } else {
-        this.audio.playbackRate = action.rate
-        if (action.rate !== 1) this.correctionStart ||= this.now()
-        else this.correctionStart = 0
+    if (this.buffering && this.audio.readyState >= 3 && !this.audio.seeking) this.buffering = false
+    if (this.audio.readyState < 3 || this.buffering || this.audio.seeking) return
+    // Let the decoder resume before measuring or correcting another drift.
+    if (this.alignment && now - this.alignment.at < 1000 && !this.alignOnReady) return
+    // Consume before assigning currentTime: resulting media events must not
+    // request another forced alignment.
+    force = this.alignOnReady
+    this.alignOnReady = false
+    if (this.alignment && now - this.alignment.at >= 1000) {
+      const elapsed = now - this.alignment.at,
+        advanced = this.audio.currentTime * 1000 - this.alignment.positionMs
+      // Native decoders can take time to resume after seeked. Measure that
+      // lost playback time once data is flowing, without including underruns.
+      if (advanced > 40 && elapsed <= 2000) {
+        this.seekLatencyMs = Math.max(0, Math.min(500, elapsed - advanced))
+        force ||= Math.abs(drift) > 80
       }
+      this.alignment = null
+    }
+    const action = correction(drift)
+    if (force || action.seek || (this.correctionStart && now - this.correctionStart > 12000)) {
+      if (this.audio.playbackRate !== 1) this.audio.playbackRate = 1
+      this.correctionStart = 0
+      if (Math.abs(drift) > 40) {
+        const lead = Math.min(
+          this.seekLatencyMs,
+          Math.max(0, this.playback.durationMs - target.positionMs - 1000),
+        )
+        const positionMs = target.positionMs + lead
+        this.alignment = { at: now, positionMs }
+        this.audio.currentTime = positionMs / 1000
+      }
+    } else {
+      if (this.audio.playbackRate !== action.rate) this.audio.playbackRate = action.rate
+      if (action.rate !== 1) this.correctionStart ||= now
+      else this.correctionStart = 0
     }
     if (this.audio.paused && !this.starting) {
       this.starting = true
