@@ -1,7 +1,5 @@
-import '@fontsource/pt-sans/cyrillic-400.css'
-import '@fontsource/pt-sans/cyrillic-700.css'
-import '@fontsource/pt-sans/latin-400.css'
-import '@fontsource/pt-sans/latin-700.css'
+import '@fontsource-variable/onest/wght.css'
+import '@fontsource-variable/unbounded/wght.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
@@ -15,3 +13,10 @@ createRoot(document.getElementById('root')!).render(
     </Provider>
   </StrictMode>,
 )
+
+// Installable shell only; the worker never caches API, WebSocket or audio traffic.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+  })
+}

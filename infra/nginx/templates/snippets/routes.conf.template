@@ -62,10 +62,30 @@ location ^~ /${S3_BUCKET}/ {
     proxy_read_timeout 120s;
     proxy_send_timeout 120s;
 }
-location /assets/ {
+location ^~ /assets/ {
     try_files $uri =404;
     expires 1y;
     add_header Cache-Control 'public, immutable';
+    add_header X-Content-Type-Options nosniff always;
+}
+# Static files must 404 when missing: falling through to index.html made
+# /favicon.ico answer 200 text/html and broke icons in Safari and crawlers.
+location = /manifest.webmanifest {
+    default_type application/manifest+json;
+    try_files $uri =404;
+    add_header Cache-Control 'no-cache';
+    add_header X-Content-Type-Options nosniff always;
+}
+location = /sw.js {
+    try_files $uri =404;
+    add_header Cache-Control 'no-cache';
+    add_header Service-Worker-Allowed '/';
+    add_header X-Content-Type-Options nosniff always;
+}
+location ~* ^/(?!api/|ws|health/)[^?]*\.(?:ico|png|svg|webp|jpg|jpeg|json|txt|map|woff2?|html|js|css)$ {
+    try_files $uri =404;
+    add_header Cache-Control 'public, max-age=3600';
+    add_header X-Content-Type-Options nosniff always;
 }
 location / {
     try_files $uri $uri/ /index.html;
