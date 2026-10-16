@@ -6,7 +6,9 @@ const origin = api
 export default defineConfig({
   testDir: './tests',
   outputDir: api ? 'test-results/api' : 'test-results/demo',
-  testMatch: api ? ['api.spec.ts', 'social.spec.ts', 'timing.spec.ts'] : 'rooms.spec.ts',
+  testMatch: api
+    ? ['api.spec.ts', 'social.spec.ts', 'timing.spec.ts']
+    : ['rooms.spec.ts', 'audio-startup.spec.ts'],
   fullyParallel: false,
   workers: 1,
   timeout: api ? 120000 : 30000,

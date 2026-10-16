@@ -34,8 +34,8 @@ export function Home() {
           <div className="hero-scene" aria-hidden="true">
             <Cover />
             <div className="scene-track">
-              <span>После дождя</span>
-              <small>Unison Studio</small>
+              <span>К Элизе</span>
+              <small>Людвиг ван Бетховен</small>
             </div>
             <div className="scene-timeline">
               <div />

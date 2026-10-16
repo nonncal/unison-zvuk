@@ -1,10 +1,15 @@
 import { expect, type Page, type Browser } from '@playwright/test'
+import { observePreparedAudio } from './audio-observation'
 export interface InstrumentedWindow extends Window {
-  __audio?: HTMLMediaElement
+  __audio?: Pick<
+    HTMLMediaElement,
+    'currentTime' | 'paused' | 'readyState' | 'src' | 'playbackRate' | 'seeking'
+  >
   __sockets?: WebSocket[]
   __clock?: unknown[]
 }
 export async function instrument(page: Page) {
+  await page.addInitScript(observePreparedAudio)
   await page.addInitScript(() => {
     const w = window as InstrumentedWindow
     const play = HTMLMediaElement.prototype.play
@@ -74,7 +79,7 @@ export async function guest(browser: Browser, invite: string, name = 'Аня', c
   await expect(page).toHaveURL(/\/room\//)
   return { ctx, page }
 }
-export async function select(page: Page, title = 'После дождя') {
+export async function select(page: Page, title = 'К Элизе') {
   await page.getByRole('button', { name: 'Открыть подборку' }).click()
   await page.getByRole('button', { name: `Выбрать ${title}`, exact: true }).click()
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()

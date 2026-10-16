@@ -73,16 +73,18 @@ test('moderated group admits members, synchronizes permissions queue and reactio
     }
     await expect(g.page.getByRole('button', { name: 'Открыть подборку' })).toBeVisible()
     await g.page.getByRole('button', { name: 'Открыть подборку' }).click()
-    await g.page.getByRole('button', { name: 'Выбрать После дождя', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'После дождя', exact: true })).toBeVisible()
-    const cover = page.getByRole('img', { name: 'Обложка: После дождя' })
+    await g.page.getByRole('button', { name: 'Выбрать К Элизе', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
+    const cover = page.getByRole('img', { name: 'Обложка: К Элизе' })
     await expect
       .poll(() => cover.evaluate((e) => (e as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0)
     await g.page.getByRole('button', { name: 'Следующая песня' }).click()
-    await expect(page.getByRole('heading', { name: 'Северный свет', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Лунная соната — I. Adagio sostenuto', exact: true }),
+    ).toBeVisible()
     await g.page.getByRole('button', { name: 'Предыдущая песня' }).click()
-    await expect(page.getByRole('heading', { name: 'После дождя', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
     await g.page.getByRole('button', { name: 'Повтор: выключен' }).click()
     await expect(page.getByRole('button', { name: 'Повтор: вся очередь' })).toHaveAttribute(
       'aria-pressed',
@@ -169,17 +171,15 @@ test('listener proposes a song and only host can approve it', async ({ page, bro
   try {
     await g.page.getByRole('button', { name: 'Войти и включить звук' }).click()
     await expect(g.page).toHaveURL(/\/room\//)
-    await page.getByRole('button', { name: 'Убрать После дождя', exact: true }).click()
+    await page.getByRole('button', { name: 'Убрать К Элизе', exact: true }).click()
     await g.page
       .getByLabel('Предложить композицию')
-      .selectOption({ label: 'После дождя — Unison Studio' })
+      .selectOption({ label: 'К Элизе — Людвиг ван Бетховен' })
     await g.page.getByRole('button', { name: 'Предложить', exact: true }).click()
     await expect(page.getByText('Предлагает Аня')).toBeVisible()
-    await expect(
-      g.page.getByRole('button', { name: 'Принять предложение После дождя' }),
-    ).toHaveCount(0)
-    await page.getByRole('button', { name: 'Принять предложение После дождя' }).click()
-    await expect(g.page.locator('.queue-track').filter({ hasText: 'После дождя' })).toHaveCount(1)
+    await expect(g.page.getByRole('button', { name: 'Принять предложение К Элизе' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Принять предложение К Элизе' }).click()
+    await expect(g.page.locator('.queue-track').filter({ hasText: 'К Элизе' })).toHaveCount(1)
     await expect(page.getByText('Предлагает Аня')).toHaveCount(0)
     await expect(g.page.getByRole('button', { name: 'Воспроизвести для всех' })).toBeDisabled()
     await close(page)

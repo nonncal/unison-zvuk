@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -126,10 +125,15 @@ def test_optional_artwork_is_bounded_and_failure_is_nonfatal(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: bool
 ) -> None:
     directory = submit(tmp_path, uuid4(), b"wave", "audio/mpeg")
-    calls: list[Any] = []
+    calls: list[list[str]] = []
 
     def execute(
-        directory: Path, command: Any, output: Any, seconds: int, max_file_bytes: int, **kwargs: Any
+        directory: Path,
+        command: list[str],
+        output: str,
+        seconds: int,
+        max_file_bytes: int,
+        **kwargs: object,
     ) -> None:
         calls.append(command)
         assert seconds == 8 and max_file_bytes == 5 * 1024 * 1024

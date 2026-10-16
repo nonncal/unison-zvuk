@@ -34,6 +34,34 @@ function read(id: string): DemoRoom {
       'Комната не найдена. В деморежиме ссылка работает только в этом браузере.',
     )
   const data = JSON.parse(value) as DemoRoom
+  let refreshed = false
+  data.tracks = data.tracks.map((track) => {
+    const replacement = catalog.find((entry) => entry.id === track.id)
+    if (
+      track.source !== 'catalog' ||
+      !replacement ||
+      track.mediaVersion === replacement.mediaVersion
+    )
+      return track
+    refreshed = true
+    return { ...replacement }
+  })
+  if (refreshed) {
+    const playback = data.snapshot.playback
+    const selected = data.tracks.find((track) => track.id === playback.trackId)
+    if (selected && selected.mediaVersion !== playback.mediaVersion) {
+      Object.assign(playback, {
+        mediaVersion: selected.mediaVersion,
+        durationMs: selected.durationMs,
+        status: 'paused',
+        positionMs: 0,
+        pendingTransition: null,
+        anchorServerTimeMs: Date.now(),
+        playbackRevision: playback.playbackRevision + 1,
+      })
+    }
+    localStorage.setItem(prefix + id, JSON.stringify(data))
+  }
   if (data.snapshot.room.expiresAt <= Date.now()) data.snapshot.room.status = 'expired'
   const p = data.snapshot.playback
   if (p.pendingTransition && Date.now() >= p.pendingTransition.effectiveAtServerTimeMs) {
@@ -279,7 +307,7 @@ export const demoGateway: Gateway = {
     if (!data.tracks.some((t) => t.id === track.id)) throw new Error('Композиция недоступна.')
     return track.source === 'upload'
       ? URL.createObjectURL(await getAudio(track.id))
-      : `/audio/${track.id}.wav`
+      : `/audio/${track.id}.mp3`
   },
   async upload(roomId, file, progress, signal) {
     validateFile(file)
