@@ -18,8 +18,8 @@ async function inviteLink(page: Page) {
 }
 async function selectTrack(page: Page) {
   await page.getByRole('button', { name: 'Открыть подборку' }).click()
-  await page.getByRole('button', { name: 'Выбрать После дождя', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'После дождя', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Выбрать К Элизе', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Открыть подборку' })).toBeFocused()
   await expect
     .poll(() =>
@@ -43,7 +43,7 @@ test('two listeners share play, pause, seek and host transfer', async ({ page, c
   await expect(guest).toHaveURL(/\/room\//)
   await expect(page.getByText('Аня', { exact: true })).toBeVisible()
   await selectTrack(page)
-  await expect(guest.getByRole('heading', { name: 'После дождя', exact: true })).toBeVisible()
+  await expect(guest.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Воспроизвести для всех' })).toBeEnabled()
   await expect(guest.getByRole('button', { name: 'Воспроизвести для всех' })).toBeDisabled()
   await page.getByRole('button', { name: 'Воспроизвести для всех' }).click()
@@ -110,7 +110,7 @@ test('invalid invitation and unknown route have recoverable screens', async ({ p
 test('upload plays a real local file and survives room reload', async ({ page }) => {
   await createRoom(page)
   await page.getByRole('button', { name: 'Загрузить файл' }).click()
-  await page.getByLabel('Выберите аудиофайл').setInputFiles('public/audio/demo-2.wav')
+  await page.getByLabel('Выберите аудиофайл').setInputFiles('tests/fixtures/demo-2.wav')
   await expect(page.getByText('Композиция добавлена в подборку')).toBeVisible()
   await page.getByRole('button', { name: 'Закрыть окно' }).click()
   await page.getByRole('button', { name: 'Открыть подборку' }).click()
@@ -119,6 +119,35 @@ test('upload plays a real local file and survives room reload', async ({ page })
   await page.reload()
   await expect(page.getByRole('heading', { name: 'demo-2', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Включить звук', exact: true })).toBeVisible()
+})
+test('saved demo room upgrades the old synthetic catalog and pauses stale playback', async ({
+  page,
+}) => {
+  await createRoom(page)
+  await selectTrack(page)
+  await page.evaluate(() => {
+    const key = 'unison:demo:room:' + location.pathname.split('/').pop()
+    const data = JSON.parse(localStorage.getItem(key)!)
+    const track = data.tracks.find((entry: { id: string }) => entry.id === 'demo-1')
+    track.title = 'Old synthetic demo'
+    track.mediaVersion = 'synth-v1'
+    track.durationMs = 24000
+    Object.assign(data.snapshot.playback, {
+      mediaVersion: 'synth-v1',
+      durationMs: 24000,
+      status: 'playing',
+      positionMs: 10000,
+    })
+    localStorage.setItem(key, JSON.stringify(data))
+  })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
+  await expect(page.getByRole('slider', { name: 'Общая позиция композиции' })).toHaveAttribute(
+    'max',
+    '176587',
+  )
+  await expect(page.getByRole('button', { name: 'Воспроизвести для всех' })).toBeVisible()
+  await expect(page.getByText('Old synthetic demo', { exact: true })).toHaveCount(0)
 })
 for (const width of [360, 390, 768, 1024, 1440])
   test(`responsive at ${width}px, keyboard dialog and no horizontal overflow`, async ({ page }) => {
