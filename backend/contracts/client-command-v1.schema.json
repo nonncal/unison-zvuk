@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ClockProbe": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "clock.probe",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProbePayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "ClockProbe",
+      "type": "object"
+    },
+    "EmptyPayload": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyPayload",
+      "type": "object"
+    },
+    "HeartbeatPong": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "heartbeat.pong",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PingPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "HeartbeatPong",
+      "type": "object"
+    },
+    "ParticipantReadiness": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "participant.readiness",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Readiness"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "ParticipantReadiness",
+      "type": "object"
+    },
+    "Pause": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "playback.pause",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/EmptyPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "expectedPlaybackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "Pause",
+      "type": "object"
+    },
+    "PingPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "pingId": {
+          "format": "uuid",
+          "title": "Pingid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pingId"
+      ],
+      "title": "PingPayload",
+      "type": "object"
+    },
+    "Play": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "playback.play",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PlayPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "expectedPlaybackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "Play",
+      "type": "object"
+    },
+    "PlayPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "allowNotReady": {
+          "default": false,
+          "title": "Allownotready",
+          "type": "boolean"
+        }
+      },
+      "title": "PlayPayload",
+      "type": "object"
+    },
+    "ProbePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "clientSentAtMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Clientsentatms",
+          "type": "integer"
+        },
+        "probeId": {
+          "format": "uuid",
+          "title": "Probeid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "clientSentAtMs",
+        "probeId"
+      ],
+      "title": "ProbePayload",
+      "type": "object"
+    },
+    "ReactionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "emoji": {
+          "enum": [
+            "❤️",
+            "🔥",
+            "👏",
+            "✨",
+            "🎶",
+            "😂"
+          ],
+          "title": "Emoji",
+          "type": "string"
+        }
+      },
+      "required": [
+        "emoji"
+      ],
+      "title": "ReactionPayload",
+      "type": "object"
+    },
+    "Readiness": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "mediaVersion": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Mediaversion",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "loading",
+            "ready",
+            "buffering",
+            "autoplayBlocked",
+            "error"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "bufferedAheadMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Bufferedaheadms",
+          "type": "integer"
+        },
+        "autoplayAllowed": {
+          "title": "Autoplayallowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "trackId",
+        "mediaVersion",
+        "state",
+        "bufferedAheadMs",
+        "autoplayAllowed"
+      ],
+      "title": "Readiness",
+      "type": "object"
+    },
+    "Seek": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "playback.seek",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SeekPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "expectedPlaybackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "Seek",
+      "type": "object"
+    },
+    "SeekPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "positionMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Positionms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "positionMs"
+      ],
+      "title": "SeekPayload",
+      "type": "object"
+    },
+    "SelectPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trackId"
+      ],
+      "title": "SelectPayload",
+      "type": "object"
+    },
+    "SelectTrack": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "type": {
+          "const": "playback.select",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SelectPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "expectedPlaybackRevision",
+        "type",
+        "payload"
+      ],
+      "title": "SelectTrack",
+      "type": "object"
+    },
+    "SendReaction": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "reaction.send",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReactionPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "SendReaction",
+      "type": "object"
+    },
+    "SnapshotRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "room.snapshot.request",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/EmptyPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "SnapshotRequest",
+      "type": "object"
+    },
+    "Telemetry": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "expectedPlaybackRevision": {
+          "default": null,
+          "title": "Expectedplaybackrevision",
+          "type": "null"
+        },
+        "type": {
+          "const": "sync.telemetry",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/TelemetryPayload"
+        }
+      },
+      "required": [
+        "v",
+        "requestId",
+        "type",
+        "payload"
+      ],
+      "title": "Telemetry",
+      "type": "object"
+    },
+    "TelemetryPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "mediaVersion": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Mediaversion",
+          "type": "string"
+        },
+        "driftMs": {
+          "maximum": 900000,
+          "minimum": -900000,
+          "title": "Driftms",
+          "type": "integer"
+        },
+        "rttMs": {
+          "maximum": 60000,
+          "minimum": 0,
+          "title": "Rttms",
+          "type": "integer"
+        },
+        "localState": {
+          "enum": [
+            "playing",
+            "paused",
+            "buffering",
+            "autoplayBlocked",
+            "error"
+          ],
+          "title": "Localstate",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trackId",
+        "mediaVersion",
+        "driftMs",
+        "rttMs",
+        "localState"
+      ],
+      "title": "TelemetryPayload",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "clock.probe": "#/$defs/ClockProbe",
+      "heartbeat.pong": "#/$defs/HeartbeatPong",
+      "participant.readiness": "#/$defs/ParticipantReadiness",
+      "playback.pause": "#/$defs/Pause",
+      "playback.play": "#/$defs/Play",
+      "playback.seek": "#/$defs/Seek",
+      "playback.select": "#/$defs/SelectTrack",
+      "reaction.send": "#/$defs/SendReaction",
+      "room.snapshot.request": "#/$defs/SnapshotRequest",
+      "sync.telemetry": "#/$defs/Telemetry"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ClockProbe"
+    },
+    {
+      "$ref": "#/$defs/HeartbeatPong"
+    },
+    {
+      "$ref": "#/$defs/SnapshotRequest"
+    },
+    {
+      "$ref": "#/$defs/ParticipantReadiness"
+    },
+    {
+      "$ref": "#/$defs/SelectTrack"
+    },
+    {
+      "$ref": "#/$defs/Play"
+    },
+    {
+      "$ref": "#/$defs/Pause"
+    },
+    {
+      "$ref": "#/$defs/Seek"
+    },
+    {
+      "$ref": "#/$defs/Telemetry"
+    },
+    {
+      "$ref": "#/$defs/SendReaction"
+    }
+  ]
+}

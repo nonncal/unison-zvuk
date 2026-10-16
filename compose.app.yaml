@@ -1,0 +1,142 @@
+# Full application on localhost. Add compose.production.yaml on a public server.
+services:
+  audio-archive:
+    profiles: [tools]
+    image: ${UNISON_STORAGE_IMAGE:-unison-storage:local}
+    build: ./infra/minio
+    entrypoint: [python]
+    network_mode: none
+    read_only: true
+    volumes: ["audio-data:/data"]
+
+  storage-init:
+    build: {context: ./backend, target: api}
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+      INVITE_ENCRYPTION_KEY: ${INVITE_ENCRYPTION_KEY:?Set INVITE_ENCRYPTION_KEY}
+      S3_ENDPOINT: http://storage:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:8080}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-unison-audio}
+      S3_REGION: ${S3_REGION:-us-east-1}
+    command: ["/app/.venv/bin/python", "-m", "app.init_storage"]
+    depends_on:
+      storage: {condition: service_healthy}
+
+  catalog-init:
+    extends:
+      file: compose.yaml
+      service: worker
+    restart: "no"
+    command: ["/app/.venv/bin/python", "-m", "app.init_catalog"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      storage-init: {condition: service_completed_successfully}
+
+  api:
+    restart: unless-stopped
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:?Run infra/configure.py}
+      # API is reachable only through Nginx publicly; it replaces forwarded headers.
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      storage-init: {condition: service_completed_successfully}
+      catalog-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
+      start_period: 20s
+
+  worker:
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      storage-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import redis; r=redis.Redis(host='redis'); assert r.exists('unison:audio:heartbeat')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  postgres:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+  storage:
+    image: ${UNISON_STORAGE_IMAGE:-unison-storage:local}
+    restart: unless-stopped
+  transcoder:
+    restart: unless-stopped
+
+  frontend:
+    build: {context: ., dockerfile: frontend/Dockerfile}
+    restart: unless-stopped
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-unison-audio}
+      APP_HOST: ${APP_HOST:-localhost}
+    ports: ["127.0.0.1:${HTTP_PORT:-8080}:8080"]
+    depends_on:
+      api: {condition: service_healthy}
+      storage: {condition: service_healthy}
+    logging: {driver: local, options: {max-size: "10m", max-file: "3"}}
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=2GB
+    ports: ["127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"]
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    secrets: [metrics-token]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    logging: {driver: local, options: {max-size: "10m", max-file: "3"}}
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana-password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports: ["127.0.0.1:${GRAFANA_PORT:-3000}:3000"]
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    secrets: [grafana-password]
+    depends_on:
+      prometheus: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    logging: {driver: local, options: {max-size: "10m", max-file: "3"}}
+
+secrets:
+  metrics-token:
+    file: ${METRICS_TOKEN_FILE:?Run infra/configure.py}
+  grafana-password:
+    file: ${GRAFANA_PASSWORD_FILE:?Run infra/configure.py}
+
+volumes:
+  prometheus-data:
+  grafana-data:

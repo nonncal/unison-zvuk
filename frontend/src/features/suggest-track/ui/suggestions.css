@@ -1,0 +1,51 @@
+.suggestions-panel {
+  margin-top: 28px;
+}
+.suggestions-panel h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.suggestions-panel p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.suggestions-panel form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.suggestions-panel select {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.suggestions-panel ul {
+  list-style: none;
+  padding: 0;
+}
+.suggestions-panel li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+.suggestions-panel li strong {
+  overflow-wrap: anywhere;
+}
+.suggestions-panel li span {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.suggestion-actions {
+  display: flex;
+}
+@media (max-width: 600px) {
+  .suggestions-panel form {
+    flex-direction: column;
+  }
+}

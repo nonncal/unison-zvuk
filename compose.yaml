@@ -1,0 +1,130 @@
+name: unison-local
+
+x-backend-env: &backend-env
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  APP_ORIGIN: ${APP_ORIGIN:-http://localhost:5173}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-unison}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-unison}
+  REDIS_URL: redis://redis:6379/0
+  SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+  INVITE_ENCRYPTION_KEY: ${INVITE_ENCRYPTION_KEY:?Set INVITE_ENCRYPTION_KEY}
+  S3_ENDPOINT: http://storage:9000
+  S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+  S3_BUCKET: ${S3_BUCKET:-unison-audio}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+  METRICS_TOKEN: ${METRICS_TOKEN:-}
+  LOG_DIR: /logs
+
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:17.10-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-unison}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-unison}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7.4.7-bookworm
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  storage:
+    build: ./infra/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${APP_ORIGIN:-http://localhost:5173}
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes: ["audio-data:/data"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/minio/health/live')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: {context: ./backend, target: api}
+    environment: *backend-env
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["jobs-data:/jobs", "logs-data:/logs"]
+    logging: {driver: none}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      storage: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    init: true
+    build: {context: ./backend, target: api}
+    environment: *backend-env
+    command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "audio", "--concurrency=1", "--loglevel=INFO"]
+    volumes: ["jobs-data:/jobs", "logs-data:/logs"]
+    logging: {driver: none}
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      storage: {condition: service_healthy}
+      transcoder: {condition: service_healthy}
+    mem_limit: 512m
+    cpus: 1
+
+  migrate:
+    build: {context: ./backend, target: api}
+    environment: *backend-env
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  transcoder:
+    init: true
+    build: {context: ./backend, target: transcoder}
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./infra/transcoder/seccomp.json
+    volumes: ["jobs-data:/jobs"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import pathlib,time; assert time.time()-float(pathlib.Path('/tmp/transcoder-live').read_text())<120"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
+  redis-data:
+  audio-data:
+  logs-data:
+  jobs-data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=200m,uid=10001,gid=10001,mode=0700,nosuid,nodev,noexec
+

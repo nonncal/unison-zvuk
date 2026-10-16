@@ -1,0 +1,1594 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Bootstrap": {
+      "additionalProperties": false,
+      "properties": {
+        "csrfToken": {
+          "title": "Csrftoken",
+          "type": "string"
+        },
+        "protocolVersion": {
+          "const": 1,
+          "default": 1,
+          "title": "Protocolversion",
+          "type": "integer"
+        },
+        "limits": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Limits",
+          "type": "object"
+        }
+      },
+      "required": [
+        "csrfToken",
+        "limits"
+      ],
+      "title": "Bootstrap",
+      "type": "object"
+    },
+    "CreateRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "displayName": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        },
+        "title": {
+          "default": "Музыкальная комната",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "capacity": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "displayName"
+      ],
+      "title": "CreateRoom",
+      "type": "object"
+    },
+    "Participant": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "displayName": {
+          "title": "Displayname",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "host",
+            "listener"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "connectionState": {
+          "enum": [
+            "online",
+            "offline",
+            "connecting"
+          ],
+          "title": "Connectionstate",
+          "type": "string"
+        },
+        "readiness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Readiness"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canEdit": {
+          "default": false,
+          "title": "Canedit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "role",
+        "connectionState",
+        "readiness"
+      ],
+      "title": "Participant",
+      "type": "object"
+    },
+    "PendingTransition": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "play",
+            "pause",
+            "seek"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "nextStatus": {
+          "enum": [
+            "paused",
+            "playing",
+            "ended"
+          ],
+          "title": "Nextstatus",
+          "type": "string"
+        },
+        "positionMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Positionms",
+          "type": "integer"
+        },
+        "effectiveAtServerTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Effectiveatservertimems",
+          "type": "integer"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trackid"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mediaversion"
+        }
+      },
+      "required": [
+        "type",
+        "nextStatus",
+        "positionMs",
+        "effectiveAtServerTimeMs"
+      ],
+      "title": "PendingTransition",
+      "type": "object"
+    },
+    "Playback": {
+      "additionalProperties": false,
+      "properties": {
+        "roomId": {
+          "format": "uuid",
+          "title": "Roomid",
+          "type": "string"
+        },
+        "epoch": {
+          "format": "uuid",
+          "title": "Epoch",
+          "type": "string"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Trackid"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mediaversion"
+        },
+        "status": {
+          "enum": [
+            "empty",
+            "paused",
+            "playing",
+            "ended"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "positionMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Positionms",
+          "type": "integer"
+        },
+        "anchorServerTimeMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Anchorservertimems",
+          "type": "integer"
+        },
+        "durationMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Durationms",
+          "type": "integer"
+        },
+        "pendingTransition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PendingTransition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "roomId",
+        "epoch",
+        "trackId",
+        "mediaVersion",
+        "status",
+        "positionMs",
+        "anchorServerTimeMs",
+        "durationMs",
+        "pendingTransition"
+      ],
+      "title": "Playback",
+      "type": "object"
+    },
+    "Playlist": {
+      "additionalProperties": false,
+      "properties": {
+        "nextTrackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nexttrackid"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/TrackSuggestion"
+          },
+          "maxItems": 20,
+          "title": "Suggestions",
+          "type": "array"
+        },
+        "trackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Trackids",
+          "type": "array"
+        },
+        "skippedTrackIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Skippedtrackids",
+          "type": "array"
+        },
+        "repeat": {
+          "default": "off",
+          "enum": [
+            "off",
+            "all",
+            "one"
+          ],
+          "title": "Repeat",
+          "type": "string"
+        },
+        "shuffle": {
+          "default": false,
+          "title": "Shuffle",
+          "type": "boolean"
+        }
+      },
+      "title": "Playlist",
+      "type": "object"
+    },
+    "Readiness": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "mediaVersion": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Mediaversion",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "loading",
+            "ready",
+            "buffering",
+            "autoplayBlocked",
+            "error"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "bufferedAheadMs": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "Bufferedaheadms",
+          "type": "integer"
+        },
+        "autoplayAllowed": {
+          "title": "Autoplayallowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "trackId",
+        "mediaVersion",
+        "state",
+        "bufferedAheadMs",
+        "autoplayAllowed"
+      ],
+      "title": "Readiness",
+      "type": "object"
+    },
+    "Room": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "closed",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        },
+        "hostParticipantId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hostparticipantid"
+        },
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "capacity",
+        "expiresAt",
+        "hostParticipantId"
+      ],
+      "title": "Room",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "room": {
+          "$ref": "#/$defs/Room"
+        },
+        "participants": {
+          "items": {
+            "$ref": "#/$defs/Participant"
+          },
+          "title": "Participants",
+          "type": "array"
+        },
+        "playback": {
+          "$ref": "#/$defs/Playback"
+        },
+        "presenceSeq": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Presenceseq",
+          "type": "integer"
+        },
+        "playbackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Playbackrevision",
+          "type": "integer"
+        },
+        "playlist": {
+          "$ref": "#/$defs/Playlist"
+        }
+      },
+      "required": [
+        "room",
+        "participants",
+        "playback",
+        "presenceSeq",
+        "playbackRevision"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "TrackSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        },
+        "displayName": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "trackId",
+        "participantId",
+        "displayName"
+      ],
+      "title": "TrackSuggestion",
+      "type": "object"
+    },
+    "CreateRoomResult": {
+      "additionalProperties": false,
+      "properties": {
+        "roomId": {
+          "format": "uuid",
+          "title": "Roomid",
+          "type": "string"
+        },
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        },
+        "inviteUrl": {
+          "title": "Inviteurl",
+          "type": "string"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "roomId",
+        "participantId",
+        "inviteUrl",
+        "expiresAt",
+        "snapshot"
+      ],
+      "title": "CreateRoomResult",
+      "type": "object"
+    },
+    "PreviewInvite": {
+      "additionalProperties": false,
+      "properties": {
+        "inviteToken": {
+          "maxLength": 43,
+          "minLength": 43,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Invitetoken",
+          "type": "string"
+        }
+      },
+      "required": [
+        "inviteToken"
+      ],
+      "title": "PreviewInvite",
+      "type": "object"
+    },
+    "PreviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "moderated": {
+          "default": false,
+          "title": "Moderated",
+          "type": "boolean"
+        },
+        "roomId": {
+          "format": "uuid",
+          "title": "Roomid",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "closed",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "participantCount": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Participantcount",
+          "type": "integer"
+        },
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "roomId",
+        "title",
+        "status",
+        "participantCount",
+        "capacity",
+        "expiresAt"
+      ],
+      "title": "PreviewResult",
+      "type": "object"
+    },
+    "JoinRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "inviteToken": {
+          "maxLength": 43,
+          "minLength": 43,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Invitetoken",
+          "type": "string"
+        },
+        "displayName": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "inviteToken",
+        "displayName"
+      ],
+      "title": "JoinRoom",
+      "type": "object"
+    },
+    "JoinRoomResult": {
+      "additionalProperties": false,
+      "properties": {
+        "participantId": {
+          "format": "uuid",
+          "title": "Participantid",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "host",
+            "listener"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "participantId",
+        "role",
+        "snapshot"
+      ],
+      "title": "JoinRoomResult",
+      "type": "object"
+    },
+    "CloseRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expectedPlaybackRevision"
+      ],
+      "title": "CloseRoom",
+      "type": "object"
+    },
+    "InviteResult": {
+      "additionalProperties": false,
+      "properties": {
+        "inviteUrl": {
+          "title": "Inviteurl",
+          "type": "string"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "inviteUrl",
+        "expiresAt"
+      ],
+      "title": "InviteResult",
+      "type": "object"
+    },
+    "ReserveUpload": {
+      "additionalProperties": false,
+      "properties": {
+        "fileName": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "contentType": {
+          "enum": [
+            "audio/mpeg",
+            "audio/wav",
+            "audio/x-wav",
+            "audio/mp4",
+            "audio/x-m4a"
+          ],
+          "title": "Contenttype",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 52428800,
+          "title": "Sizebytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fileName",
+        "contentType",
+        "sizeBytes"
+      ],
+      "title": "ReserveUpload",
+      "type": "object"
+    },
+    "ReserveUploadResult": {
+      "additionalProperties": false,
+      "properties": {
+        "uploadId": {
+          "format": "uuid",
+          "title": "Uploadid",
+          "type": "string"
+        },
+        "uploadUrl": {
+          "title": "Uploadurl",
+          "type": "string"
+        },
+        "requiredHeaders": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Requiredheaders",
+          "type": "object"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "uploadId",
+        "uploadUrl",
+        "requiredHeaders",
+        "expiresAt"
+      ],
+      "title": "ReserveUploadResult",
+      "type": "object"
+    },
+    "CompleteUpload": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        }
+      },
+      "title": "CompleteUpload",
+      "type": "object"
+    },
+    "CompleteUploadResult": {
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "format": "uuid",
+          "title": "Trackid",
+          "type": "string"
+        },
+        "status": {
+          "const": "processing",
+          "default": "processing",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trackId"
+      ],
+      "title": "CompleteUploadResult",
+      "type": "object"
+    },
+    "Track": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "artist": {
+          "title": "Artist",
+          "type": "string"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "maximum": 900000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Durationms"
+        },
+        "status": {
+          "enum": [
+            "uploading",
+            "processing",
+            "ready",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errorcode"
+        },
+        "mediaVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mediaversion"
+        },
+        "coverUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverurl"
+        },
+        "lyricsUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lyricsurl"
+        },
+        "sourceUri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceuri"
+        },
+        "licenseId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseid"
+        },
+        "licenseUri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseuri"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "artist",
+        "durationMs",
+        "status"
+      ],
+      "title": "Track",
+      "type": "object"
+    },
+    "LyricLine": {
+      "additionalProperties": false,
+      "properties": {
+        "t": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "T",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 200,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "t",
+        "text"
+      ],
+      "title": "LyricLine",
+      "type": "object"
+    },
+    "Lyrics": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "synced",
+            "plain"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "lrc",
+            "text",
+            "embedded"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LyricLine"
+              },
+              "maxItems": 600,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lines"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 20000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "kind",
+        "source"
+      ],
+      "title": "Lyrics",
+      "type": "object"
+    },
+    "TrackList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Track"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nextcursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "TrackList",
+      "type": "object"
+    },
+    "PlaybackURL": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        },
+        "mediaVersion": {
+          "title": "Mediaversion",
+          "type": "string"
+        },
+        "checksum": {
+          "title": "Checksum",
+          "type": "string"
+        },
+        "contentType": {
+          "title": "Contenttype",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "expiresAt",
+        "mediaVersion",
+        "checksum",
+        "contentType"
+      ],
+      "title": "PlaybackURL",
+      "type": "object"
+    },
+    "ConflictDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "snapshot"
+      ],
+      "title": "ConflictDetail",
+      "type": "object"
+    },
+    "ErrorBody": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ValidationDetail"
+              },
+              "type": "array"
+            },
+            {
+              "$ref": "#/$defs/ConflictDetail"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Details"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "requestId"
+      ],
+      "title": "ErrorBody",
+      "type": "object"
+    },
+    "ValidationDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "code"
+      ],
+      "title": "ValidationDetail",
+      "type": "object"
+    },
+    "HTTPError": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorBody"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "HTTPError",
+      "type": "object"
+    },
+    "RoomSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "moderated": {
+          "title": "Moderated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "capacity",
+        "moderated"
+      ],
+      "title": "RoomSettings",
+      "type": "object"
+    },
+    "EditorPermission": {
+      "additionalProperties": false,
+      "properties": {
+        "canEdit": {
+          "title": "Canedit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canEdit"
+      ],
+      "title": "EditorPermission",
+      "type": "object"
+    },
+    "PlayerAction": {
+      "additionalProperties": false,
+      "properties": {
+        "expectedPlaybackRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expectedplaybackrevision",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "next",
+            "previous",
+            "add",
+            "remove",
+            "move",
+            "options"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "trackId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trackid"
+        },
+        "toIndex": {
+          "anyOf": [
+            {
+              "maximum": 99,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Toindex"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "enum": [
+                "off",
+                "all",
+                "one"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat"
+        },
+        "shuffle": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shuffle"
+        }
+      },
+      "required": [
+        "expectedPlaybackRevision",
+        "action"
+      ],
+      "title": "PlayerAction",
+      "type": "object"
+    },
+    "AdmissionStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "approved",
+            "admitted",
+            "rejected",
+            "cancelled",
+            "expired",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "AdmissionStatus",
+      "type": "object"
+    },
+    "EntryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "approved",
+            "admitted",
+            "rejected",
+            "cancelled",
+            "expired",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "membership": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JoinRoomResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "EntryResult",
+      "type": "object"
+    },
+    "WaitingGuest": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "displayName": {
+          "title": "Displayname",
+          "type": "string"
+        },
+        "requestedAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Requestedat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "requestedAt"
+      ],
+      "title": "WaitingGuest",
+      "type": "object"
+    },
+    "WaitingList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WaitingGuest"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "WaitingList",
+      "type": "object"
+    },
+    "AdmissionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "admit": {
+          "title": "Admit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "admit"
+      ],
+      "title": "AdmissionDecision",
+      "type": "object"
+    },
+    "MyRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "role": {
+          "enum": [
+            "host",
+            "listener"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "capacity",
+        "role"
+      ],
+      "title": "MyRoom",
+      "type": "object"
+    },
+    "MyRooms": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/MyRoom"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "MyRooms",
+      "type": "object"
+    },
+    "MemberAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "transfer",
+            "remove"
+          ],
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "MemberAction",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/Bootstrap"
+    },
+    {
+      "$ref": "#/$defs/CreateRoom"
+    },
+    {
+      "$ref": "#/$defs/CreateRoomResult"
+    },
+    {
+      "$ref": "#/$defs/PreviewInvite"
+    },
+    {
+      "$ref": "#/$defs/PreviewResult"
+    },
+    {
+      "$ref": "#/$defs/JoinRoom"
+    },
+    {
+      "$ref": "#/$defs/JoinRoomResult"
+    },
+    {
+      "$ref": "#/$defs/CloseRoom"
+    },
+    {
+      "$ref": "#/$defs/Snapshot"
+    },
+    {
+      "$ref": "#/$defs/InviteResult"
+    },
+    {
+      "$ref": "#/$defs/ReserveUpload"
+    },
+    {
+      "$ref": "#/$defs/ReserveUploadResult"
+    },
+    {
+      "$ref": "#/$defs/CompleteUpload"
+    },
+    {
+      "$ref": "#/$defs/CompleteUploadResult"
+    },
+    {
+      "$ref": "#/$defs/Track"
+    },
+    {
+      "$ref": "#/$defs/Lyrics"
+    },
+    {
+      "$ref": "#/$defs/TrackList"
+    },
+    {
+      "$ref": "#/$defs/PlaybackURL"
+    },
+    {
+      "$ref": "#/$defs/HTTPError"
+    },
+    {
+      "$ref": "#/$defs/RoomSettings"
+    },
+    {
+      "$ref": "#/$defs/EditorPermission"
+    },
+    {
+      "$ref": "#/$defs/PlayerAction"
+    },
+    {
+      "$ref": "#/$defs/AdmissionStatus"
+    },
+    {
+      "$ref": "#/$defs/EntryResult"
+    },
+    {
+      "$ref": "#/$defs/WaitingList"
+    },
+    {
+      "$ref": "#/$defs/AdmissionDecision"
+    },
+    {
+      "$ref": "#/$defs/MyRooms"
+    },
+    {
+      "$ref": "#/$defs/MemberAction"
+    }
+  ]
+}

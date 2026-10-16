@@ -1,0 +1,263 @@
+import asyncio
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
+
+import pytest
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
+
+from app.config import Settings
+from app.db.models import Asset, Room, Track, Upload
+from app.services.cleanup import Cleanup
+from app.services.storage import Storage
+from tests.integration.test_database import seed_room
+from tests.integration.test_storage import storage as storage
+
+pytestmark = pytest.mark.integration
+
+
+async def test_cleanup_keeps_catalog_and_active_assets(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    sessions = resources.sessions
+    async with sessions.begin() as db:
+        closed_id, _, _ = await seed_room(db)
+        active_id, _, _ = await seed_room(db)
+        closed = await db.get(Room, closed_id)
+        assert closed is not None
+        closed.status = "closed"
+        closed.closed_at = datetime.now(UTC) - timedelta(hours=25)
+        keys = [
+            "catalog/demo.mp3",
+            f"rooms/{closed_id}/media/demo.mp3",
+            f"rooms/{active_id}/media/demo.mp3",
+        ]
+        for index, key in enumerate(keys):
+            await asyncio.to_thread(
+                resources.storage.put_object,
+                Bucket=resources.bucket,
+                Key=key,
+                Body=b"test",
+                ContentType="audio/mpeg",
+            )
+            asset = Asset(
+                object_key=key,
+                checksum="a" * 64,
+                content_type="audio/mpeg",
+                size_bytes=4,
+                media_version="v1",
+            )
+            db.add(asset)
+            await db.flush()
+            db.add(
+                Track(
+                    scope="catalog" if index == 0 else "room",
+                    room_id=None if index == 0 else (closed_id if index == 1 else active_id),
+                    title="Демо",
+                    artist="",
+                    status="ready",
+                    duration_ms=1000,
+                    source_asset_id=asset.id,
+                    playback_asset_id=asset.id,
+                )
+            )
+    service = Cleanup(resources, settings)
+    await service.sweep()
+    await service.sweep()
+    async with sessions() as db:
+        assert await db.get(Room, closed_id) is None
+        assert await db.get(Room, active_id) is not None
+        assert await db.scalar(select(func.count()).select_from(Asset)) == 2
+        assert await db.scalar(select(func.count()).select_from(Track)) == 2
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    remaining = {obj["Key"] for obj in listing.get("Contents", [])}
+    assert remaining == {"catalog/demo.mp3", f"rooms/{active_id}/media/demo.mp3"}
+
+
+async def test_abandoned_upload_cleanup_observes_signed_url_expiry(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    async with resources.sessions.begin() as db:
+        room_id, host_id, _ = await seed_room(db)
+        track = Track(
+            scope="room",
+            room_id=room_id,
+            title="Отменён",
+            status="failed",
+            error_code="UPLOAD_CANCELLED",
+            artist="",
+        )
+        db.add(track)
+        await db.flush()
+        key = f"rooms/{room_id}/sources/test"
+        upload = Upload(
+            room_id=room_id,
+            owner_participant_id=host_id,
+            track_id=track.id,
+            object_key=key,
+            content_type="audio/wav",
+            expected_size=4,
+            status="cancelled",
+            expires_at=datetime.now(UTC) + timedelta(minutes=10),
+        )
+        db.add(upload)
+        await db.flush()
+        upload_id = upload.id
+        await asyncio.to_thread(
+            resources.storage.put_object,
+            Bucket=resources.bucket,
+            Key=key,
+            Body=b"test",
+            ContentType="audio/wav",
+        )
+    service = Cleanup(resources, settings)
+    await service.sweep()
+    async with resources.sessions() as db:
+        current = await db.get(Upload, upload_id)
+        assert current is not None and current.purged_at is None
+    await service.sweep(datetime.now(UTC) + timedelta(minutes=11))
+    await service.sweep(datetime.now(UTC) + timedelta(minutes=11))
+    async with resources.sessions() as db:
+        current = await db.get(Upload, upload_id)
+        assert current is not None and current.purged_at is not None
+        assert await db.get(Room, room_id) is not None
+
+
+async def test_orphan_sweep_keeps_referenced_and_running_outputs(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    future = datetime.now(UTC) + timedelta(minutes=61)
+    async with resources.sessions.begin() as db:
+        room_id, host_id, _ = await seed_room(db)
+        ready_id, processing_id, orphan_id = uuid4(), uuid4(), uuid4()
+        keys = [
+            f"rooms/{room_id}/media/{upload_id}/hash.mp3"
+            for upload_id in [ready_id, processing_id, orphan_id]
+        ]
+        for key in keys + ["catalog/demo.mp3"]:
+            await asyncio.to_thread(
+                resources.storage.put_object,
+                Bucket=resources.bucket,
+                Key=key,
+                Body=b"test",
+                ContentType="audio/mpeg",
+            )
+        ready_asset = Asset(
+            object_key=keys[0],
+            checksum="a" * 64,
+            content_type="audio/mpeg",
+            size_bytes=4,
+            media_version="v1",
+        )
+        orphan_asset = Asset(
+            object_key=keys[2],
+            checksum="b" * 64,
+            content_type="audio/mpeg",
+            size_bytes=4,
+            media_version="v2",
+        )
+        db.add_all([ready_asset, orphan_asset])
+        await db.flush()
+        db.add(
+            Track(
+                scope="room",
+                room_id=room_id,
+                title="Готов",
+                status="ready",
+                duration_ms=1000,
+                playback_asset_id=ready_asset.id,
+            )
+        )
+        processing_track = Track(
+            scope="room", room_id=room_id, title="Обработка", status="processing"
+        )
+        db.add(processing_track)
+        await db.flush()
+        db.add(
+            Upload(
+                id=processing_id,
+                room_id=room_id,
+                owner_participant_id=host_id,
+                track_id=processing_track.id,
+                object_key="sources/test",
+                expected_size=4,
+                content_type="audio/wav",
+                status="processing",
+                job_id=uuid4(),
+                processing_attempts=1,
+                processing_attempt_id=uuid4(),
+                processing_started_at=future,
+                expires_at=future + timedelta(minutes=10),
+            )
+        )
+    service = Cleanup(resources, settings)
+    await service.clean_orphans(datetime.now(UTC))
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert len(listing.get("Contents", [])) == 4
+    await service.clean_orphans(future)
+    await service.clean_orphans(future)
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert {obj["Key"] for obj in listing.get("Contents", [])} == {
+        keys[0],
+        keys[1],
+        "catalog/demo.mp3",
+    }
+    async with resources.sessions() as db:
+        assert await db.scalar(select(func.count()).select_from(Asset)) == 1
+        assert await db.get(Room, room_id) is not None
+
+
+async def test_late_source_after_purge_is_removed_again_without_waiting_an_hour(
+    database: AsyncEngine, storage: Storage, settings: Settings
+) -> None:
+    resources = storage.resources
+    resources.sessions = async_sessionmaker(database, expire_on_commit=False)
+    now = datetime.now(UTC)
+    async with resources.sessions.begin() as db:
+        room_id, host_id, _ = await seed_room(db)
+        track = Track(
+            scope="room",
+            room_id=room_id,
+            title="Отменён",
+            status="failed",
+            error_code="UPLOAD_CANCELLED",
+        )
+        db.add(track)
+        await db.flush()
+        upload_id = uuid4()
+        key = f"rooms/{room_id}/sources/{upload_id}"
+        db.add(
+            Upload(
+                id=upload_id,
+                room_id=room_id,
+                owner_participant_id=host_id,
+                track_id=track.id,
+                object_key=key,
+                content_type="audio/wav",
+                expected_size=4,
+                status="cancelled",
+                expires_at=now - timedelta(minutes=1),
+                purged_at=now,
+            )
+        )
+    await asyncio.to_thread(
+        resources.storage.put_object,
+        Bucket=resources.bucket,
+        Key=key,
+        Body=b"late",
+        ContentType="audio/wav",
+    )
+    service = Cleanup(resources, settings)
+    await service.sweep()
+    listing = await asyncio.to_thread(resources.storage.list_objects_v2, Bucket=resources.bucket)
+    assert not listing.get("Contents", [])
+    async with resources.sessions() as db:
+        upload = await db.get(Upload, upload_id)
+        assert upload is not None and upload.status == "cancelled" and upload.purged_at == now
+        assert await db.get(Room, room_id) is not None

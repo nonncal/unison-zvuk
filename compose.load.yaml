@@ -1,0 +1,15 @@
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  storage:
+    ports: !override ["127.0.0.1::9000"]
+  api:
+    ports: !override ["127.0.0.1::8000"]
+    environment:
+      CREATE_PER_MINUTE: 1000
+      JOIN_PER_MINUTE: 1000
+      BOOTSTRAP_PER_MINUTE: 1000
+    cpus: 2
+    mem_limit: 2g

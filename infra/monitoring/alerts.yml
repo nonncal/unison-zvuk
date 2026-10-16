@@ -1,0 +1,38 @@
+groups:
+  - name: unison
+    rules:
+      - alert: UnisonAPIUnavailable
+        expr: up{job="unison-api"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "API Unison не отвечает на сбор метрик"
+      - alert: AudioWorkerUnavailable
+        expr: unison_audio_worker_online == 0
+        for: 30s
+        labels: {severity: critical}
+        annotations:
+          summary: "Обработчик аудио недоступен"
+      - alert: AudioQueueGrowing
+        expr: unison_audio_queue_depth > 4
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Очередь аудио превышает рабочий предел"
+      - alert: AudioProcessingStalled
+        expr: unison_oldest_processing_seconds > 600
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "Загрузка долго ожидает завершения"
+      - alert: AudioProcessingFailures
+        expr: increase(unison_daily_worker_outcomes_total{outcome="failed"}[5m]) > 3
+        labels: {severity: warning}
+        annotations:
+          summary: "Увеличилось число ошибок обработки аудио"
+      - alert: StablePlaybackDrift
+        expr: histogram_quantile(0.95, sum(rate(unison_stable_abs_drift_milliseconds_bucket[5m])) by (le)) > 300
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Дрейф стабильного воспроизведения превышает 300 мс"

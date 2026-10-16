@@ -1,0 +1,457 @@
+[
+  {
+    "name": "clock.probe",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"clock.probe\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"clientSentAtMs\":65000,\"probeId\":\"00000000-0000-4000-8000-000000000008\"}}"
+  },
+  {
+    "name": "heartbeat.pong",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"heartbeat.pong\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"pingId\":\"00000000-0000-4000-8000-000000000009\"}}"
+  },
+  {
+    "name": "room.snapshot.request",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"room.snapshot.request\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{}}"
+  },
+  {
+    "name": "participant.readiness",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"participant.readiness\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}"
+  },
+  {
+    "name": "playback.select",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"playback.select\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\"},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "playback.play",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"playback.play\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"allowNotReady\":false},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "playback.pause",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"playback.pause\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "playback.seek",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "sync.telemetry",
+    "kind": "command",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"sync.telemetry\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"driftMs\":-25,\"rttMs\":100,\"localState\":\"playing\"}}"
+  },
+  {
+    "name": "hello",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"hello\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"connectionId\":\"00000000-0000-4000-8000-000000000007\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"protocolVersion\":1,\"snapshot\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}}"
+  },
+  {
+    "name": "room.snapshot",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"room.snapshot\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}"
+  },
+  {
+    "name": "playback.state",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"playback.state\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null}}"
+  },
+  {
+    "name": "clock.reply",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"clock.reply\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"clientSentAtMs\":65000,\"probeId\":\"00000000-0000-4000-8000-000000000008\",\"serverReceivedAtMs\":1791938400000,\"serverSentAtMs\":1791938400001}}"
+  },
+  {
+    "name": "heartbeat.ping",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"heartbeat.ping\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"pingId\":\"00000000-0000-4000-8000-000000000009\"}}"
+  },
+  {
+    "name": "presence.changed",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"presence.changed\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"presenceSeq\":2,\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}]}}"
+  },
+  {
+    "name": "host.changed",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"host.changed\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"participantId\":\"00000000-0000-4000-8000-000000000003\"}}"
+  },
+  {
+    "name": "track.updated",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"track.updated\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"track\":{\"id\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"Композиция\",\"artist\":\"Unison Studio\",\"durationMs\":120000,\"status\":\"ready\",\"errorCode\":null,\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"coverUrl\":null,\"sourceUri\":\"unison:synthesis:v1:night\",\"licenseId\":\"CC0-1.0\",\"licenseUri\":\"https://creativecommons.org/publicdomain/zero/1.0/\"}}}"
+  },
+  {
+    "name": "room.closed",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"room.closed\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"reason\":\"closedByHost\"}}"
+  },
+  {
+    "name": "command.ack",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"command.ack\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"acceptedPlaybackRevision\":12,\"effectiveAtServerTimeMs\":1791938400750}}"
+  },
+  {
+    "name": "command.error",
+    "kind": "event",
+    "schema": null,
+    "valid": true,
+    "json": "{\"v\":1,\"type\":\"command.error\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"code\":\"REVISION_CONFLICT\",\"message\":\"Состояние изменилось\",\"snapshot\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}}"
+  },
+  {
+    "name": "Bootstrap",
+    "kind": "http",
+    "schema": "Bootstrap",
+    "valid": true,
+    "json": "{\"csrfToken\":\"example-public-csrf\",\"protocolVersion\":1,\"limits\":{\"capacity\":2}}"
+  },
+  {
+    "name": "CreateRoom",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": true,
+    "json": "{\"displayName\":\"Аня\"}"
+  },
+  {
+    "name": "CreateRoomResult",
+    "kind": "http",
+    "schema": "CreateRoomResult",
+    "valid": true,
+    "json": "{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"participantId\":\"00000000-0000-4000-8000-000000000003\",\"inviteUrl\":\"https://unison.example/join#invite=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"expiresAt\":1792024800000,\"snapshot\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}"
+  },
+  {
+    "name": "PreviewInvite",
+    "kind": "http",
+    "schema": "PreviewInvite",
+    "valid": true,
+    "json": "{\"inviteToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+  },
+  {
+    "name": "PreviewResult",
+    "kind": "http",
+    "schema": "PreviewResult",
+    "valid": true,
+    "json": "{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"participantCount\":1,\"capacity\":2,\"expiresAt\":1792024800000}"
+  },
+  {
+    "name": "JoinRoom",
+    "kind": "http",
+    "schema": "JoinRoom",
+    "valid": true,
+    "json": "{\"displayName\":\"Аня\",\"inviteToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+  },
+  {
+    "name": "JoinRoomResult",
+    "kind": "http",
+    "schema": "JoinRoomResult",
+    "valid": true,
+    "json": "{\"participantId\":\"00000000-0000-4000-8000-000000000003\",\"role\":\"listener\",\"snapshot\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}"
+  },
+  {
+    "name": "CloseRoom",
+    "kind": "http",
+    "schema": "CloseRoom",
+    "valid": true,
+    "json": "{\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "Snapshot",
+    "kind": "http",
+    "schema": "Snapshot",
+    "valid": true,
+    "json": "{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}"
+  },
+  {
+    "name": "InviteResult",
+    "kind": "http",
+    "schema": "InviteResult",
+    "valid": true,
+    "json": "{\"inviteUrl\":\"https://unison.example/join#invite=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"expiresAt\":1792024800000}"
+  },
+  {
+    "name": "ReserveUpload",
+    "kind": "http",
+    "schema": "ReserveUpload",
+    "valid": true,
+    "json": "{\"fileName\":\"композиция.wav\",\"contentType\":\"audio/wav\",\"sizeBytes\":1024}"
+  },
+  {
+    "name": "ReserveUploadResult",
+    "kind": "http",
+    "schema": "ReserveUploadResult",
+    "valid": true,
+    "json": "{\"uploadId\":\"00000000-0000-4000-8000-000000000010\",\"uploadUrl\":\"https://storage.example/upload\",\"requiredHeaders\":{\"Content-Type\":\"audio/wav\",\"If-None-Match\":\"*\"},\"expiresAt\":1791939000000}"
+  },
+  {
+    "name": "CompleteUpload",
+    "kind": "http",
+    "schema": "CompleteUpload",
+    "valid": true,
+    "json": "{\"checksum\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+  },
+  {
+    "name": "CompleteUploadResult",
+    "kind": "http",
+    "schema": "CompleteUploadResult",
+    "valid": true,
+    "json": "{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"status\":\"processing\"}"
+  },
+  {
+    "name": "Track",
+    "kind": "http",
+    "schema": "Track",
+    "valid": true,
+    "json": "{\"id\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"Композиция\",\"artist\":\"Unison Studio\",\"durationMs\":120000,\"status\":\"ready\",\"errorCode\":null,\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"coverUrl\":null,\"sourceUri\":\"unison:synthesis:v1:night\",\"licenseId\":\"CC0-1.0\",\"licenseUri\":\"https://creativecommons.org/publicdomain/zero/1.0/\"}"
+  },
+  {
+    "name": "TrackList",
+    "kind": "http",
+    "schema": "TrackList",
+    "valid": true,
+    "json": "{\"items\":[{\"id\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"Композиция\",\"artist\":\"Unison Studio\",\"durationMs\":120000,\"status\":\"ready\",\"errorCode\":null,\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"coverUrl\":null,\"sourceUri\":\"unison:synthesis:v1:night\",\"licenseId\":\"CC0-1.0\",\"licenseUri\":\"https://creativecommons.org/publicdomain/zero/1.0/\"}],\"nextCursor\":null}"
+  },
+  {
+    "name": "PlaybackURL",
+    "kind": "http",
+    "schema": "PlaybackURL",
+    "valid": true,
+    "json": "{\"url\":\"https://storage.example/audio\",\"expiresAt\":1791938700000,\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"checksum\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contentType\":\"audio/mpeg\"}"
+  },
+  {
+    "name": "HTTPError",
+    "kind": "http",
+    "schema": "HTTPError",
+    "valid": true,
+    "json": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Проверьте поля\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"details\":[{\"field\":\"body.displayName\",\"code\":\"string_too_long\"}]}}"
+  },
+  {
+    "name": "version-bool",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":true,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "version-string",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":\"1\",\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "version-two",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":2,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "unknown-role",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12,\"role\":\"host\"}"
+  },
+  {
+    "name": "unsafe-revision",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":9007199254740992}"
+  },
+  {
+    "name": "invalid-uuid",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"bad\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "negative-position",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":-1},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "position-too-large",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":900001},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "position-fraction",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":1.5},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "position-string",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":\"65000\"},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "position-bool",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":true},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "missing-version",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "missing-revision",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000}}"
+  },
+  {
+    "name": "unknown-payload-field",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\":1,\"type\":\"playback.seek\",\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"payload\":{\"positionMs\":65000,\"actorId\":\"00000000-0000-4000-8000-000000000003\"},\"expectedPlaybackRevision\":12}"
+  },
+  {
+    "name": "float-version",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\": 1.0, \"type\": \"playback.seek\", \"requestId\": \"00000000-0000-4000-8000-000000000006\", \"payload\": {\"positionMs\": 65000}, \"expectedPlaybackRevision\": 12}"
+  },
+  {
+    "name": "duplicate-json-field",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\": 2, \"v\": 1, \"type\": \"playback.seek\", \"requestId\": \"00000000-0000-4000-8000-000000000006\", \"payload\": {\"positionMs\": 65000}, \"expectedPlaybackRevision\": 12}"
+  },
+  {
+    "name": "non-finite-json",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{\"v\": 1, \"type\": \"playback.seek\", \"requestId\": \"00000000-0000-4000-8000-000000000006\", \"payload\": {\"positionMs\": NaN}, \"expectedPlaybackRevision\": 12}"
+  },
+  {
+    "name": "broken-json",
+    "kind": "command",
+    "schema": null,
+    "valid": false,
+    "json": "{broken"
+  },
+  {
+    "name": "event-missing-version",
+    "kind": "event",
+    "schema": null,
+    "valid": false,
+    "json": "{\"type\":\"hello\",\"eventId\":\"00000000-0000-4000-8000-000000000005\",\"serverTimeMs\":1791938400000,\"playbackRevision\":12,\"payload\":{\"connectionId\":\"00000000-0000-4000-8000-000000000007\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"protocolVersion\":1,\"snapshot\":{\"room\":{\"id\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Вместе\",\"status\":\"active\",\"capacity\":2,\"expiresAt\":1792024800000,\"hostParticipantId\":\"00000000-0000-4000-8000-000000000003\"},\"participants\":[{\"id\":\"00000000-0000-4000-8000-000000000003\",\"displayName\":\"Аня\",\"role\":\"host\",\"connectionState\":\"online\",\"readiness\":{\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"state\":\"ready\",\"bufferedAheadMs\":10000,\"autoplayAllowed\":true}}],\"playback\":{\"roomId\":\"00000000-0000-4000-8000-000000000001\",\"epoch\":\"00000000-0000-4000-8000-000000000002\",\"trackId\":\"00000000-0000-4000-8000-000000000004\",\"mediaVersion\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"paused\",\"positionMs\":65000,\"anchorServerTimeMs\":1791938400000,\"durationMs\":120000,\"pendingTransition\":null},\"presenceSeq\":2,\"playbackRevision\":12}}}"
+  },
+  {
+    "name": "http-unknown-role",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": false,
+    "json": "{\"displayName\":\"Аня\",\"role\":\"host\"}"
+  },
+  {
+    "name": "http-control-name",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": false,
+    "json": "{\"displayName\":\"Ан\\nя\"}"
+  },
+  {
+    "name": "http-path",
+    "kind": "http",
+    "schema": "ReserveUpload",
+    "valid": false,
+    "json": "{\"fileName\":\"../x.wav\",\"contentType\":\"audio/wav\",\"sizeBytes\":4}"
+  },
+  {
+    "name": "http-mime-mismatch",
+    "kind": "http",
+    "schema": "ReserveUpload",
+    "valid": false,
+    "json": "{\"fileName\":\"x.mp3\",\"contentType\":\"audio/wav\",\"sizeBytes\":4}"
+  },
+  {
+    "name": "http-large",
+    "kind": "http",
+    "schema": "ReserveUpload",
+    "valid": false,
+    "json": "{\"fileName\":\"x.wav\",\"contentType\":\"audio/wav\",\"sizeBytes\":52428801}"
+  },
+  {
+    "name": "trimmed-name",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": true,
+    "json": "{\"displayName\": \"  АААААААААААААААААААААААААААААААА  \"}"
+  },
+  {
+    "name": "null-http",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": false,
+    "json": "null"
+  },
+  {
+    "name": "control-title",
+    "kind": "http",
+    "schema": "CreateRoom",
+    "valid": false,
+    "json": "{\"displayName\": \"Аня\", \"title\": \"‮Вечер\"}"
+  }
+]
