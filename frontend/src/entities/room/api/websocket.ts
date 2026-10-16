@@ -11,6 +11,7 @@ import { apiOrigin } from '@/shared/config'
 import type { HTTPModels } from '@/shared/api'
 import { parseEvent, parseCommand } from '@/shared/api'
 import { normalizeSnapshot, normalizeParticipants } from './normalize-snapshot'
+import { timelineAt } from '../lib/timeline'
 export function connectWebSocket(
   roomId: string,
   onSnapshot: (snapshot: Snapshot) => void,
@@ -26,7 +27,11 @@ export function connectWebSocket(
     reconnectTimer = 0,
     lastMessage = 0,
     lastProbe = 0,
-    reconnectStart = 0
+    reconnectStart = 0,
+    probeTimer = 0,
+    probesRemaining = 0,
+    connectedAt = 0,
+    lastTelemetry = -Infinity
   const epochBase = Date.now() - performance.now()
   const localNow = () => epochBase + performance.now()
   let snapshot: Snapshot | null = null
@@ -53,16 +58,29 @@ export function connectWebSocket(
     )
     return requestId
   }
-  function probe() {
-    if (socket?.readyState !== WebSocket.OPEN) return
-    lastProbe = localNow()
+  function stopProbing() {
+    clearTimeout(probeTimer)
     probes.clear()
-    for (let i = 0; i < 5; i++) {
-      const probeId = crypto.randomUUID(),
-        t0 = Math.round(localNow())
-      probes.set(probeId, t0)
-      send('clock.probe', { probeId, clientSentAtMs: t0 })
-    }
+    probesRemaining = 0
+  }
+  function sendProbe() {
+    if (disposed || socket?.readyState !== WebSocket.OPEN || probesRemaining <= 0) return
+    const probeId = crypto.randomUUID(),
+      t0 = Math.round(localNow())
+    probesRemaining--
+    probes.set(probeId, t0)
+    send('clock.probe', { probeId, clientSentAtMs: t0 })
+    // A lost reply must not stop calibration or let outstanding probes accumulate.
+    probeTimer = window.setTimeout(() => {
+      probes.delete(probeId)
+      sendProbe()
+    }, 3000)
+  }
+  function probe() {
+    if (socket?.readyState !== WebSocket.OPEN || probes.size || probesRemaining) return
+    lastProbe = localNow()
+    probesRemaining = 5
+    sendProbe()
   }
   function requestSnapshot() {
     if (socket?.readyState === WebSocket.OPEN) send('room.snapshot.request', {})
@@ -70,11 +88,14 @@ export function connectWebSocket(
   function apply(value: HTTPModels['Snapshot']) {
     const incoming = normalizeSnapshot(value)
     if (snapshot?.playback.epoch !== incoming.playback.epoch) {
+      stopProbing()
       samples = []
-      probe()
+      offset = 0
+      connectedAt = localNow()
     }
     snapshot = incoming
     onSnapshot(incoming)
+    if (!samples.length) probe()
   }
   function rejectReceipts() {
     for (const item of receipts.values()) {
@@ -91,16 +112,18 @@ export function connectWebSocket(
     socket = new WebSocket(url)
     socket.onopen = () => {
       lastMessage = localNow()
+      stopProbing()
       samples = []
-      requestSnapshot()
-      probe()
+      connectedAt = localNow()
+      // The server sends hello with a snapshot. Calibrate after that initial work.
     }
     socket.onmessage = (event) => {
       if (typeof event.data !== 'string' || event.data.length > 65536) {
         onError('Некорректное сообщение сервера.')
         return
       }
-      lastMessage = localNow()
+      const receivedAt = localNow()
+      lastMessage = receivedAt
       try {
         const message = parseEvent(event.data)
         if (message.v !== 1) {
@@ -140,11 +163,15 @@ export function connectWebSocket(
             !Number.isFinite(p.serverSentAtMs)
           )
             return
-          samples.push(
-            clockSample(t0, Number(p.serverReceivedAtMs), Number(p.serverSentAtMs), localNow()),
-          )
+          clearTimeout(probeTimer)
           probes.delete(String(p.probeId))
-          samples = samples.slice(-10)
+          probeTimer = window.setTimeout(sendProbe, 100)
+          const t1 = Number(p.serverReceivedAtMs),
+            t2 = Number(p.serverSentAtMs)
+          // Ignore expired samples and impossible ordering after a server clock reset.
+          if (receivedAt - t0 > 3000 || t2 < t1 || t2 - t1 > receivedAt - t0 + 2) return
+          samples.push(clockSample(t0, t1, t2, receivedAt))
+          samples = samples.slice(-15)
           offset = estimateOffset(samples)
           if (samples.length >= 3 && snapshot) {
             attempt = 0
@@ -193,6 +220,7 @@ export function connectWebSocket(
     }
     socket.onerror = () => onConnection('reconnecting')
     socket.onclose = (event) => {
+      stopProbing()
       rejectReceipts()
       if (disposed) return
       if ([1002, 1008, 4001, 4004, 4009].includes(event.code)) {
@@ -219,7 +247,7 @@ export function connectWebSocket(
   const periodic = window.setInterval(() => {
     if (socket?.readyState === WebSocket.OPEN) {
       if (localNow() - lastMessage > 15000) socket.close()
-      else if (localNow() - lastProbe >= 30000) probe()
+      else if (localNow() - lastProbe >= (localNow() - connectedAt < 30000 ? 5000 : 30000)) probe()
     }
   }, 5000)
   const visible = () => {
@@ -232,6 +260,34 @@ export function connectWebSocket(
   document.addEventListener('visibilitychange', visible)
   connect()
   return {
+    telemetry(value) {
+      const p = snapshot?.playback
+      if (
+        socket?.readyState !== WebSocket.OPEN ||
+        samples.length < 3 ||
+        !p ||
+        p.trackId !== value.trackId ||
+        p.mediaVersion !== value.mediaVersion ||
+        localNow() - lastTelemetry < 6000 ||
+        !Number.isFinite(value.positionMs)
+      )
+        return
+      const fastest = [...samples].sort((a, b) => a.rtt - b.rtt).slice(0, 3)
+      const rtts = fastest.map((sample) => sample.rtt).sort((a, b) => a - b)
+      send('sync.telemetry', {
+        trackId: value.trackId,
+        mediaVersion: value.mediaVersion,
+        localState: value.localState,
+        driftMs: Math.round(
+          Math.max(
+            -900000,
+            Math.min(900000, timelineAt(p, localNow() + offset).positionMs - value.positionMs),
+          ),
+        ),
+        rttMs: Math.round(Math.min(60000, rtts[Math.floor(rtts.length / 2)])),
+      })
+      lastTelemetry = localNow()
+    },
     react(emoji: ReactionEmoji) {
       send('reaction.send', { emoji })
     },
@@ -264,6 +320,7 @@ export function connectWebSocket(
     now: () => localNow() + offset,
     dispose() {
       disposed = true
+      stopProbing()
       clearTimeout(reconnectTimer)
       clearInterval(periodic)
       rejectReceipts()

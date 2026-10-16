@@ -100,6 +100,13 @@ export function useListeningRoom(roomId: string, retry: number) {
     [dispatch, roomId, store],
   )
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      const measurement = audioEngine.measurement()
+      if (measurement) transport.current?.telemetry?.(measurement)
+    }, 6000)
+    return () => clearInterval(timer)
+  }, [roomId])
+  useEffect(() => {
     audioEngine.setVolume(audio.volume, audio.muted)
     try {
       localStorage.setItem('unison:volume', String(audio.volume))
@@ -137,13 +144,13 @@ export function useListeningRoom(roomId: string, retry: number) {
     const update = () => {
       if (snapshot) {
         const now = transport.current?.now() ?? Date.now()
-        setServerNow(now)
+        if (snapshot.playback.pendingTransition) setServerNow(now)
         const value = timelineAt(snapshot.playback, now)
         setPosition(value.positionMs)
         setDisplayStatus(value.status)
       }
     }
-    const timer = window.setInterval(update, 100)
+    const timer = window.setInterval(update, 250)
     update()
     return () => clearInterval(timer)
   }, [snapshot])

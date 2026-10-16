@@ -115,6 +115,7 @@ class Manager:
                     session.expires_at,
                     self.settings.ws_queue_size,
                     metrics=self.metrics,
+                    now_ms=self.clock.now_ms,
                 )
                 if room.status != "active" or room.expires_at <= datetime.now(UTC):
                     reason = "closedByHost" if room.status == "closed" else "expired"
@@ -257,7 +258,9 @@ class Manager:
             for p in snapshot.participants
         )
 
-    async def handle(self, connection: Connection, command: ws.ClientCommand) -> None:
+    async def handle(
+        self, connection: Connection, command: ws.ClientCommand, received_at_ms: int | None = None
+    ) -> None:
         self.metrics.commands.labels(command.type).inc()
         if isinstance(command, ws.SelectTrack | ws.Play | ws.Pause | ws.Seek):
             if not connection.controls.take():
@@ -332,7 +335,7 @@ class Manager:
             return
         if not connection.observations.take():
             raise DomainError("RATE_LIMITED", "Слишком много сообщений", 429)
-        received = self.clock.now_ms()
+        received = self.clock.now_ms() if received_at_ms is None else received_at_ms
         async with self.resources.sessions.begin() as db:
             room, actor = await self.current(db, connection)
             state = await db.get(dbm.PlaybackState, room.id)

@@ -1,6 +1,7 @@
 import asyncio
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -47,6 +48,7 @@ class Connection:
     session_expires_at: datetime
     queue_size: int
     metrics: Metrics | None = None
+    now_ms: Callable[[], int] | None = None
     id: UUID = field(default_factory=uuid4)
     frames: deque[Frame] = field(default_factory=deque)
     available: asyncio.Event = field(default_factory=asyncio.Event)
@@ -83,6 +85,15 @@ class Connection:
         self.close_code = code
         self.available.set()
 
+    async def send_frame(self, frame: Frame) -> None:
+        # Stamp inside the sending coroutine, after all queue/scheduler waits.
+        # Queue latency is server processing time, not an asymmetric network delay.
+        if frame.payload["type"] == "clock.reply" and self.now_ms is not None:
+            sent_at = self.now_ms()
+            frame.payload["payload"]["serverSentAtMs"] = sent_at
+            frame.payload["serverTimeMs"] = sent_at
+        await self.websocket.send_json(frame.payload)
+
     async def writer(self) -> None:
         try:
             while self.close_code is None:
@@ -91,7 +102,7 @@ class Connection:
                     await self.available.wait()
                     continue
                 frame = self.frames.popleft()
-                await asyncio.wait_for(self.websocket.send_json(frame.payload), timeout=2)
+                await asyncio.wait_for(self.send_frame(frame), timeout=2)
                 if frame.close_after is not None:
                     self.close_code = frame.close_after
         except (TimeoutError, RuntimeError, OSError, WebSocketDisconnect):

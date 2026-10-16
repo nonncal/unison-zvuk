@@ -1,4 +1,4 @@
-import type { AudioState, Playback } from '@/entities/room'
+import type { AudioState, Playback, SyncMeasurement } from '@/entities/room'
 import type { Track } from '@/entities/track'
 import { timelineAt } from '@/entities/room'
 import { correction } from './correction'
@@ -135,6 +135,30 @@ export class AudioEngine {
       this.activeVersion = null
       this.playback = null
       this.releaseUrl()
+    }
+  }
+  measurement(): SyncMeasurement | null {
+    const track = this.lastTrack
+    if (
+      !track ||
+      this.sourcePending ||
+      this.suspended ||
+      this.activeVersion !== `${track.id}:${track.mediaVersion}`
+    )
+      return null
+    return {
+      trackId: track.id,
+      mediaVersion: track.mediaVersion,
+      positionMs: this.audio.currentTime * 1000,
+      localState: this.audio.error
+        ? 'error'
+        : !this.allowed
+          ? 'autoplayBlocked'
+          : this.buffering || this.audio.readyState < 3
+            ? 'buffering'
+            : this.audio.paused
+              ? 'paused'
+              : 'playing',
     }
   }
   setVolume(volume: number, muted: boolean) {

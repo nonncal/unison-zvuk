@@ -18,6 +18,7 @@ async def read(manager: Manager, connection: Connection) -> None:
     while connection.close_code is None:
         try:
             message = await connection.websocket.receive()
+            received_at_ms = manager.clock.now_ms()
         except WebSocketDisconnect:
             return
         if message["type"] == "websocket.disconnect":
@@ -34,7 +35,7 @@ async def read(manager: Manager, connection: Connection) -> None:
             )
             return
         try:
-            await manager.handle(connection, command)
+            await manager.handle(connection, command, received_at_ms)
         except DomainError as error:
             terminal = (
                 1008

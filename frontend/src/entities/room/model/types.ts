@@ -91,7 +91,14 @@ export interface Reaction {
   emoji: ReactionEmoji
   createdAt: number
 }
+export interface SyncMeasurement {
+  trackId: string
+  mediaVersion: string
+  positionMs: number
+  localState: 'playing' | 'paused' | 'buffering' | 'autoplayBlocked' | 'error'
+}
 export interface RoomConnection {
+  telemetry?(value: SyncMeasurement): void
   react?(emoji: ReactionEmoji): void
   send(command: PlaybackCommand, revision: number): Promise<void>
   readiness(value: Readiness): void
