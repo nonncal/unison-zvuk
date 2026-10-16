@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { roomApi, type Snapshot } from '@/entities/room'
 import { Dialog } from '@/shared/ui/Dialog'
 import { errorMessage } from '@/shared/lib/errors'
+import { toast } from '@/shared/lib/toast'
 export function RoomSettings({
   snapshot,
   onClose,
@@ -68,14 +69,43 @@ export function WaitingRoom({ roomId }: { roomId: string }) {
   const [items, setItems] = useState<Awaited<ReturnType<typeof roomApi.waiting>>['items']>([]),
     [busy, setBusy] = useState(''),
     [error, setError] = useState('')
-  const sequence = useRef(0)
+  const sequence = useRef(0),
+    announced = useRef(new Set<string>()),
+    decideRef = useRef<(id: string, admit: boolean) => Promise<void>>(async () => undefined)
+  const announce = useCallback((list: { id: string; displayName: string }[]) => {
+    const ids = new Set(list.map((p) => p.id))
+    announced.current.forEach((id) => {
+      if (!ids.has(id)) {
+        announced.current.delete(id)
+        toast.dismiss(`wait-${id}`)
+      }
+    })
+    list.forEach((p) => {
+      if (announced.current.has(p.id)) return
+      announced.current.add(p.id)
+      toast.show({
+        key: `wait-${p.id}`,
+        title: `${p.displayName} хочет войти`,
+        text: 'Ждёт в зале ожидания',
+        ttl: 0,
+        tone: 1,
+        actions: [
+          { label: 'Впустить', run: () => decideRef.current(p.id, true) },
+          { label: 'Отклонить', run: () => decideRef.current(p.id, false) },
+        ],
+      })
+    })
+  }, [])
   useEffect(() => {
     let active = true
     const load = async () => {
       const seq = ++sequence.current
       try {
         const data = await roomApi.waiting(roomId)
-        if (active && seq === sequence.current) setItems(data.items)
+        if (active && seq === sequence.current) {
+          setItems(data.items)
+          announce(data.items)
+        }
       } catch (e) {
         if (active) setError(errorMessage(e))
       }
@@ -86,7 +116,7 @@ export function WaitingRoom({ roomId }: { roomId: string }) {
       active = false
       clearInterval(timer)
     }
-  }, [roomId])
+  }, [roomId, announce])
   async function decide(id: string, admit: boolean) {
     ++sequence.current
     setBusy(id)
@@ -95,12 +125,22 @@ export function WaitingRoom({ roomId }: { roomId: string }) {
       const data = await roomApi.decide(roomId, id, admit)
       ++sequence.current
       setItems(data.items)
+      announce(data.items)
     } catch (e) {
       setError(errorMessage(e))
     } finally {
       setBusy('')
     }
   }
+  useEffect(() => {
+    decideRef.current = decide
+  })
+  useEffect(
+    () => () => {
+      announced.current.forEach((id) => toast.dismiss(`wait-${id}`))
+    },
+    [],
+  )
   return (
     <section className="waiting-panel" aria-label="Зал ожидания">
       <div className="panel-heading">

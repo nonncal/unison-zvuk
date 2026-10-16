@@ -1,0 +1,67 @@
+.resume {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 40px;
+  max-width: 520px;
+}
+.resume h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.resume ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.resume-room {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: var(--r-field);
+  background: var(--raise);
+  transition: background 0.15s;
+}
+.resume-room:hover {
+  background: var(--raise-hover);
+}
+.resume-mark {
+  width: 8px;
+  align-self: stretch;
+  border-radius: 4px;
+  background: var(--tone, var(--tone-0));
+}
+.resume-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.resume-text strong {
+  font-size: 18px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resume-text small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.resume-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .resume-go {
+    font-size: 0;
+  }
+  .resume-go svg {
+    font-size: 16px;
+  }
+}

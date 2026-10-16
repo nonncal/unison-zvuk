@@ -17,6 +17,7 @@ import {
   useListeningRoom,
 } from '@/features/listen-together'
 import { AppError, errorMessage } from '@/shared/lib/errors'
+import { toast } from '@/shared/lib/toast'
 export function useRoomPage() {
   const { roomId = '' } = useParams(),
     navigate = useNavigate(),
@@ -38,6 +39,23 @@ export function useRoomPage() {
   const { tracks, reloadTracks, selected, transport, position, displayStatus, serverNow } =
     useListeningRoom(roomId, retry)
   useEffect(() => () => clearTimeout(toastTimer.current), [])
+  const known = useRef<{ room: string; ids: Map<string, string> } | null>(null)
+  useEffect(() => {
+    if (!snapshot || snapshot.room.id !== roomId) return
+    const current = new Map(snapshot.participants.map((p) => [p.id, p.displayName]))
+    const before = known.current
+    known.current = { room: snapshot.room.id, ids: current }
+    if (!before || before.room !== snapshot.room.id) return
+    snapshot.participants.forEach((p, index) => {
+      if (p.id !== participantId && !before.ids.has(p.id))
+        toast.show({ key: `join-${p.id}`, title: `${p.displayName} в комнате`, tone: index % 6 })
+    })
+    before.ids.forEach((name, id) => {
+      if (!current.has(id) && id !== participantId)
+        toast.show({ key: `left-${id}`, title: `${name} вышел из комнаты`, ttl: 4000 })
+    })
+  }, [snapshot, roomId, participantId])
+  useEffect(() => () => toast.clear(), [roomId])
   const me = snapshot?.participants.find((p) => p.id === participantId),
     isHost = me?.id === snapshot?.room.hostParticipantId,
     canEdit = Boolean(isHost || me?.canEdit),
