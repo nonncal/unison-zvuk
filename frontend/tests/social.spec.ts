@@ -25,7 +25,7 @@ async function create(page: Page, title: string, moderated = false) {
     expect(response.status()).toBe(201)
     break
   }
-  await expect(page.getByRole('heading', { name: 'Хорошо, когда вместе.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Сменить комнату' })).toBeVisible()
   await page.getByRole('button', { name: 'Пригласить друга' }).click()
   await expect(page.getByLabel('Ссылка-приглашение')).toHaveValue(/#invite=/)
   const invite = await page.getByLabel('Ссылка-приглашение').inputValue()
@@ -58,6 +58,7 @@ test('moderated group admits members, synchronizes permissions queue and reactio
     await g.page.reload()
     await expect(g.page.getByRole('status')).toContainText('зале ожидания')
     await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: /Участники \(/ }).click()
     await page.getByRole('button', { name: 'Впустить Аня', exact: true }).click()
     await expect(g.page).toHaveURL(/\/room\//)
     await expect(page.getByText('2/10 в комнате')).toBeVisible()
@@ -157,6 +158,31 @@ test('host transfers ownership explicitly and removes an active member', async (
     await g.page.getByRole('button', { name: 'Удалить из комнаты', exact: true }).click()
     await expect(page.getByText('Соединение завершено', { exact: true })).toBeVisible()
     await close(g.page)
+  } finally {
+    await g.context.close()
+  }
+})
+
+test('listener proposes a song and only host can approve it', async ({ page, browser }) => {
+  const invite = await create(page, 'Предложения друзей')
+  const g = await guest(browser, invite, 'Аня')
+  try {
+    await g.page.getByRole('button', { name: 'Войти и включить звук' }).click()
+    await expect(g.page).toHaveURL(/\/room\//)
+    await page.getByRole('button', { name: 'Убрать После дождя', exact: true }).click()
+    await g.page
+      .getByLabel('Предложить композицию')
+      .selectOption({ label: 'После дождя — Unison Studio' })
+    await g.page.getByRole('button', { name: 'Предложить', exact: true }).click()
+    await expect(page.getByText('Предлагает Аня')).toBeVisible()
+    await expect(
+      g.page.getByRole('button', { name: 'Принять предложение После дождя' }),
+    ).toHaveCount(0)
+    await page.getByRole('button', { name: 'Принять предложение После дождя' }).click()
+    await expect(g.page.locator('.queue-track').filter({ hasText: 'После дождя' })).toHaveCount(1)
+    await expect(page.getByText('Предлагает Аня')).toHaveCount(0)
+    await expect(g.page.getByRole('button', { name: 'Воспроизвести для всех' })).toBeDisabled()
+    await close(page)
   } finally {
     await g.context.close()
   }

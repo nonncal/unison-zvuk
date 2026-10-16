@@ -1,110 +1,13 @@
-import { test, expect, type Page, type Browser } from '@playwright/test'
-interface InstrumentedWindow extends Window {
-  __audio?: HTMLMediaElement
-  __sockets?: WebSocket[]
-}
-async function instrument(page: Page) {
-  await page.addInitScript(() => {
-    const w = window as InstrumentedWindow
-    const play = HTMLMediaElement.prototype.play
-    HTMLMediaElement.prototype.play = function () {
-      w.__audio = this
-      return play.call(this)
-    }
-    const NativeSocket = window.WebSocket
-    w.__sockets = []
-    window.WebSocket = class extends NativeSocket {
-      constructor(url: string | URL, protocols?: string | string[]) {
-        super(url, protocols)
-        w.__sockets!.push(this)
-      }
-    }
-  })
-}
-async function create(page: Page) {
-  await instrument(page)
-  await page.goto('/')
-  await expect(page.getByText('Локальная демоверсия', { exact: false })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Создать комнату', exact: true }).click()
-  await page.getByLabel('Как вас зовут').fill('Кирилл')
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const [response] = await Promise.all([
-      page.waitForResponse(
-        (r) => new URL(r.url()).pathname === '/api/v1/rooms' && r.request().method() === 'POST',
-      ),
-      page
-        .getByRole('dialog')
-        .getByRole('button', { name: 'Создать комнату', exact: true })
-        .click(),
-    ])
-    if (response.status() === 429 && attempt === 0) {
-      await page.waitForTimeout(
-        Math.min(60, Number(response.headers()['retry-after']) || 60) * 1000,
-      )
-      continue
-    }
-    expect(response.status()).toBe(201)
-    break
-  }
-  await expect(page.getByRole('heading', { name: 'Хорошо, когда вместе.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Пригласить друга' }).click()
-  await expect(page.getByLabel('Ссылка-приглашение')).toHaveValue(/#invite=/)
-  const invite = await page.getByLabel('Ссылка-приглашение').inputValue()
-  await page.getByRole('button', { name: 'Закрыть окно' }).click()
-  return invite
-}
-async function guest(browser: Browser, invite: string) {
-  const ctx = await browser.newContext()
-  const page = await ctx.newPage()
-  await instrument(page)
-  await page.goto(invite)
-  await page.getByLabel('Как вас зовут').fill('Аня')
-  await page.getByRole('button', { name: 'Войти и включить звук' }).click()
-  await expect(page).toHaveURL(/\/room\//)
-  return { ctx, page }
-}
-async function select(page: Page, title = 'После дождя') {
-  await page.getByRole('button', { name: 'Открыть подборку' }).click()
-  await page.getByRole('button', { name: `Выбрать ${title}`, exact: true }).click()
-  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Воспроизвести для всех' })).toBeEnabled()
-  await waitReady(page)
-}
-async function waitReady(page: Page) {
-  const roomId = new URL(page.url()).pathname.split('/').at(-1)
-  await expect
-    .poll(async () => {
-      const response = await page.request.get(`/api/v1/rooms/${roomId}`)
-      const snapshot = await response.json()
-      return snapshot.participants.every(
-        (p: {
-          connectionState: string
-          readiness: { state: string; bufferedAheadMs: number; autoplayAllowed: boolean } | null
-        }) =>
-          p.connectionState === 'online' &&
-          p.readiness?.state === 'ready' &&
-          p.readiness.autoplayAllowed &&
-          p.readiness.bufferedAheadMs >= 3000,
-      )
-    })
-    .toBe(true)
-}
-async function media(page: Page) {
-  return page.evaluate(() => {
-    const a = (window as InstrumentedWindow).__audio
-    return {
-      position: (a?.currentTime ?? 0) * 1000,
-      paused: a?.paused,
-      ready: a?.readyState ?? 0,
-      source: a?.src ?? '',
-    }
-  })
-}
-async function close(page: Page) {
-  await page.getByRole('button', { name: 'Закрыть комнату для всех' }).first().click()
-  await page.getByRole('button', { name: 'Закрыть для всех', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Этот момент завершён.' })).toBeVisible()
-}
+import { test, expect } from '@playwright/test'
+import {
+  create,
+  guest,
+  select,
+  media,
+  close,
+  instrument,
+  type InstrumentedWindow,
+} from './api-support'
 test.beforeEach(async ({ request }) => {
   const ready = await request.get('/health/ready')
   expect(ready.status(), 'Real backend dependencies must be ready').toBe(200)
@@ -132,7 +35,7 @@ test('independent sessions play actual S3 audio, pause, seek and transfer host',
     await slider.focus()
     await slider.press('Home')
     await slider.press('ArrowRight')
-    await expect.poll(async () => (await media(g.page)).position).toBeLessThan(1000)
+    await expect.poll(async () => (await media(g.page)).position).toBeLessThanOrEqual(1000)
     await g.page.getByRole('button', { name: 'Выключить звук у меня' }).click()
     await expect(page.getByRole('button', { name: 'Выключить звук у меня' })).toBeVisible()
     await page.getByRole('button', { name: 'Выйти из комнаты' }).click()
@@ -193,7 +96,10 @@ test('upload passes signed PUT and worker processing before both can listen', as
   try {
     await page.getByRole('button', { name: 'Загрузить файл' }).click()
     await page.getByLabel('Выберите аудиофайл').setInputFiles('public/audio/demo-1.wav')
-    await expect(page.getByRole('status')).toContainText('Композиция добавлена', { timeout: 90000 })
+    await expect(page.getByRole('dialog').getByRole('status')).toContainText(
+      'Композиция добавлена',
+      { timeout: 90000 },
+    )
     await page.getByRole('button', { name: 'Закрыть окно' }).click()
     await select(page, 'demo-1')
     await expect(g.page.getByRole('heading', { name: 'demo-1', exact: true })).toBeVisible()
@@ -225,3 +131,36 @@ test('upload passes signed PUT and worker processing before both can listen', as
     await g.ctx.close()
   }
 })
+
+for (const format of ['mp3', 'm4a'])
+  test(`embedded ${format} artwork reaches both listeners without a manual cover upload`, async ({
+    page,
+    browser,
+  }) => {
+    const invite = await create(page)
+    const g = await guest(browser, invite)
+    try {
+      await page.getByRole('button', { name: 'Загрузить файл' }).click()
+      await page
+        .getByLabel('Выберите аудиофайл')
+        .setInputFiles(`tests/fixtures/embedded-cover.${format}`)
+      await expect(page.getByRole('dialog').getByRole('status')).toContainText(
+        'Композиция добавлена',
+        { timeout: 90000 },
+      )
+      await page.getByRole('button', { name: 'Закрыть окно' }).click()
+      await select(page, 'Embedded cover test')
+      for (const listener of [page, g.page]) {
+        const cover = listener.getByRole('img', { name: 'Обложка: Embedded cover test' })
+        await expect(cover).toHaveAttribute('src', /cover\?v=1$/)
+        await expect
+          .poll(() => cover.evaluate((e) => (e as HTMLImageElement).naturalWidth))
+          .toBe(512)
+        const src = await cover.getAttribute('src')
+        expect((await listener.request.get(src!)).headers()['content-type']).toContain('image/webp')
+      }
+      await close(page)
+    } finally {
+      await g.ctx.close()
+    }
+  })

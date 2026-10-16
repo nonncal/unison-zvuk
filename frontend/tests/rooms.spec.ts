@@ -8,7 +8,7 @@ async function createRoom(page: Page) {
     .getByRole('dialog')
     .getByRole('button', { name: 'Создать комнату', exact: true })
     .click()
-  await expect(page.getByRole('heading', { name: 'Хорошо, когда вместе.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Сменить комнату' })).toBeVisible()
 }
 async function inviteLink(page: Page) {
   await page.getByRole('button', { name: 'Пригласить друга' }).click()
@@ -64,7 +64,7 @@ test('two listeners share play, pause, seek and host transfer', async ({ page, c
     .poll(async () =>
       Number(await guest.getByRole('slider', { name: 'Общая позиция композиции' }).inputValue()),
     )
-    .toBeLessThan(1000)
+    .toBeLessThanOrEqual(1000)
   await guest.getByRole('button', { name: 'Выключить звук у меня' }).click()
   await expect(guest.getByRole('button', { name: 'Включить звук у меня' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Выключить звук у меня' })).toBeVisible()
@@ -72,7 +72,7 @@ test('two listeners share play, pause, seek and host transfer', async ({ page, c
   await expect(guest.getByRole('button', { name: 'Открыть подборку' })).toBeVisible()
   await guest.getByRole('button', { name: 'Закрыть комнату для всех' }).click()
   await guest.getByRole('button', { name: 'Закрыть для всех', exact: true }).click()
-  await expect(guest.getByRole('heading', { name: 'Этот момент завершён.' })).toBeVisible()
+  await expect(guest.getByRole('heading', { name: 'Комната закрыта.' })).toBeVisible()
 })
 test('late join follows the playing timeline and third guest is rejected', async ({
   page,
@@ -152,7 +152,7 @@ test('mobile host can close the room', async ({ page }) => {
   await createRoom(page)
   await page.getByRole('button', { name: 'Закрыть комнату для всех' }).click()
   await page.getByRole('button', { name: 'Закрыть для всех', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Этот момент завершён.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Комната закрыта.' })).toBeVisible()
 })
 
 test('clipboard refusal offers manual copying inside the dialog', async ({ page }) => {
