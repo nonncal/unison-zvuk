@@ -76,3 +76,24 @@ test('lyrics stored inside an uploaded file are picked up by the worker', async 
   await expect(panel(page)).toContainText('Текст из тегов файла')
   await expect(panel(page).locator('li')).toHaveCount(3)
 })
+
+test('a lyrics file picked after the audio, during or after the upload, is still applied', async ({
+  page,
+}) => {
+  await create(page)
+  await page.getByRole('button', { name: 'Загрузить файл' }).click()
+  await page.getByLabel('Выберите аудиофайл').setInputFiles('tests/fixtures/demo-1.wav')
+  await page.getByLabel('Файл с текстом песни').setInputFiles({
+    name: 'late.lrc',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('[00:01.00]Поздняя строка\n[00:03.00]Ещё одна\n', 'utf-8'),
+  })
+  await expect(page.getByRole('dialog').getByRole('status').first()).toContainText(
+    'Композиция добавлена',
+    { timeout: 90000 },
+  )
+  await expect(page.getByRole('dialog')).toContainText('Текст сохранён')
+  await page.getByRole('button', { name: 'Закрыть окно' }).click()
+  await select(page, 'demo-1')
+  await expect(panel(page)).toContainText('Поздняя строка')
+})

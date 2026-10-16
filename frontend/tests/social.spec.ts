@@ -158,7 +158,9 @@ test('host transfers ownership explicitly and removes an active member', async (
     await expect(page.getByRole('button', { name: 'Пригласить друга' })).toHaveCount(0)
     await g.page.getByRole('button', { name: 'Удалить участника: Кирилл' }).click()
     await g.page.getByRole('button', { name: 'Удалить из комнаты', exact: true }).click()
-    await expect(page.getByText('Соединение завершено', { exact: true })).toBeVisible()
+    // The removed person is sent home right away, not after a timeout.
+    await expect(page).toHaveURL(/\/$/, { timeout: 3000 })
+    await expect(page.getByText('Вас удалили из комнаты')).toBeVisible()
     await close(g.page)
   } finally {
     await g.context.close()

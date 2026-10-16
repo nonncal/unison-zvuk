@@ -3,7 +3,7 @@ export type Role = 'host' | 'listener'
 export type AudioState =
   'locked' | 'loading' | 'ready' | 'playing' | 'paused' | 'buffering' | 'error'
 export type ConnectionState =
-  'idle' | 'connecting' | 'connected' | 'reconnecting' | 'failed' | 'closed'
+  'idle' | 'connecting' | 'connected' | 'reconnecting' | 'failed' | 'closed' | 'removed'
 export interface Participant {
   id: string
   displayName: string

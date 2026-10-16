@@ -223,6 +223,11 @@ export function connectWebSocket(
       stopProbing()
       rejectReceipts()
       if (disposed) return
+      if (event.code === 4010) {
+        // The host removed this participant or they left from another device.
+        onConnection('removed')
+        return
+      }
       if ([1002, 1008, 4001, 4004, 4009].includes(event.code)) {
         onConnection('closed')
         onError(

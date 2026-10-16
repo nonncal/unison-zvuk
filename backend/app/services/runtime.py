@@ -229,7 +229,7 @@ class Runtime:
                             connection.room_id == room_id
                             and connection.participant_id not in present
                         ):
-                            connection.stop(1008)
+                            connection.stop(4010)
                 self.manager.broadcast(
                     room_id, self.manager.event(record.event_type, revision, payload, record.id)
                 )

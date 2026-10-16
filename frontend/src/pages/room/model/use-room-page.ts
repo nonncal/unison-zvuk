@@ -55,7 +55,12 @@ export function useRoomPage() {
         toast.show({ key: `left-${id}`, title: `${name} вышел из комнаты`, ttl: 4000 })
     })
   }, [snapshot, roomId, participantId])
-  useEffect(() => () => toast.clear(), [roomId])
+  useEffect(() => {
+    if (connection !== 'removed') return
+    audioEngine.retrySource()
+    toast.show({ key: 'removed', title: 'Вас удалили из комнаты', ttl: 8000, tone: 1 })
+    navigate('/')
+  }, [connection, navigate])
   const me = snapshot?.participants.find((p) => p.id === participantId),
     isHost = me?.id === snapshot?.room.hostParticipantId,
     canEdit = Boolean(isHost || me?.canEdit),

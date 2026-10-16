@@ -92,7 +92,10 @@ export function RoomPlayer({
           {snapshot.participants.length}/{snapshot.room.capacity} в комнате
         </span>
       </div>
-      <div className="seek-wrap" style={{ '--p': fraction } as CSSProperties}>
+      <div
+        className={`seek-wrap ${selected ? 'has-marks' : ''}`}
+        style={{ '--p': fraction } as CSSProperties}
+      >
         {selected && (
           <div className="sync-marks" aria-hidden="true">
             {snapshot.participants.map((p, index) =>

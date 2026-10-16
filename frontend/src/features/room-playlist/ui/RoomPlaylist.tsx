@@ -177,14 +177,14 @@ export function RoomPlaylist({
       timer: 0,
     }
     // Pointer moves are measured in page space so scrolling during the drag stays consistent.
-    session.current.startY = event.clientY
-    event.currentTarget.setPointerCapture(event.pointerId)
   }
   function moving(event: React.PointerEvent<HTMLLIElement>) {
     const s = session.current
     if (!s) return
     s.pointerY = event.clientY
     if (!drag?.active && Math.abs(event.clientY - s.startY) < 6) return
+    if (!dragged.current && !event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.setPointerCapture(event.pointerId)
     dragged.current = true
     if (!s.timer)
       s.timer = window.setInterval(() => {

@@ -68,3 +68,21 @@ test('a queue track is grabbed and dropped anywhere, by pointer and by keyboard'
   keyed.splice(1, 0, keyed.splice(3, 1)[0])
   await expect.poll(titles).toEqual(keyed)
 })
+test('clicking a song in the queue starts it for the room', async ({ page }) => {
+  await create(page)
+  await expect(page.locator('.queue-list li')).toHaveCount(9)
+  await page.waitForTimeout(800)
+  await page.locator('.queue-track', { hasText: 'К Элизе' }).click()
+  await expect(page.getByRole('heading', { name: 'К Элизе', exact: true })).toBeVisible()
+  await expect(page.locator('.queue-list li.queue-current')).toContainText('К Элизе')
+})
+test('listener dots sit on the seek line next to the playhead', async ({ page }) => {
+  await create(page)
+  await page.getByRole('button', { name: 'Открыть подборку' }).click()
+  await page.getByRole('button', { name: 'Выбрать К Элизе', exact: true }).click()
+  const track = page.locator('input[type="range"][aria-label="Общая позиция композиции"]')
+  const dot = page.locator('.sync-mark').first()
+  await expect(dot).toBeVisible()
+  const [t, d] = [(await track.boundingBox())!, (await dot.boundingBox())!]
+  expect(Math.abs(d.y + d.height / 2 - (t.y + t.height / 2))).toBeLessThan(2)
+})

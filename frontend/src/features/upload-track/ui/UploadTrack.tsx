@@ -9,17 +9,34 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
     [error, setError] = useState(''),
     [name, setName] = useState(''),
     [dragging, setDragging] = useState(false),
-    [lyrics, setLyrics] = useState<File | null>(null),
+    [lyrics, setLyricsState] = useState<File | null>(null),
+    [uploadedId, setUploadedId] = useState(''),
     [note, setNote] = useState('')
   const controller = useRef<AbortController | null>(null),
     input = useRef<HTMLInputElement>(null),
-    lyricsInput = useRef<HTMLInputElement>(null)
+    lyricsInput = useRef<HTMLInputElement>(null),
+    lyricsRef = useRef<File | null>(null)
+  const setLyrics = (file: File | null) => {
+    lyricsRef.current = file
+    setLyricsState(file)
+  }
+  async function saveLyrics(trackId: string, file: File) {
+    try {
+      await lyricsApi.save(roomId, trackId, await file.text())
+      setNote('Текст сохранён')
+      setLyrics(null)
+      onDone()
+    } catch (e) {
+      setNote(`Текст не сохранён. ${errorMessage(e)}`)
+    }
+  }
   useEffect(() => () => controller.current?.abort(), [])
   async function upload(file?: File) {
     if (!file || stage === 'sending' || stage === 'processing') return
     const abort = new AbortController()
     controller.current = abort
     setName(file.name)
+    setUploadedId('')
     setError('')
     setProgress(0)
     setStage('sending')
@@ -34,13 +51,9 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
         abort.signal,
       )
       if (abort.signal.aborted) return
-      if (lyrics && gateway.mode === 'api') {
-        try {
-          await lyricsApi.save(roomId, track.id, await lyrics.text())
-        } catch (e) {
-          setNote(`Песня добавлена, но текст не сохранён. ${errorMessage(e)}`)
-        }
-      }
+      setUploadedId(track.id)
+      // The lyrics file may have been picked while the audio was still uploading.
+      if (lyricsRef.current && gateway.mode === 'api') await saveLyrics(track.id, lyricsRef.current)
       setStage('done')
       onDone()
     } catch (e) {
@@ -75,16 +88,16 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
             aria-label="Файл с текстом песни"
             onChange={(e) => {
               const file = e.target.files?.[0]
-              setLyrics(file && file.size <= 128 * 1024 ? file : null)
-              setNote(file && file.size > 128 * 1024 ? 'Файл с текстом больше 128 КБ' : '')
               e.target.value = ''
+              if (!file) return
+              if (file.size > 128 * 1024) return setNote('Файл с текстом больше 128 КБ')
+              setNote('')
+              setLyrics(file)
+              // A song that is already uploaded takes the text right away.
+              if (uploadedId && stage === 'done') void saveLyrics(uploadedId, file)
             }}
           />
-          <button
-            className="text-link"
-            disabled={busy}
-            onClick={() => lyricsInput.current?.click()}
-          >
+          <button className="text-link" onClick={() => lyricsInput.current?.click()}>
             {lyrics ? `Текст: ${lyrics.name}` : 'Добавить текст песни (.lrc или .txt)'}
           </button>
           {lyrics && (
