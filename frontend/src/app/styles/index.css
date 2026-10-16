@@ -1,37 +1,47 @@
 /*
  * Unison design system.
- * One idea: two listeners, two colours, one moment. Periwinkle and amber are the
- * only saturated colours in the product; everything else is ink on a deep night.
+ * One idea: two listeners, two colours, one moment. Two listener colours are the
+ * only saturated colours in the product; everything else is neutral ink on ground.
  * Page-level layout lives next to each page/widget; this file holds tokens,
  * primitives and the pieces several screens share.
  */
+/*
+ * Two themes share one set of roles. Surfaces separate by a step in tone, not by
+ * lines; the two listener colours are the only saturated colours in the product.
+ */
 :root {
   /* Surfaces */
-  --ground: #131629;
-  --raise: #1b1f3a;
-  --raise-hover: #262b52;
-  --line: #343a68;
-  --line-strong: #7078b4;
+  --ground: #eef1ef;
+  --raise: #e1e7e4;
+  --raise-hover: #d4dcd8;
+  --float: #fbfcfb;
+  --line: #cbd4d0;
+  --line-strong: #77857f;
+  --shade: rgb(15 21 19 / 0.2);
+  --scrim: rgb(15 21 19 / 0.5);
   /* Text */
-  --ink: #eef0fb;
-  --muted: #a9afd3;
-  --on-accent: #10132a;
+  --ink: #0e1412;
+  --muted: #4c5954;
+  --on-accent: #ffffff;
   /* The two voices (host first, second listener next) and the rest of the room */
-  --you: #8da0ff;
-  --friend: #ffc462;
-  --tone-0: #8da0ff;
-  --tone-1: #ffc462;
-  --tone-2: #6fd8c0;
-  --tone-3: #ff9cc2;
-  --tone-4: #7cc8ff;
-  --tone-5: #c5a6ff;
+  --you: #3f7d0a;
+  --you-hover: #356b08;
+  --friend: #c5371a;
+  --tone-0: #3f7d0a;
+  --tone-1: #c5371a;
+  --tone-2: #00718a;
+  --tone-3: #98660a;
+  --tone-4: #b32f69;
+  --tone-5: #1c7a47;
   /* Semantics */
-  --ok: #72dfae;
-  --bad: #ff9aa6;
-  --bad-fill: #ff7d8d;
+  --ok: #1c7a47;
+  --bad: #b3261e;
+  --bad-fill: #b3261e;
+  --bad-hover: #96201a;
+  color-scheme: light;
   /* Type */
-  --font-body: 'Onest Variable', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Unbounded Variable', 'Onest Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Geologica Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Geologica Variable', 'Segoe UI', system-ui, sans-serif;
   /* Shape: controls are pills, content is softly squared, sheets are largest */
   --r-cover: 14px;
   --r-field: 12px;
@@ -42,12 +52,67 @@
   line-height: 1.5;
   color: var(--ink);
   background: var(--ground);
-  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #12171a;
+    --raise: #1b2226;
+    --raise-hover: #263035;
+    --float: #222b30;
+    --line: #2c373c;
+    --line-strong: #667479;
+    --shade: rgb(0 0 0 / 0.5);
+    --scrim: rgb(5 8 9 / 0.72);
+    --ink: #f3f1ea;
+    --muted: #a4aeb1;
+    --on-accent: #10160a;
+    --you: #c6ef62;
+    --you-hover: #d6f58a;
+    --friend: #ff7b5a;
+    --tone-0: #c6ef62;
+    --tone-1: #ff7b5a;
+    --tone-2: #5fd3e8;
+    --tone-3: #ffd45e;
+    --tone-4: #ff8fb9;
+    --tone-5: #8fe0a4;
+    --ok: #7fe3a8;
+    --bad: #ff9a8e;
+    --bad-fill: #ff7b6c;
+    --bad-hover: #ff9a8e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --ground: #12171a;
+  --raise: #1b2226;
+  --raise-hover: #263035;
+  --float: #222b30;
+  --line: #2c373c;
+  --line-strong: #667479;
+  --shade: rgb(0 0 0 / 0.5);
+  --scrim: rgb(5 8 9 / 0.72);
+  --ink: #f3f1ea;
+  --muted: #a4aeb1;
+  --on-accent: #10160a;
+  --you: #c6ef62;
+  --you-hover: #d6f58a;
+  --friend: #ff7b5a;
+  --tone-0: #c6ef62;
+  --tone-1: #ff7b5a;
+  --tone-2: #5fd3e8;
+  --tone-3: #ffd45e;
+  --tone-4: #ff8fb9;
+  --tone-5: #8fe0a4;
+  --ok: #7fe3a8;
+  --bad: #ff9a8e;
+  --bad-fill: #ff7b6c;
+  --bad-hover: #ff9a8e;
+  color-scheme: dark;
 }
 * {
   box-sizing: border-box;
@@ -229,11 +294,10 @@ svg {
   color: var(--on-accent);
 }
 .button-primary:hover:not(:disabled) {
-  background: #a8b6ff;
+  background: var(--you-hover);
 }
 .button-secondary {
-  background: transparent;
-  border-color: var(--line-strong);
+  background: var(--raise);
   color: var(--ink);
 }
 .button-secondary:hover:not(:disabled) {
@@ -244,7 +308,7 @@ svg {
   color: var(--on-accent);
 }
 .button-danger:hover:not(:disabled) {
-  background: #ff97a4;
+  background: var(--bad-hover);
 }
 .full-width {
   width: 100%;
@@ -320,7 +384,7 @@ svg {
   font-size: 16px;
 }
 .field input::placeholder {
-  color: #8189b8;
+  color: var(--muted);
 }
 .field input:focus-visible,
 .field select:focus-visible,
@@ -359,14 +423,13 @@ svg {
   margin-bottom: 16px;
   border-radius: var(--r-field);
   background: var(--raise);
-  border: 1px solid var(--line);
   font-size: 15px;
 }
 .inline-banner .text-link {
   margin-left: auto;
 }
 .error-banner {
-  border-color: var(--bad);
+  box-shadow: inset 4px 0 0 var(--bad);
   color: var(--ink);
 }
 .error-banner .icon-button {
@@ -379,15 +442,15 @@ svg {
   max-height: calc(100dvh - 48px);
   margin: auto;
   padding: 24px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--r-sheet);
-  background: var(--raise);
+  background: var(--float);
   color: var(--ink);
-  box-shadow: 0 24px 60px rgb(5 6 18 / 0.55);
+  box-shadow: 0 24px 60px var(--shade);
   overflow: auto;
 }
 .dialog::backdrop {
-  background: rgb(8 10 24 / 0.72);
+  background: var(--scrim);
 }
 .dialog-wide {
   width: min(640px, calc(100vw - 32px));
@@ -430,9 +493,9 @@ svg {
 
 /* Cover: uploaded art fills the square; the fallback is two overlapping circles. */
 .cover {
-  --a: #8da0ff;
-  --b: #ffc462;
-  --paper: #232850;
+  --a: var(--tone-0);
+  --b: var(--tone-1);
+  --paper: var(--raise-hover);
   width: 100%;
   aspect-ratio: 1;
   position: relative;
@@ -463,8 +526,7 @@ svg {
 .orbit-b {
   right: 9%;
   background: var(--b);
-  mix-blend-mode: screen;
-  opacity: 0.92;
+  opacity: 0.88;
 }
 .orbit-c {
   display: none;
@@ -645,10 +707,6 @@ svg {
   align-items: center;
   gap: 12px;
   padding: 8px 4px;
-  border-top: 1px solid var(--line);
-}
-.track-row:first-child {
-  border-top: 0;
 }
 .track-row.selected .track-description strong {
   color: var(--friend);
@@ -751,8 +809,9 @@ svg {
 /* Waiting room, member actions */
 .waiting-panel {
   margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  padding: 16px;
+  border-radius: var(--r-field);
+  background: var(--raise);
 }
 .waiting-guest {
   display: flex;
@@ -807,7 +866,6 @@ svg {
   padding: 32px;
   color: var(--muted);
   font-size: 14px;
-  border-top: 1px solid var(--line);
 }
 
 @media (max-width: 600px) {
@@ -842,5 +900,42 @@ svg {
   }
   .spin {
     animation: none;
+  }
+}
+
+/* Header controls and theme switch */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: end;
+}
+.theme-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--raise);
+}
+.theme-toggle button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.theme-toggle button:hover {
+  color: var(--ink);
+}
+.theme-toggle button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--ground);
+}
+@media (max-width: 640px) {
+  .theme-toggle button:not([aria-pressed='true']) {
+    display: none;
   }
 }

@@ -4,12 +4,14 @@ const Home = lazy(() => import('@/pages/home').then((module) => ({ default: modu
 const Join = lazy(() => import('@/pages/join').then((module) => ({ default: module.Join })))
 const Room = lazy(() => import('@/pages/room').then((module) => ({ default: module.Room })))
 import { Brand } from '@/shared/ui/Brand'
+import { Toaster } from '@/shared/ui/Toaster'
 export default function App() {
   return (
     <BrowserRouter>
       <a href="#main-content" className="skip-link">
         К основному содержимому
       </a>
+      <Toaster />
       <div id="main-content" tabIndex={-1}>
         <Suspense
           fallback={
