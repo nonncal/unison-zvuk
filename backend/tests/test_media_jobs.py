@@ -121,11 +121,20 @@ def test_metadata_repairs_only_unambiguous_swapped_ascii(raw: str, expected: str
 
 
 @pytest.mark.parametrize("failure", [True, False])
-def test_optional_artwork_is_bounded_and_failure_is_nonfatal(tmp_path, monkeypatch, failure):
+def test_optional_artwork_is_bounded_and_failure_is_nonfatal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: bool
+) -> None:
     directory = submit(tmp_path, uuid4(), b"wave", "audio/mpeg")
-    calls = []
+    calls: list[list[str]] = []
 
-    def execute(directory, command, output, seconds, max_file_bytes, **kwargs):
+    def execute(
+        directory: Path,
+        command: list[str],
+        output: str,
+        seconds: int,
+        max_file_bytes: int,
+        **kwargs: object,
+    ) -> None:
         calls.append(command)
         assert seconds == 8 and max_file_bytes == 5 * 1024 * 1024
         if failure:

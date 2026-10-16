@@ -170,8 +170,13 @@ async def test_crashed_worker_is_requeued_twice_and_old_attempt_is_fenced(
 
 @pytest.mark.parametrize("manual", [False, True])
 async def test_embedded_cover_is_published_without_overwriting_manual(
-    database, storage, settings, tmp_path, monkeypatch, manual
-):
+    database: AsyncEngine,
+    storage: Storage,
+    settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    manual: bool,
+) -> None:
     from io import BytesIO
 
     from PIL import Image
@@ -182,12 +187,14 @@ async def test_embedded_cover_is_published_without_overwriting_manual(
     Image.new("RGB", (64, 64), "blue").save(output, format="WEBP")
     async with resources.sessions.begin() as db:
         upload = await db.get(Upload, upload_id)
+        assert upload is not None
         track = await db.get(Track, upload.track_id)
+        assert track is not None
         if manual:
             track.cover_data = b"manual cover"
             track.cover_version = 3
 
-    async def ready(directory):
+    async def ready(directory: Path) -> MediaReady:
         (directory / "out" / "normalized.mp3").write_bytes(b"audio")
         (directory / "out" / "cover.webp").write_bytes(output.getvalue())
         result = MediaReady(duration_ms=2000, has_cover=True)
@@ -200,7 +207,9 @@ async def test_embedded_cover_is_published_without_overwriting_manual(
     await audio.process_with_resources(resources, config, upload_id, job_id)
     async with resources.sessions() as db:
         upload = await db.get(Upload, upload_id)
+        assert upload is not None
         track = await db.get(Track, upload.track_id)
+        assert track is not None
         assert upload.status == "ready"
         if manual:
             assert track.cover_data == b"manual cover" and track.cover_version == 3
