@@ -39,7 +39,8 @@ export class AudioEngine {
   private lastReadiness = ''
   constructor() {
     this.audio.preload = 'auto'
-    this.audio.preservesPitch = true
+    // Rate nudges are <=2%: a tiny pitch shift is far less audible than time-stretch artefacts.
+    this.audio.preservesPitch = false
     this.audio.addEventListener('loadedmetadata', () => this.sync(true))
     this.audio.addEventListener('canplay', () => {
       this.buffering = false
@@ -340,7 +341,7 @@ export class AudioEngine {
       return
     }
     if (!this.audio.seeking) {
-      const action = correction(drift)
+      const action = correction(drift, this.correctionStart !== 0)
       if (
         force ||
         action.seek ||
