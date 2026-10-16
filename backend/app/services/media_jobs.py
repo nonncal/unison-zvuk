@@ -26,7 +26,7 @@ class MediaReady(WireModel):
     title: Annotated[StrictStr, Field(max_length=200)] = ""
     artist: Annotated[StrictStr, Field(max_length=200)] = ""
     has_cover: StrictBool = False
-    sample_rate: Literal[44100] = 44100
+    sample_rate: Literal[44100, 48000] = 44100
     channels: Literal[2] = 2
 
 

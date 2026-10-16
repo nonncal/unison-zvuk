@@ -10,7 +10,7 @@ import subprocess
 import time
 from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from app.services.media_jobs import (
@@ -194,6 +194,21 @@ def duration_ms(data: dict[str, Any]) -> int:
     return result
 
 
+# 48 kHz sources keep their rate (most browsers and DACs run at 48 kHz, so a second
+# resample would only add error); everything else is resampled once to 44.1 kHz.
+def output_rate(audio_stream: dict[str, Any]) -> Literal[44100, 48000]:
+    return 48_000 if str(audio_stream.get("sample_rate")) == "48000" else 44_100
+
+
+# The lossy encoder overshoots hot masters by up to ~0.5 dB, which clips in the
+# browser's 16-bit output. Leave headroom, then catch only the rare residual peak.
+AUDIO_FILTER = (
+    "aresample=resampler=soxr:precision=28,"
+    "volume=-1.5dB,"
+    "alimiter=limit=0.98:attack=5:release=50:level=disabled"
+)
+
+
 def extract_cover(directory: Path, streams: list[dict[str, Any]]) -> bool:
     """Artwork is optional: a malformed image must never discard valid audio."""
     stream = next(
@@ -282,6 +297,7 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
     ]
     if not audio or video:
         raise ProcessingFailure("UNSUPPORTED_MEDIA")
+    sample_rate = output_rate(audio[0])
     source_duration = duration_ms(original)
     clip_seconds = min(Decimal(source_duration) / 1000, Decimal("899.95"))
     execute(
@@ -309,14 +325,16 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
             "1",
             "-threads",
             "1",
+            "-af",
+            AUDIO_FILTER,
             "-ar",
-            "44100",
+            str(sample_rate),
             "-ac",
             "2",
             "-c:a",
             "libmp3lame",
             "-b:a",
-            "192k",
+            "256k",
             "-t",
             str(clip_seconds),
             "-f",
@@ -337,13 +355,14 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
     if (
         not output_audio
         or output_audio[0].get("codec_name") != "mp3"
-        or int(output_audio[0].get("sample_rate", 0)) != 44100
+        or int(output_audio[0].get("sample_rate", 0)) != sample_rate
         or (output_audio[0].get("channels") != 2)
     ):
         raise ProcessingFailure("MEDIA_INVALID")
     tags = original.get("format", {}).get("tags", {})
     return MediaReady(
         duration_ms=duration_ms(output),
+        sample_rate=sample_rate,
         title=text_metadata(tags.get("title", "")),
         artist=text_metadata(tags.get("artist", "")),
         has_cover=extract_cover(directory, streams),
