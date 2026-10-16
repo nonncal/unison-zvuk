@@ -1,10 +1,15 @@
 import { expect, type Page, type Browser } from '@playwright/test'
+import { observePreparedAudio } from './audio-observation'
 export interface InstrumentedWindow extends Window {
-  __audio?: HTMLMediaElement
+  __audio?: Pick<
+    HTMLMediaElement,
+    'currentTime' | 'paused' | 'readyState' | 'src' | 'playbackRate' | 'seeking'
+  >
   __sockets?: WebSocket[]
   __clock?: unknown[]
 }
 export async function instrument(page: Page) {
+  await page.addInitScript(observePreparedAudio)
   await page.addInitScript(() => {
     const w = window as InstrumentedWindow
     const play = HTMLMediaElement.prototype.play

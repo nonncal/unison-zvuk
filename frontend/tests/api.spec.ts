@@ -35,7 +35,14 @@ test('independent sessions play actual S3 audio, pause, seek and transfer host',
     await slider.focus()
     await slider.press('Home')
     await slider.press('ArrowRight')
-    await expect.poll(async () => (await media(g.page)).position).toBeLessThanOrEqual(1000)
+    await expect.poll(async () => Number(await slider.inputValue())).toBeLessThanOrEqual(1000)
+    // A prepared buffer has no native currentTime while paused. Verify the
+    // requested seek by resuming the actual guest output from that offset.
+    await page.getByRole('button', { name: 'Воспроизвести для всех' }).click()
+    await expect.poll(async () => (await media(g.page)).paused).toBe(false)
+    expect((await media(g.page)).position).toBeLessThan(2500)
+    await page.getByRole('button', { name: 'Пауза для всех' }).click()
+    await expect.poll(async () => (await media(g.page)).paused).toBe(true)
     await g.page.getByRole('button', { name: 'Выключить звук у меня' }).click()
     await expect(page.getByRole('button', { name: 'Выключить звук у меня' })).toBeVisible()
     await page.getByRole('button', { name: 'Выйти из комнаты' }).click()
