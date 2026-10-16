@@ -6,26 +6,20 @@ import { Brand } from '@/shared/ui/Brand'
 import { Cover } from '@/shared/ui/Cover'
 import { ModeNotice } from '@/shared/ui/ModeNotice'
 import { audioEngine } from '@/features/listen-together'
-import { ResumeRooms } from '@/features/resume-room'
-import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 export function Home() {
   const [create, setCreate] = useState(false)
   return (
     <div className="home-page">
       <header className="site-header">
         <Brand />
-        <div className="header-actions">
-          <a className="text-link" href="#how">
-            Как это работает
-          </a>
-          <ThemeToggle />
-        </div>
+        <a className="text-link" href="#how">
+          Как это работает
+        </a>
       </header>
       <ModeNotice />
       <main>
         <section className="home-hero">
           <div className="hero-copy">
-            <ResumeRooms />
             <h1>Слушайте музыку вместе, даже на расстоянии</h1>
             <p className="hero-description">
               Создайте комнату и отправьте ссылку. Трек, пауза и перемотка общие, а громкость у

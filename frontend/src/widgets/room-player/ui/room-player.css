@@ -145,7 +145,7 @@ input[type='range']:focus-visible::-moz-range-thumb {
   transition: transform 0.12s;
 }
 .play-button:hover:not(:disabled) {
-  background: var(--you-hover);
+  background: #fff;
 }
 .play-button:active:not(:disabled) {
   transform: scale(0.94);
@@ -157,6 +157,7 @@ input[type='range']:focus-visible::-moz-range-thumb {
   justify-content: space-between;
   gap: 8px 24px;
   padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 .control-caption {
   color: var(--muted);
@@ -182,6 +183,7 @@ input[type='range']:focus-visible::-moz-range-thumb {
   padding: 14px 16px;
   border-radius: var(--r-field);
   background: var(--raise);
+  border: 1px solid var(--line);
 }
 .player-hint {
   color: var(--muted);

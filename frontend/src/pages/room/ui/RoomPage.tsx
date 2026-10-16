@@ -29,7 +29,6 @@ import {
 } from 'lucide-react'
 import { Brand } from '@/shared/ui/Brand'
 import { Cover } from '@/shared/ui/Cover'
-import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { Dialog } from '@/shared/ui/Dialog'
 import { ModeNotice } from '@/shared/ui/ModeNotice'
 import { Library } from '@/features/select-track'
@@ -147,7 +146,6 @@ export function Room() {
           <ChevronDown size={15} />
         </button>
         <div className="header-actions">
-          <ThemeToggle />
           {isHost && (
             <button
               className="button button-secondary invite-button"
