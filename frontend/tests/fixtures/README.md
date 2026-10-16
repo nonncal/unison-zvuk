@@ -10,3 +10,5 @@ ffmpeg -f lavfi -i sine=frequency=440:duration=12 -ar 44100 -ac 1 \
 ```
 
 Остальные файлы проверяют извлечение встроенных метаданных и обложек.
+
+`tone-with-lyrics.mp3` is `startup-tone.mp3` with an ID3 `USLT` tag holding three timestamped lines. It checks that the worker reads lyrics stored inside an uploaded file.

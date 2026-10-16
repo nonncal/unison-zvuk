@@ -8,7 +8,19 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.services.lyrics import dump, id3_lyrics, parse_lyrics
+
 CATALOG_DIR = Path(__file__).resolve().parents[2] / "catalog"
+
+
+class CatalogLyrics(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, extra="forbid", frozen=True)
+
+    source: Literal["lrc", "text", "embedded"]
+    file: str | None = Field(default=None, pattern=r"^[a-z0-9-]+\.(lrc|txt)$")
+    author: str = Field(min_length=1)
+    author_death_year: int = Field(le=1925)
+    note: str = ""
 
 
 class CatalogTrack(BaseModel):
@@ -32,6 +44,7 @@ class CatalogTrack(BaseModel):
     license_id: Literal["CC0-1.0", "LicenseRef-Public-Domain"]
     license_uri: str
     cover: str
+    lyrics: CatalogLyrics | None = None
 
     @property
     def asset_id(self) -> UUID:
@@ -60,3 +73,18 @@ def read_audio(track: CatalogTrack, directory: Path = CATALOG_DIR) -> bytes:
     if len(audio) != track.size_bytes or hashlib.sha256(audio).hexdigest() != track.sha256:
         raise ValueError(f"Catalog audio checksum mismatch: {track.slug}")
     return audio
+
+
+def lyrics_document(track: CatalogTrack, audio: bytes, directory: Path = CATALOG_DIR) -> str | None:
+    """The stored lyrics for a catalog entry, read from its file or from the MP3's own tag."""
+    if track.lyrics is None:
+        return None
+    if track.lyrics.source == "embedded":
+        raw = id3_lyrics(audio)
+        if not raw:
+            raise ValueError(f"Catalog audio has no embedded lyrics: {track.slug}")
+        return dump(parse_lyrics(raw, "embedded"))
+    if track.lyrics.file is None:
+        raise ValueError(f"Catalog lyrics file is missing: {track.slug}")
+    raw = (directory / "lyrics" / track.lyrics.file).read_text(encoding="utf-8")
+    return dump(parse_lyrics(raw, "lrc" if track.lyrics.source == "lrc" else "text"))

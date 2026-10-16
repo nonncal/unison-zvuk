@@ -26,6 +26,7 @@ class MediaReady(WireModel):
     title: Annotated[StrictStr, Field(max_length=200)] = ""
     artist: Annotated[StrictStr, Field(max_length=200)] = ""
     has_cover: StrictBool = False
+    lyrics: Annotated[StrictStr, Field(max_length=20_000)] = ""
     sample_rate: Literal[44100, 48000] = 44100
     channels: Literal[2] = 2
 
@@ -131,7 +132,7 @@ def wait_for_result(directory: Path, seconds: float = 110) -> MediaReady | Media
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         try:
-            return result_adapter.validate_json(read_file(directory / "result.json", 16_384))
+            return result_adapter.validate_json(read_file(directory / "result.json", 65_536))
         except FileNotFoundError:
             time.sleep(0.1)
     return MediaFailed(error_code="PROCESSING_TIMEOUT")
@@ -141,7 +142,7 @@ async def wait_for_result_async(directory: Path, seconds: float = 110) -> MediaR
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         try:
-            return result_adapter.validate_json(read_file(directory / "result.json", 16_384))
+            return result_adapter.validate_json(read_file(directory / "result.json", 65_536))
         except FileNotFoundError:
             await asyncio.sleep(0.1)
     return MediaFailed(error_code="PROCESSING_TIMEOUT")

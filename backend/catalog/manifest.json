@@ -120,6 +120,86 @@
       "licenseId": "CC0-1.0",
       "licenseUri": "https://creativecommons.org/publicdomain/zero/1.0/",
       "cover": "green"
+    },
+    {
+      "id": "493b6b04-1b4b-5ba2-a30e-423bde77b3e7",
+      "slug": "silent-night-eastman",
+      "title": "Тихая ночь (Silent Night)",
+      "artist": "Франц Грубер",
+      "performer": "Catharine Eastman (LibriVox)",
+      "composerDeathYear": 1863,
+      "file": "silent-night-eastman.mp3",
+      "durationMs": 163056,
+      "sizeBytes": 3919139,
+      "sha256": "b367ca48ee487f4084733f5b5d7b19afd34e25423b649c542c0b582f707a74b2",
+      "sourceUri": "https://commons.wikimedia.org/wiki/File:Silent_Night_Librivox_2009.ogg",
+      "sourceRevisionUri": "https://commons.wikimedia.org/w/index.php?oldid=1179451356",
+      "sourceDownloadUri": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Silent_Night_Librivox_2009.ogg",
+      "sourceSha1": "3890d792f1facf84739ed600ef240928d4c7759d",
+      "recordingRights": "The performer released the LibriVox recording under CC0. The text is the public-domain English version of Joseph Mohr's 1818 lyrics.",
+      "licenseId": "CC0-1.0",
+      "licenseUri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "cover": "sky",
+      "lyrics": {
+        "source": "lrc",
+        "file": "silent-night-eastman.lrc",
+        "author": "Joseph Mohr, English text by John Freeman Young",
+        "authorDeathYear": 1885,
+        "note": "Тайминги построены по этой записи автоматическим распознаванием и паузам между фразами; строки третьего куплета выровнены по шагу припева и не сверены на слух."
+      }
+    },
+    {
+      "id": "7a9d514c-e663-5826-9d48-ccd1103b31c3",
+      "slug": "auld-lang-syne-bautsch",
+      "title": "Старое доброе время (Auld Lang Syne)",
+      "artist": "Роберт Бёрнс",
+      "performer": "Bautsch",
+      "composerDeathYear": 1796,
+      "file": "auld-lang-syne-bautsch.mp3",
+      "durationMs": 42762,
+      "sizeBytes": 1029178,
+      "sha256": "e4eb68b0b5741ec1117016ec0ee8f192f082cb66301a482c27bfd74fb92777a5",
+      "sourceUri": "https://commons.wikimedia.org/wiki/File:AuldLangSyne.ogg",
+      "sourceRevisionUri": "https://commons.wikimedia.org/w/index.php?oldid=1069174964",
+      "sourceDownloadUri": "https://upload.wikimedia.org/wikipedia/commons/a/a6/AuldLangSyne.ogg",
+      "sourceSha1": "1cf4acdffc1c85e3d3b0ef94be8922cec28c61e2",
+      "recordingRights": "The performer released their own recording under CC0. The lyrics are Robert Burns's public-domain text.",
+      "licenseId": "CC0-1.0",
+      "licenseUri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "cover": "sand",
+      "lyrics": {
+        "source": "text",
+        "file": "auld-lang-syne-bautsch.txt",
+        "author": "Robert Burns",
+        "authorDeathYear": 1796,
+        "note": "Обычный текст без таймкодов."
+      }
+    },
+    {
+      "id": "0d169678-6994-54e6-b9f2-379aebff0418",
+      "slug": "amazing-grace-southern-aire",
+      "title": "Amazing Grace",
+      "artist": "Джон Ньютон",
+      "performer": "Southern Aire, United States Air Force Reserve Band",
+      "composerDeathYear": 1807,
+      "file": "amazing-grace-southern-aire.mp3",
+      "durationMs": 130324,
+      "sizeBytes": 3133849,
+      "sha256": "7b4db01da8c5ff6e2bc3c96fc5380ec504bace9e7ba78989d14c22755fe27605",
+      "sourceUri": "https://commons.wikimedia.org/wiki/File:Amazing_Grace_(vocalist_with_guitar)_-_Southern_Aire_-_United_States_Air_Force_Reserve_Band.mp3",
+      "sourceRevisionUri": "https://commons.wikimedia.org/w/index.php?oldid=913382676",
+      "sourceDownloadUri": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Amazing_Grace_%28vocalist_with_guitar%29_-_Southern_Aire_-_United_States_Air_Force_Reserve_Band.mp3",
+      "sourceSha1": "c19506e3b11e96c9afe774d4fecb2df4557ac938",
+      "recordingRights": "United States Air Force performance and recording, published as public-domain music by the Air Force. The lyrics are John Newton's public-domain text.",
+      "licenseId": "LicenseRef-Public-Domain",
+      "licenseUri": "https://commons.wikimedia.org/w/index.php?oldid=913382676",
+      "cover": "peach",
+      "lyrics": {
+        "source": "embedded",
+        "author": "John Newton",
+        "authorDeathYear": 1807,
+        "note": "Синхронный текст записан в самом MP3 (тег USLT в формате LRC)."
+      }
     }
   ]
 }

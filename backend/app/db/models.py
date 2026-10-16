@@ -13,6 +13,7 @@ from sqlalchemy import (
     LargeBinary,
     MetaData,
     String,
+    Text,
     UniqueConstraint,
     func,
     text,
@@ -157,6 +158,8 @@ class Track(Base):
     error_code: Mapped[str | None] = mapped_column(String(64))
     cover_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     cover_version: Mapped[int] = mapped_column(default=0, server_default="0")
+    lyrics: Mapped[str | None] = mapped_column(Text)
+    lyrics_version: Mapped[int] = mapped_column(default=0, server_default="0")
     source_uri: Mapped[str | None] = mapped_column(String(512))
     license_id: Mapped[str | None] = mapped_column(String(64))
     license_uri: Mapped[str | None] = mapped_column(String(512))

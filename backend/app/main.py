@@ -19,6 +19,7 @@ from starlette.responses import Response
 
 from app.api.body_limit import RequestBodyLimit
 from app.api.covers import router as covers_router
+from app.api.lyrics import router as lyrics_router
 from app.api.media import router as media_router
 from app.api.rooms import error_body, router
 from app.api.social import router as social_router
@@ -105,6 +106,7 @@ def create_app(
     app.include_router(router)
     app.include_router(media_router)
     app.include_router(covers_router)
+    app.include_router(lyrics_router)
     app.include_router(social_router)
     app.include_router(ws_router)
     app.add_middleware(RequestBodyLimit)

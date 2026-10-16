@@ -19,6 +19,7 @@ from app.domain.media import Media
 from app.domain.rooms import Rooms
 from app.resources import Resources
 from app.services.covers import normalize_cover
+from app.services.lyrics import dump, parse_lyrics
 from app.services.media_jobs import MediaFailed, abort_job, read_file, submit, wait_for_result_async
 from app.services.processing import Processing
 from app.services.security import Security
@@ -186,6 +187,12 @@ async def process_with_resources(
                 track.cover_version += 1
             if title != track.title and track.cover_data is None:
                 track.cover_version += 1
+            if result.lyrics and not track.lyrics:
+                try:
+                    track.lyrics = dump(parse_lyrics(result.lyrics, "embedded"))
+                    track.lyrics_version += 1
+                except DomainError:
+                    pass  # Lyrics are optional and never fail a valid upload.
             track.title = title
             track.artist = result.artist
             track.status = "ready"

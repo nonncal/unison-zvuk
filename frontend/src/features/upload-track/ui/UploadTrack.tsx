@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileAudio, UploadCloud, X } from 'lucide-react'
 import { gateway } from '@/entities/room'
+import { lyricsApi } from '@/entities/track'
 import { errorMessage } from '@/shared/lib/errors'
 export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void }) {
   const [stage, setStage] = useState<'idle' | 'sending' | 'processing' | 'done'>('idle'),
     [progress, setProgress] = useState(0),
     [error, setError] = useState(''),
     [name, setName] = useState(''),
-    [dragging, setDragging] = useState(false)
+    [dragging, setDragging] = useState(false),
+    [lyrics, setLyrics] = useState<File | null>(null),
+    [note, setNote] = useState('')
   const controller = useRef<AbortController | null>(null),
-    input = useRef<HTMLInputElement>(null)
+    input = useRef<HTMLInputElement>(null),
+    lyricsInput = useRef<HTMLInputElement>(null)
   useEffect(() => () => controller.current?.abort(), [])
   async function upload(file?: File) {
     if (!file || stage === 'sending' || stage === 'processing') return
@@ -20,7 +24,7 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
     setProgress(0)
     setStage('sending')
     try {
-      await gateway.upload(
+      const track = await gateway.upload(
         roomId,
         file,
         (value) => {
@@ -30,6 +34,13 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
         abort.signal,
       )
       if (abort.signal.aborted) return
+      if (lyrics && gateway.mode === 'api') {
+        try {
+          await lyricsApi.save(roomId, track.id, await lyrics.text())
+        } catch (e) {
+          setNote(`Песня добавлена, но текст не сохранён. ${errorMessage(e)}`)
+        }
+      }
       setStage('done')
       onDone()
     } catch (e) {
@@ -54,6 +65,35 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
           e.target.value = ''
         }}
       />
+      {gateway.mode === 'api' && (
+        <div className="lyrics-pick">
+          <input
+            ref={lyricsInput}
+            className="visually-hidden"
+            type="file"
+            accept=".lrc,.txt,text/plain"
+            aria-label="Файл с текстом песни"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              setLyrics(file && file.size <= 128 * 1024 ? file : null)
+              setNote(file && file.size > 128 * 1024 ? 'Файл с текстом больше 128 КБ' : '')
+              e.target.value = ''
+            }}
+          />
+          <button
+            className="text-link"
+            disabled={busy}
+            onClick={() => lyricsInput.current?.click()}
+          >
+            {lyrics ? `Текст: ${lyrics.name}` : 'Добавить текст песни (.lrc или .txt)'}
+          </button>
+          {lyrics && (
+            <button className="text-link" disabled={busy} onClick={() => setLyrics(null)}>
+              Убрать
+            </button>
+          )}
+        </div>
+      )}
       <div
         className={`upload-zone ${dragging ? 'dragging' : ''}`}
         onDragOver={(e) => {
@@ -108,6 +148,11 @@ export function Upload({ roomId, onDone }: { roomId: string; onDone: () => void 
             </button>
           )}
         </div>
+      )}
+      {note && (
+        <p className="field-hint" role="status">
+          {note}
+        </p>
       )}
       {error && (
         <p className="error-message" role="alert">

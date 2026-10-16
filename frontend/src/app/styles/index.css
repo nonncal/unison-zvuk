@@ -938,3 +938,9 @@ svg {
     display: none;
   }
 }
+.lyrics-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 14px;
+}

@@ -9,6 +9,7 @@ export function normalizeTrack(track: HTTPModels['Track']): Track {
     status: track.status === 'uploading' ? 'processing' : track.status,
     mediaVersion: track.mediaVersion ?? '',
     coverUrl: track.coverUrl ?? undefined,
+    lyricsUrl: track.lyricsUrl ?? undefined,
     cover: undefined,
     source: track.licenseId ? 'catalog' : 'upload',
   }

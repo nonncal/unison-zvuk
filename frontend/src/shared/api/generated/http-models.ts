@@ -1,4 +1,4 @@
-import type { Bootstrap, CreateRoom, CreateRoomResult, PreviewInvite, PreviewResult, JoinRoom, JoinRoomResult, CloseRoom, Snapshot, InviteResult, ReserveUpload, ReserveUploadResult, CompleteUpload, CompleteUploadResult, Track, TrackList, PlaybackURL, HTTPError, RoomSettings, EditorPermission, PlayerAction, AdmissionStatus, EntryResult, WaitingList, AdmissionDecision, MyRooms, MemberAction } from './http-v1'
+import type { Bootstrap, CreateRoom, CreateRoomResult, PreviewInvite, PreviewResult, JoinRoom, JoinRoomResult, CloseRoom, Snapshot, InviteResult, ReserveUpload, ReserveUploadResult, CompleteUpload, CompleteUploadResult, Track, Lyrics, TrackList, PlaybackURL, HTTPError, RoomSettings, EditorPermission, PlayerAction, AdmissionStatus, EntryResult, WaitingList, AdmissionDecision, MyRooms, MemberAction } from './http-v1'
 
 export interface HTTPModels {
   Bootstrap: Bootstrap
@@ -16,6 +16,7 @@ export interface HTTPModels {
   CompleteUpload: CompleteUpload
   CompleteUploadResult: CompleteUploadResult
   Track: Track
+  Lyrics: Lyrics
   TrackList: TrackList
   PlaybackURL: PlaybackURL
   HTTPError: HTTPError

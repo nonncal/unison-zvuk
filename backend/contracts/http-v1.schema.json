@@ -906,6 +906,18 @@
           "default": null,
           "title": "Coverurl"
         },
+        "lyricsUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lyricsurl"
+        },
         "sourceUri": {
           "anyOf": [
             {
@@ -951,6 +963,85 @@
         "status"
       ],
       "title": "Track",
+      "type": "object"
+    },
+    "LyricLine": {
+      "additionalProperties": false,
+      "properties": {
+        "t": {
+          "maximum": 900000,
+          "minimum": 0,
+          "title": "T",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 200,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "t",
+        "text"
+      ],
+      "title": "LyricLine",
+      "type": "object"
+    },
+    "Lyrics": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "synced",
+            "plain"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "lrc",
+            "text",
+            "embedded"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LyricLine"
+              },
+              "maxItems": 600,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lines"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 20000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "kind",
+        "source"
+      ],
+      "title": "Lyrics",
       "type": "object"
     },
     "TrackList": {
@@ -1459,6 +1550,9 @@
     },
     {
       "$ref": "#/$defs/Track"
+    },
+    {
+      "$ref": "#/$defs/Lyrics"
     },
     {
       "$ref": "#/$defs/TrackList"

@@ -24,6 +24,7 @@ MODEL_TYPES: tuple[type[wire.WireModel], ...] = (
     wire.CompleteUpload,
     wire.CompleteUploadResult,
     wire.Track,
+    wire.Lyrics,
     wire.TrackList,
     wire.PlaybackURL,
     wire.HTTPError,

@@ -9,6 +9,7 @@ import { RoomSwitcher } from '@/features/switch-room'
 import { RoomSettings, WaitingRoom, ParticipantActions } from '@/features/manage-room'
 import { CreateRoomDialog } from '@/features/create-room'
 import { EditCover } from '@/features/edit-cover'
+import { SongLyrics } from '@/features/song-lyrics'
 import { audioEngine } from '@/features/listen-together'
 import { apiOrigin } from '@/shared/config'
 import { roomActions, selectRoomState } from '@/entities/room'
@@ -265,6 +266,20 @@ export function Room() {
               allowNotReady={allowNotReady}
               setAllowNotReady={setAllowNotReady}
             />
+            {gateway.mode === 'api' && (
+              <SongLyrics
+                roomId={roomId}
+                track={selected}
+                positionMs={position}
+                canEdit={canEdit}
+                onSeek={
+                  canEdit && !controlsDisabled
+                    ? (ms) => void command({ type: 'playback.seek', payload: { positionMs: ms } })
+                    : undefined
+                }
+                onChanged={reloadTracks}
+              />
+            )}
             {canEdit && (
               <div className="source-actions">
                 <button

@@ -361,12 +361,21 @@ def normalize(directory: Path, request: MediaRequest) -> MediaReady:
         raise ProcessingFailure("MEDIA_INVALID")
     tags = original.get("format", {}).get("tags", {})
     return MediaReady(
+        lyrics=embedded_lyrics(tags),
         duration_ms=duration_ms(output),
         sample_rate=sample_rate,
         title=text_metadata(tags.get("title", "")),
         artist=text_metadata(tags.get("artist", "")),
         has_cover=extract_cover(directory, streams),
     )
+
+
+def embedded_lyrics(tags: dict[str, Any]) -> str:
+    # ID3 USLT surfaces as "lyrics" or "lyrics-<language>"; MP4 stores it as the same key.
+    for key, value in tags.items():
+        if isinstance(value, str) and key.lower().startswith(("lyrics", "unsyncedlyrics")):
+            return value[:20_000]
+    return ""
 
 
 def clear_output(directory: Path) -> None:

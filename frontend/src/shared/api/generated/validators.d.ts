@@ -16,6 +16,7 @@ export const httpReserveUploadResult: ValidateFunction<unknown>
 export const httpCompleteUpload: ValidateFunction<unknown>
 export const httpCompleteUploadResult: ValidateFunction<unknown>
 export const httpTrack: ValidateFunction<unknown>
+export const httpLyrics: ValidateFunction<unknown>
 export const httpTrackList: ValidateFunction<unknown>
 export const httpPlaybackURL: ValidateFunction<unknown>
 export const httpHTTPError: ValidateFunction<unknown>

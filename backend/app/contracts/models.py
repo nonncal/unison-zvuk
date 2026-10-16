@@ -224,9 +224,22 @@ class Track(WireModel):
     error_code: StrictStr | None = None
     media_version: StrictStr | None = None
     cover_url: StrictStr | None = None
+    lyrics_url: StrictStr | None = None
     source_uri: StrictStr | None = None
     license_id: StrictStr | None = None
     license_uri: StrictStr | None = None
+
+
+class LyricLine(WireModel):
+    t: Annotated[StrictInt, Field(ge=0, le=900_000)]
+    text: Annotated[StrictStr, Field(max_length=200)]
+
+
+class Lyrics(WireModel):
+    kind: Literal["synced", "plain"]
+    source: Literal["lrc", "text", "embedded"]
+    lines: Annotated[list[LyricLine], Field(max_length=600)] | None = None
+    text: Annotated[StrictStr, Field(max_length=20_000)] | None = None
 
 
 class Bootstrap(WireModel):

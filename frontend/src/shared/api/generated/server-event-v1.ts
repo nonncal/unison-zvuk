@@ -349,6 +349,7 @@ export type Status2 = "uploading" | "processing" | "ready" | "failed";
 export type Errorcode = string | null;
 export type Mediaversion3 = string | null;
 export type Coverurl = string | null;
+export type Lyricsurl = string | null;
 export type Sourceuri = string | null;
 export type Licenseid = string | null;
 export type Licenseuri = string | null;
@@ -545,6 +546,7 @@ export interface Track {
   errorCode?: Errorcode;
   mediaVersion?: Mediaversion3;
   coverUrl?: Coverurl;
+  lyricsUrl?: Lyricsurl;
   sourceUri?: Sourceuri;
   licenseId?: Licenseid;
   licenseUri?: Licenseuri;

@@ -16,6 +16,7 @@ export type HTTPMessage =
   | CompleteUpload
   | CompleteUploadResult
   | Track
+  | Lyrics
   | TrackList
   | PlaybackURL
   | HTTPError
@@ -347,9 +348,16 @@ export type Status4 = "uploading" | "processing" | "ready" | "failed";
 export type Errorcode = string | null;
 export type Mediaversion3 = string | null;
 export type Coverurl = string | null;
+export type Lyricsurl = string | null;
 export type Sourceuri = string | null;
 export type Licenseid = string | null;
 export type Licenseuri = string | null;
+export type Kind = "synced" | "plain";
+export type Source = "lrc" | "text" | "embedded";
+export type Lines = LyricLine[] | null;
+export type T = number;
+export type Text = string;
+export type Text1 = string | null;
 export type Items = Track[];
 export type Nextcursor = string | null;
 export type Url = string;
@@ -530,9 +538,20 @@ export interface Track {
   errorCode?: Errorcode;
   mediaVersion?: Mediaversion3;
   coverUrl?: Coverurl;
+  lyricsUrl?: Lyricsurl;
   sourceUri?: Sourceuri;
   licenseId?: Licenseid;
   licenseUri?: Licenseuri;
+}
+export interface Lyrics {
+  kind: Kind;
+  source: Source;
+  lines?: Lines;
+  text?: Text1;
+}
+export interface LyricLine {
+  t: T;
+  text: Text;
 }
 export interface TrackList {
   items: Items;

@@ -5,7 +5,7 @@ from sqlalchemy import text
 from app.config import load_settings
 from app.db.models import Asset, Track
 from app.resources import Resources
-from app.services.catalog import load_catalog, read_audio
+from app.services.catalog import load_catalog, lyrics_document, read_audio
 from app.workers.audio import publish
 
 
@@ -13,6 +13,9 @@ async def seed() -> None:
     tracks = load_catalog()
     # Validate the complete bundle before publishing or changing catalog rows.
     audio_files = [await asyncio.to_thread(read_audio, track) for track in tracks]
+    lyrics = [
+        lyrics_document(entry, audio) for entry, audio in zip(tracks, audio_files, strict=True)
+    ]
     settings = load_settings()
     resources = Resources(settings)
     try:
@@ -22,7 +25,9 @@ async def seed() -> None:
             if not locked:
                 raise RuntimeError("Catalog initialization already running")
             try:
-                for entry, normalized in zip(tracks, audio_files, strict=True):
+                for entry, normalized, entry_lyrics in zip(
+                    tracks, audio_files, lyrics, strict=True
+                ):
                     key = f"catalog/v2/{entry.slug}/{entry.sha256}.mp3"
                     await asyncio.to_thread(publish, resources, key, normalized)
                     asset_id = entry.asset_id
@@ -59,6 +64,9 @@ async def seed() -> None:
                         track.source_uri = entry.source_uri
                         track.license_id = entry.license_id
                         track.license_uri = entry.license_uri
+                        if track.lyrics != entry_lyrics:
+                            track.lyrics = entry_lyrics
+                            track.lyrics_version = (track.lyrics_version or 0) + 1
             finally:
                 await owner.execute(text("SELECT pg_advisory_unlock(984105311)"))
                 await owner.commit()

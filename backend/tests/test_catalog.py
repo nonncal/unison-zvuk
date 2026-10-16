@@ -11,7 +11,7 @@ from app.db.models import Asset, Track
 from app.services.catalog import CATALOG_DIR, load_catalog, read_audio
 
 
-def test_catalog_has_six_full_recordings_and_preserves_existing_slots() -> None:
+def test_catalog_has_nine_full_recordings_and_preserves_existing_slots() -> None:
     tracks = load_catalog()
     legacy_slugs = (
         "quiet-pulse",
@@ -21,12 +21,12 @@ def test_catalog_has_six_full_recordings_and_preserves_existing_slots() -> None:
         "warm-air",
         "slow-tide",
     )
-    assert len(tracks) == 6
-    assert {track.id for track in tracks} == {
-        uuid5(NAMESPACE_URL, f"unison:catalog:v1:{slug}") for slug in legacy_slugs
+    assert len(tracks) == 9
+    assert {uuid5(NAMESPACE_URL, f"unison:catalog:v1:{slug}") for slug in legacy_slugs} <= {
+        track.id for track in tracks
     }
     for track in tracks:
-        assert track.duration_ms > 120000
+        assert track.duration_ms > 30000
         assert track.source_revision_uri.startswith("https://commons.wikimedia.org/")
         assert track.performer and track.recording_rights
         assert read_audio(track).startswith(b"ID3")
@@ -93,7 +93,7 @@ async def test_seed_replaces_ready_synthesis_and_is_repeatable(
     await init_catalog.seed()
     await init_catalog.seed()
 
-    assert len(records) == 12  # Six original slots, six immutable audio assets.
+    assert len(records) == 18  # Nine slots, nine immutable audio assets.
     for entry in entries:
         track = records[(Track, entry.id)]
         assert isinstance(track, Track)
@@ -102,4 +102,4 @@ async def test_seed_replaces_ready_synthesis_and_is_repeatable(
         assert track.duration_ms == entry.duration_ms
         assert track.source_uri == entry.source_uri
         assert track.license_id == entry.license_id
-    assert publisher.call_count == 12
+    assert publisher.call_count == 18

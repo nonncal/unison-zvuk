@@ -16,14 +16,16 @@ class RequestBodyLimit:
         if scope["type"] != "http" or scope["method"] in {"GET", "HEAD", "OPTIONS"}:
             await self.app(scope, receive, send)
             return
-        max_bytes = (
-            5 * 1024 * 1024
-            if scope["method"] == "PUT"
-            and re.fullmatch(
+        max_bytes = self.max_bytes
+        if scope["method"] == "PUT":
+            if re.fullmatch(
                 r"/api/v1/rooms/[0-9a-f-]{36}/tracks/[0-9a-f-]{36}/cover", scope["path"]
-            )
-            else self.max_bytes
-        )
+            ):
+                max_bytes = 5 * 1024 * 1024
+            elif re.fullmatch(
+                r"/api/v1/rooms/[0-9a-f-]{36}/tracks/[0-9a-f-]{36}/lyrics", scope["path"]
+            ):
+                max_bytes = 131_072
         body = bytearray()
         deadline = time.monotonic() + 10
         while True:

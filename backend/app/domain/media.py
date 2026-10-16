@@ -40,6 +40,9 @@ class Media:
                 "title": track.title,
                 "artist": track.artist,
                 "cover_url": f"tracks/{track.id}/cover?v={track.cover_version}",
+                "lyrics_url": (
+                    f"tracks/{track.id}/lyrics?v={track.lyrics_version}" if track.lyrics else None
+                ),
                 "duration_ms": track.duration_ms,
                 "status": track.status,
                 "error_code": track.error_code,

@@ -1248,6 +1248,18 @@
           "default": null,
           "title": "Coverurl"
         },
+        "lyricsUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lyricsurl"
+        },
         "sourceUri": {
           "anyOf": [
             {
