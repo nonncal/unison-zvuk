@@ -18,4 +18,5 @@ echo "Deploying $(git rev-parse --short HEAD): $(git log -1 --format=%s)"
 
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" up --build -d --wait
-curl --fail --silent --show-error "$(grep -E '^APP_ORIGIN=' "$RUNTIME/compose.env" | cut -d= -f2-)/health/ready" && echo
+ORIGIN="$(grep -E '^APP_ORIGIN=' "$RUNTIME/compose.env" | cut -d= -f2- | tr -d "'\"")"
+curl --fail --silent --show-error "$ORIGIN/health/ready" && echo
