@@ -48,6 +48,24 @@ jobs:
         run: |
           python3 infra/configure.py --output "$RUNNER_TEMP/unison-runtime"
           echo "UNISON_ENV_FILE=$RUNNER_TEMP/unison-runtime/compose.env" >> "$GITHUB_ENV"
+      - name: Allow the transcoder sandbox to create user namespaces
+        # Ubuntu 24.04 runners restrict unprivileged user namespaces, which bubblewrap needs.
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Pull service images
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        # Shared runners hit Docker Hub's anonymous pull limit now and then: log in when
+        # credentials exist and retry with a growing pause.
+        run: |
+          if [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          fi
+          for attempt in 1 2 3 4 5; do
+            docker compose --env-file "$UNISON_ENV_FILE" pull --ignore-buildable && exit 0
+            sleep $((attempt * 20))
+          done
+          exit 1
       - name: Start integration services
         run: |
           docker compose --env-file "$UNISON_ENV_FILE" up --build -d --wait
@@ -70,6 +88,12 @@ jobs:
           UNISON_DATABASE_CONTAINER: unison-ci-postgres-1
           UNISON_STORAGE_CONTAINER: unison-ci-storage-1
         run: uv run pytest -q tests/system --tb=short --show-capture=no
+      - name: Explain a sandbox failure
+        if: failure()
+        run: |
+          sysctl kernel.apparmor_restrict_unprivileged_userns || true
+          docker logs --tail 40 unison-ci-transcoder-1 || true
+          docker exec unison-ci-transcoder-1 /usr/bin/bwrap --unshare-user --unshare-pid --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /etc /etc --dev /dev /usr/bin/true || true
       - name: Check frontend and shared contracts
         working-directory: frontend
         run: |
