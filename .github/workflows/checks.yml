@@ -91,9 +91,13 @@ jobs:
       - name: Explain a sandbox failure
         if: failure()
         run: |
-          sysctl kernel.apparmor_restrict_unprivileged_userns || true
-          docker logs --tail 40 unison-ci-transcoder-1 || true
-          docker exec unison-ci-transcoder-1 /usr/bin/bwrap --unshare-user --unshare-pid --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /etc /etc --dev /dev /usr/bin/true || true
+          IMG=$(docker inspect -f '{{.Config.Image}}' unison-ci-transcoder-1)
+          BW="/usr/bin/bwrap --unshare-user --unshare-pid --ro-bind /usr /usr --ro-bind /lib /lib --ro-bind /etc /etc --dev /dev /usr/bin/true"
+          echo "image=$IMG"
+          docker exec unison-ci-transcoder-1 sh -c 'id; grep -E "Cap(Eff|Bnd)|Seccomp|NoNewPrivs" /proc/self/status; ls -ld /dev /dev/null; mount | grep -E " / | /dev " | head -5; cat /proc/sys/user/max_user_namespaces' || true
+          echo "--- as configured"; docker exec unison-ci-transcoder-1 $BW || true
+          echo "--- no seccomp profile"; docker run --rm --cap-drop ALL --security-opt apparmor=unconfined --security-opt seccomp=unconfined --read-only "$IMG" $BW || true
+          echo "--- no seccomp, no no-new-privileges, default caps"; docker run --rm --security-opt apparmor=unconfined --security-opt seccomp=unconfined --read-only "$IMG" $BW || true
       - name: Check frontend and shared contracts
         working-directory: frontend
         run: |
