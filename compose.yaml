@@ -105,6 +105,9 @@ services:
     security_opt:
       - no-new-privileges:true
       - seccomp=./infra/transcoder/seccomp.json
+      # docker-default AppArmor forbids the mounts bubblewrap needs on Ubuntu hosts; the
+      # sandbox is still confined by seccomp, no network, dropped capabilities and rlimits.
+      - apparmor=unconfined
     volumes: ["jobs-data:/jobs"]
     tmpfs: ["/tmp:size=16m,mode=1777"]
     mem_limit: 768m

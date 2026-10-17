@@ -54,4 +54,4 @@ cd backend && uv run ruff check . && uv run mypy app tests && uv run pytest
 cd frontend && npm run architecture:check && npm run lint && npm run test && npm run build
 ```
 
-GitHub Actions выполняет те же проверки, поднимает сервисы для интеграционных тестов и гоняет браузерные сценарии.
+
