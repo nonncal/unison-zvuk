@@ -51,6 +51,11 @@ jobs:
       - name: Allow the transcoder sandbox to create user namespaces
         # Ubuntu 24.04 runners restrict unprivileged user namespaces, which bubblewrap needs.
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Use a registry mirror for Docker Hub images
+        # Shared runners often exhaust Docker Hub's anonymous pull quota; Google's mirror serves the same images.
+        run: |
+          echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
       - name: Pull service images
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
