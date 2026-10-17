@@ -101,8 +101,19 @@ jobs:
           echo "image=$IMG"
           docker exec unison-ci-transcoder-1 sh -c 'id; grep -E "Cap(Eff|Bnd)|Seccomp|NoNewPrivs" /proc/self/status; ls -ld /dev /dev/null; mount | grep -E " / | /dev " | head -5; cat /proc/sys/user/max_user_namespaces' || true
           echo "--- as configured"; docker exec unison-ci-transcoder-1 $BW || true
-          echo "--- no seccomp profile"; docker run --rm --cap-drop ALL --security-opt apparmor=unconfined --security-opt seccomp=unconfined --read-only "$IMG" $BW || true
-          echo "--- no seccomp, no no-new-privileges, default caps"; docker run --rm --security-opt apparmor=unconfined --security-opt seccomp=unconfined --read-only "$IMG" $BW || true
+          echo "--- which syscalls does the profile deny?"
+          python3 - <<'PY'
+          import json
+          d = json.load(open("infra/transcoder/seccomp.json"))
+          d["defaultAction"] = "SCMP_ACT_LOG"
+          d.pop("defaultErrnoRet", None)
+          json.dump(d, open("/tmp/seccomp-log.json", "w"))
+          PY
+          sudo dmesg -C || true
+          docker run --rm --cap-drop ALL --security-opt apparmor=unconfined --security-opt seccomp=/tmp/seccomp-log.json --read-only "$IMG" $BW || true
+          sudo apt-get install -y -q auditd >/dev/null 2>&1 || true
+          for n in $(sudo dmesg | grep -o 'syscall=[0-9]*' | sort -u | cut -d= -f2); do echo "denied syscall $n = $(ausyscall x86_64 $n 2>/dev/null)"; done
+          sudo dmesg | grep -i seccomp | tail -5 | cut -c1-200 || true
       - name: Check frontend and shared contracts
         working-directory: frontend
         run: |
