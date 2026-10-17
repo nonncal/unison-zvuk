@@ -54,7 +54,7 @@ docker compose --env-file ../unison-runtime/docker/compose.env \
 
 - Продукт и разработка: [требования](docs/01-PRODUCT.md), [архитектура](docs/02-ARCHITECTURE.md), [HTTP и WebSocket](docs/03-API-WS.md), [frontend flow](docs/04-FRONTEND-FLOW.md), [backend flow](docs/05-BACKEND-FLOW.md), [дизайн](docs/06-DESIGN.md), [истории](docs/07-EPICS-STORIES.md), [QA и выпуск](docs/08-QA-RELEASE.md).
 - Реализация: [возможности и ограничения](docs/POST-MVP.md), [архитектура фронтенда](docs/FRONTEND-ARCHITECTURE.md), [текст песен](docs/KARAOKE.md), [Safari](docs/SAFARI-AUDIO-QA.md).
-- Для хакатона: [аудит](docs/AUDIT.md), [замер синхронизации](docs/SYNC-BENCHMARK.md), [сценарий демо](docs/DEMO-SCRIPT.md).
+- Для хакатона: [аудит](docs/AUDIT.md), [замер синхронизации](docs/SYNC-BENCHMARK.md), [сценарий демо](docs/DEMO-SCRIPT.md), [текст защиты и вопросы жюри](docs/DEFENSE.md).
 - Работа с кодом и коммиты: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Проверки
