@@ -18,7 +18,7 @@ Compose-файлы в корне: `compose.yaml` (сервисы), `compose.app.
 
 ## Запуск
 
-См. [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md): локальный запуск в контейнерах, HTTPS на сервере, мониторинг, резервные копии и восстановление.
+См. docs/DEPLOYMENT.md: локальный запуск в контейнерах, HTTPS на сервере, мониторинг, резервные копии и восстановление.
 
 ```bash
 python3 infra/configure.py --output ../unison-runtime/docker

@@ -49,7 +49,7 @@ UNISON_ENV_FILE=../../unison-runtime/local.env uv run uvicorn app.main:create_ap
 | Старое доброе время (Auld Lang Syne), Bautsch | `lyrics/auld-lang-syne-bautsch.txt` без таймкодов | [CC0](https://commons.wikimedia.org/wiki/File:AuldLangSyne.ogg) |
 | Amazing Grace, Southern Aire (оркестр ВВС США) | текст с таймкодами в теге MP3 (`USLT`) | [Public domain](https://commons.wikimedia.org/wiki/File:Amazing_Grace_(vocalist_with_guitar)_-_Southern_Aire_-_United_States_Air_Force_Reserve_Band.mp3) |
 
-Тайминги «Тихой ночи» и Amazing Grace построены по этим записям распознаванием речи и паузами; третий куплет «Тихой ночи» выровнен по шагу припева и на слух не сверен. Как устроен текст песен: [docs/KARAOKE.md](../docs/KARAOKE.md).
+Тайминги «Тихой ночи» и Amazing Grace построены по этим записям распознаванием речи и паузами; третий куплет «Тихой ночи» выровнен по шагу припева и на слух не сверен. Как устроен текст песен: docs/KARAOKE.md.
 
 Записи перекодированы в MP3 192 кбит/с, 44,1 кГц, `loudnorm`. Для первых пяти записей `sourceDownloadUri` указывает на исходник; для Баха использована полная общедоступная версия со страницы исполнителя. `LicenseRef-Public-Domain` в манифесте означает передачу записи в общественное достояние, а не CC0. Все композиторы и авторы текстов умерли до 1926 года. Фронтенд копирует аудио и метаданные для деморежима командой `npm run audio:generate`.
 
@@ -86,4 +86,4 @@ cd ../frontend && npm run contracts:generate && npm run contracts:check && npm r
 uv run python -m benchmarks.load --base-url http://localhost:PORT --rooms 100 --seconds 1800 --project unison-load --report ../../unison-runtime/load/result.json
 ```
 
-Сценарий открывает 200 WebSocket, выполняет clock probes, heartbeat, play/pause/seek и параллельную загрузку. Он измеряет сервер и транспорт; слышимую синхронизацию проверяйте на независимых устройствах (см. [docs/SYNC-BENCHMARK.md](../docs/SYNC-BENCHMARK.md)).
+Сценарий открывает 200 WebSocket, выполняет clock probes, heartbeat, play/pause/seek и параллельную загрузку. Он измеряет сервер и транспорт; слышимую синхронизацию проверяйте на независимых устройствах (см. docs/SYNC-BENCHMARK.md).
